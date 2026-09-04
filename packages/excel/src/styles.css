@@ -1,0 +1,33 @@
+/* 组件库样式入口：随包发布为 dist/styles.css，宿主手动引入一次即可。
+   页面级全局样式（html/body 字体、高度等）不属于组件库，由宿主自行提供。 */
+@import "tailwindcss";
+
+/* Univer 编辑器容器占满父级 */
+#univer-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* 筛选弹窗打开动画：面板挂载时自上而下淡入（配合面板位于筛选列下方的定位） */
+@keyframes filter-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-u-comp='sheets-filter-panel'] {
+  animation: filter-panel-in 0.16s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-origin: top left;
+}
+
+/* 快捷键弹窗：独立样式，避免被工具栏 myfsheet.css 的 ul/li 规则污染 */
+.shortcuts-dialog__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}

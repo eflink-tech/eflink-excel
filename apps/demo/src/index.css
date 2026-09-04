@@ -1,0 +1,14 @@
+/* demo 应用全局样式：页面级设置由宿主应用负责（组件库样式见 @eflink-tech/excel/styles.css） */
+@import "tailwindcss";
+
+/* 组件库内部布局用到 Tailwind 工具类，必须显式扫描其源码，否则类不会生成 */
+@source "../../../packages/excel/src";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+}

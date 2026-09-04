@@ -1,0 +1,51 @@
+# 基于 Changesets 的自动发版：合入 main 后自动创建 Version PR；合并/手动触发后发布 npm。
+# 需要在仓库 Secrets 中配置 NPM_TOKEN（npm 上 @eflink-tech 组织的 Automation token）。
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: Changesets 版本与发布
+        if: ${{ env.NPM_TOKEN != '' }}
+        uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          publish: pnpm release
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 跳过发布（未配置 NPM_TOKEN）
+        if: ${{ env.NPM_TOKEN == '' }}
+        run: echo "::notice::未配置 NPM_TOKEN secret，已跳过发布。请到 Settings → Secrets and variables → Actions 配置后重跑。"

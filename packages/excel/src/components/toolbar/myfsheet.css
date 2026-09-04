@@ -1,0 +1,964 @@
+/*
+ * myf-sheet-demo 工具栏样式移植（myfsheet.css 的工具栏 + 面板 + 图标部分）。
+ * 图标的 SVG data URI 与 demo 一字未改；仅有意调整处均以「与 demo 差异」注明。
+ */
+
+/*---------------------------工具栏-----------------------*/
+
+/* 与 demo 差异：demo 容器是 #01AAED 蓝底 + 2px 内边距（demo 调试样式），此处白底通栏 */
+.myf-sheet-tools {
+    height: 35px;
+    background-color: #fff;
+    width: 100%;
+    line-height: 28px;
+    text-align: center;
+    padding: 0;
+    position: relative;
+}
+
+/* 与 demo 差异：去掉 overflow:hidden（下拉面板挂在 li 内，需可溢出；溢出收纳由「更多」按钮管理），
+   工具项在行内居中显示 */
+.myf-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+}
+
+.myf-toolbar li {
+    flex-shrink: 0; /* 工具项固定宽度 */
+    padding: 5px;
+    position: relative; /* 作为下拉面板的定位锚点 */
+}
+
+.myf-hidden-tools {
+    height: 35px;
+    position: absolute;
+    top: 100%;
+    right: 2px;
+    background-color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    padding: 2px;
+}
+
+.myf-hidden-tools ul {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* 隐藏的测量行：与工具行同构，用于计算溢出收纳位置；不参与交互 */
+.myf-measure {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 0 !important;
+    min-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+    margin: 0;
+    border: none;
+}
+
+.myf-sheet-tools ul {
+    display: flex;
+    background-color: white;
+    padding: 0;
+    margin: 0;
+    align-items: center; /* 垂直居中 */
+    height: 35px; /* 统一工具栏高度 */
+}
+
+.myf-sheet-tools ul li {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+}
+
+.myf-sheet-tools ul li a {
+    height: 25px;
+    vertical-align: middle;
+    line-height: 25px;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: content-box;
+    padding: 0 3px;
+    text-align: center;
+    font-weight: normal;
+    outline: none;
+    list-style: none;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-flex; /* 改为 inline-flex */
+    align-items: center; /* 垂直居中对齐 */
+    justify-content: center;
+    background: white;
+    color: #2b2b2b;
+    border-radius: 2px;
+    margin: 0 2px;
+    cursor: pointer;
+}
+
+.myf-sheet-tools ul li a:hover {
+    background-color: #e8e8e8;
+}
+.myf-sheet-tools ul li a.active{
+    background-color: #e8e8e8;
+}
+
+.myf-sheet-tools ul li .myf-split {
+    padding: 0;
+    margin: 0 8px; /* 给分割线左右加间距 */
+}
+
+.myf-sheet-tools ul li a.disabled {
+    cursor: default;
+}
+
+.myf-sheet-tools ul li a.disabled:hover {
+    background-color: #ededed;
+}
+
+.myf-sheet-tools ul li a.disabled .myf-icon {
+    opacity: 0.3; /* 背景图片半透明 */
+}
+
+.myf-sheet-tools ul .myf-split-line {
+    width: 1px;
+    height: 15px; /* 分割线高度 */
+    background-color: #888888;
+    display: block;
+    margin: auto; /* 垂直居中 */
+}
+
+.myf-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    vertical-align: middle;
+}
+
+.myf-icon-text {
+    display: inline-block;
+    font-size: 12px; /* 确保字体大小一致 */
+    line-height: normal; /* 避免被外层 line-height 覆盖 */
+    min-width: 22px;
+}
+
+.myf-icon-undo {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNOCA4LjI1aDZjMi43NjEgMCA1IDEuOTg5IDUgNC43NWE1IDUgMCAwIDEtNSA1SDciIHN0cm9rZT0iIzQ2NEQ1QSIgc3Ryb2tlLXdpZHRoPSIxLjI1Ii8+PHBhdGggZD0iTTkgNS4zNzJWMTAuOWEuMi4yIDAgMCAxLS4zMDEuMTczTDQuMjc2IDguNDc0YS4yLjIgMCAwIDEtLjAwOS0uMzM5bDQuNDIzLTIuOTNhLjIuMiAwIDAgMSAuMzEuMTY4WiIgZmlsbD0iIzQ2NEQ1QSIvPjwvZz48L3N2Zz4=);
+}
+
+.myf-icon-redo {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTYgOC4yNWgtNmMtMi43NjEgMC01IDEuOTg5LTUgNC43NWE1IDUgMCAwIDAgNSA1aDciIHN0cm9rZT0iIzQ2NEQ1QSIgc3Ryb2tlLXdpZHRoPSIxLjI1Ii8+PHBhdGggZD0iTTE1IDUuMzcyVjEwLjlhLjIuMiAwIDAgMCAuMzAxLjE3M2w0LjQyMy0yLjU5OWEuMi4yIDAgMCAwIC4wMDktLjMzOWwtNC40MjMtMi45M2EuMi4yIDAgMCAwLS4zMS4xNjhaIiBmaWxsPSIjNDY0RDVBIi8+PC9nPjwvc3ZnPg==);
+}
+
+.myf-icon-match-prop {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEzLjUgMTR2NC4wNzhMMTAuNSAyMHYtNmgzWm01LTlhLjUuNSAwIDAgMSAuNS41djVhLjUuNSAwIDAgMS0uNS41aC00LjIzMWwtMS41MTkgMS40ODhWMTRIMTEuNXYtMmwuMDA3LS4wMDFMMTIuNTI1IDExSDUuNWEuNS41IDAgMCAxLS41LS41di01YS41LjUgMCAwIDEgLjUtLjVoMTNabS0uNzUgMS4yNUg2LjI1djMuNWgxMS41di0zLjVaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-clear-format {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNNSAxOC4yNWgxNHYxLjI1SDV6Ii8+PHBhdGggZD0ibTEzLjM1MyA0Ljk3NCA1LjQgNS40Yy4xNjYuMTY2LjE4LjQyNy4wNDUuNjJsLS4wNTguMDY4TDEyLjgwMSAxN2gtMS42ODlsMi45MzEtMi45My00LjM4Ny00LjM4Ny00LjAyOCA0LjAyN0w4LjkxOCAxN0g3LjE2NmwtMi45MTktMi45MmEuNDg3LjQ4NyAwIDAgMSAuMDEzLS42ODdsOC40MDUtOC40MDZhLjQ4Ny40ODcgMCAwIDEgLjY4OC0uMDEzWiIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTcgMTUuNzVoNkwxMiAxN0g4eiIvPjwvZz48L3N2Zz4=);
+}
+
+.myf-icon-add {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzIDMpIj48Y2lyY2xlIHN0cm9rZT0iIzQ2NEQ1QSIgc3Ryb2tlLXdpZHRoPSIxLjI1IiBjeD0iOSIgY3k9IjkiIHI9IjguMzc1Ii8+PHBhdGggZmlsbD0iIzQ0NEQ1QiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNOS42MSA1djMuMzY5TDEzIDguMzd2MS4yNWwtMy4zOS0uMDAxVjEzSDguMzZWOS42MTlMNSA5LjYyVjguMzdsMy4zNi0uMDAxVjV6Ii8+PC9nPjxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjIiLz48cGF0aCBkPSJNMTIgM2E5IDkgMCAxIDEgMCAxOCA5IDkgMCAwIDEgMC0xOFptMCAxLjI1YTcuNzUgNy43NSAwIDEgMCAwIDE1LjUgNy43NSA3Ljc1IDAgMCAwIDAtMTUuNVpNMTIuNjEgOHYzLjM2OWwzLjM5LjAwMXYxLjI1bC0zLjM5LS4wMDFWMTZoLTEuMjV2LTMuMzgxTDggMTIuNjJ2LTEuMjVsMy4zNi0uMDAxVjhoMS4yNVoiIGZpbGw9IiM0NjRENUEiIGZpbGwtcnVsZT0ibm9uemVybyIvPjwvZz48L3N2Zz4=);
+}
+
+.myf-icon-bold {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPSIjNDY0RDVBIiBzdHJva2Utd2lkdGg9IjEuMyIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTIuNSA2LjE1SDcuNjV2NS43aDQuODVjLjc4NyAwIDEuNS0uMzE5IDIuMDE1LS44MzVBMi44NDEgMi44NDEgMCAwIDAgMTUuMzUgOWMwLS43ODctLjMxOS0xLjUtLjgzNS0yLjAxNUEyLjg0MSAyLjg0MSAwIDAgMCAxMi41IDYuMTVaTTEzLjI1IDExLjloLTUuNnY2LjJoNS42YTMuMDkgMy4wOSAwIDAgMCAyLjE5Mi0uOTA4QTMuMDkgMy4wOSAwIDAgMCAxNi4zNSAxNWEzLjA5IDMuMDkgMCAwIDAtLjkwOC0yLjE5MiAzLjA5IDMuMDkgMCAwIDAtMi4xOTItLjkwOFoiLz48L2c+PC9zdmc+);
+}
+
+.myf-icon-italic {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTMgNmgxLjVsLTQgMTJIOXoiLz48cGF0aCBkPSJNMTAuNjI1IDUuNzVoNS4yNWEuNjI1LjYyNSAwIDEgMSAwIDEuMjVoLTUuMjVhLjYyNS42MjUgMCAxIDEgMC0xLjI1Wk03LjEyNSAxN2g1Ljc1YS42MjUuNjI1IDAgMSAxIDAgMS4yNWgtNS43NWEuNjI1LjYyNSAwIDEgMSAwLTEuMjVaIi8+PC9nPjwvc3ZnPg==);
+}
+
+.myf-icon-underline {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE4IDE4LjN2MS4zSDV2LTEuM2gxM1pNOC40IDV2Ny41YTMuMSAzLjEgMCAwIDAgMi45MjQgMy4wOTVsLjE3Ni4wMDVhMy4xIDMuMSAwIDAgMCAzLjA5NS0yLjkyNGwuMDA1LS4xNzZWNUgxNnY3LjVhNC41IDQuNSAwIDEgMS05IDBWNWgxLjRaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-delete {
+    width: 17px;
+    height: 17px;
+    margin-top: -3px;
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBpZD0idG9vbGJhcl90ZXh0X2RlbGV0ZWxpbmUiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnPjxnPjxnIGlkPSJXZC0xNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNSA1KSIgZmlsbD0iIzQ2NEQ1QSI+PHBhdGggZD0iTTExLjY5MiA4LjkzMnEwLjM3MiAwLjMwNiAwLjY3OSAwLjY4MmEzLjkzNiAzLjkzNiAwIDAgMSAwLjgyMyAyLjY0IDQuMzIgNC4zMiAwIDAgMSAtMC42NTQgMi4zMjggNC40NCA0LjQ0IDAgMCAxIC0xLjg1NCAxLjYyMkE2LjMxMiA2LjMxMiAwIDAgMSA3Ljg3NiAxNi44YTcuMiA3LjIgMCAwIDEgLTMuMDUzIC0wLjY0NEE3LjQ0IDcuNDQgMCAwIDEgMi40IDE0LjM4M2wxLjA5MSAtMS4yNGMwLjU2NiAwLjYzNiAxLjI1IDEuMTU0IDIuMDEgMS41MjRhNS41MiA1LjUyIDAgMCAwIDIuNDI0IDAuNTU4IDMuOTYgMy45NiAwIDAgMCAyLjU1NiAtMC43NjggMi43ODQgMi43ODQgMCAwIDAgMC42MDUgLTMuNDA4IDIuNTIgMi41MiAwIDAgMCAtMC44NzEgLTAuODY2IDE1LjYgMTUuNiAwIDAgMCAtMS41MDIgLTAuNzY4bC0xLjA2NyAtMC40ODR6TTguMDU4IDBhNi4yODggNi4yODggMCAwIDEgNC42MDMgMS45OTRsLTAuOTcgMS4xNjRhNC45OCA0Ljk4IDAgMCAwIC0zLjYzNCAtMS41NDggMy40MzIgMy40MzIgMCAwIDAgLTIuMjE4IDAuNzMyYy0wLjU1MiAwLjQzNyAtMC44NjggMS4xMTggLTAuODQ4IDEuODMyIC0wLjAwNyAwLjQ0NSAwLjEyOCAwLjg4MSAwLjM4OCAxLjIzOCAwLjI0MSAwLjMzNCAwLjU0NiAwLjYxMiAwLjg5OCAwLjgxOCAwLjMzOCAwLjIyMyAwLjc4NyAwLjQyIDEuMzY4IDAuNjgybDAuMDg4IDAuMDM4SDQuMjc2YTMuNTY0IDMuNTY0IDAgMCAxIC0xLjA2MyAtMi43MjggMy45NiAzLjk2IDAgMCAxIDAuNjE3IC0yLjE4YzAuNDU2IC0wLjY2IDEuMDggLTEuMTc4IDEuODA1IC0xLjQ5OUE1LjUyIDUuNTIgMCAwIDEgOC4wNTggMCIvPjxwYXRoIHg9IjAiIHk9IjciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxLjI1IiBkPSJNMCA4LjRIMTYuOFY5LjlIMFY4LjR6Ii8+PC9nPjwvZz48L2c+PC9nPjwvc3ZnPg==);
+}
+
+.myf-icon-fontcolor {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTMuMDc1IDUuNSAxOCAxOWgtMS40OTJMMTIgNi42NCA3LjQ5MSAxOUg2bDQuOTIzLTEzLjVoMi4xNTJaIi8+PHBhdGggZD0iTTcuOTY2IDEzLjdoOFYxNWgtOHoiLz48L2c+PC9zdmc+);
+}
+
+.myf-icon-more {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjRweCIgaGVpZ2h0PSIyNHB4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBpZD0i6KeG6KeJIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBpZD0iMDNf6K+E6K66X+ivhOiuuuW9kuahoyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI0My4wMDAwMDAsIC0xOTUuMDAwMDAwKSI+PGcgaWQ9Iue8lue7hCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjQzLjAwMDAwMCwgMTk1LjAwMDAwMCkiPjxyZWN0IGlkPSJiZyIgeD0iMCIgeT0iMCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iMiI+PC9yZWN0PjxwYXRoIGQ9Ik03LDExIEw3LDEzIEw1LDEzIEw1LDExIEw3LDExIFogTTEzLDExIEwxMywxMyBMMTEsMTMgTDExLDExIEwxMywxMSBaIE0xOSwxMSBMMTksMTMgTDE3LDEzIEwxNywxMSBMMTksMTEgWiIgaWQ9IuW9oueKtue7k+WQiCIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJub256ZXJvIj48L3BhdGg+PC9nPjwvZz48L2c+PC9zdmc+);
+}
+
+.myf-icon-fill-color {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJtMTkuNzUgMTMgMS4wODUgMmMuMjIuNDEuMjIuOTEyLS4wMDIgMS4zMjItLjIyMi40MS0uNjMzLjY2Ny0xLjA4My42NzhhMS4yNzIgMS4yNzIgMCAwIDEtMS4wODMtLjY3OEExLjM5NyAxLjM5NyAwIDAgMSAxOC42NjUgMTVsMS4wODUtMloiLz48cGF0aCBkPSJNMTguODU4IDExLjMxNGMuMTkuMTkuMTkuNDk3IDAgLjY4NkwxMiAxOC44NThhLjQ4NS40ODUgMCAwIDEtLjY4NiAwbC02LjE3Mi02LjE3MmEuNDg1LjQ4NSAwIDAgMSAwLS42ODZMMTIgNS4xNDJjLjE5LS4xOS40OTYtLjE5LjY4NiAwbDYuMTcyIDYuMTcyWm0tMS40NC4zNDMtNS4wNzUtNS4wNzUtNS43NiA1Ljc2IDUuMDc0IDUuMDc2IDUuNzYtNS43NloiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Im02IDEzIDUuNjU5IDQuOTcxTDE3LjExNiAxM3oiLz48L2c+PC9zdmc+);
+    display: inline-block !important;
+}
+
+.myf-icon-cell-border-all {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBvcGFjaXR5PSIuMDYiIGQ9Ik0wIDBoMjR2MjRIMHoiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1IDUpIj48cGF0aCBmaWxsPSIjNDY0RDVBIiBkPSJNNyAxaDEuMnYxM0g3eiIvPjxyZWN0IHN0cm9rZT0iIzQ2NEQ1QSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHg9Ii42IiB5PSIuNiIgd2lkdGg9IjEzLjgiIGhlaWdodD0iMTMuOCIgcng9Ii41Ii8+PHBhdGggZmlsbD0iIzQ2NEQ1QSIgZD0iTTE0IDd2MS4ySDFWN3oiLz48L2c+PC9nPjwvc3ZnPg==);
+}
+
+.icon-paragraph-align-left {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5IDE2LjZWMThINXYtMS40aDE0Wm0tNi01LjN2MS40SDV2LTEuNGg4Wk0xOSA2djEuNEg1VjZoMTRaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.icon-paragraph-align-center {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5IDE2LjZWMThINXYtMS40aDE0Wm0tMy01LjN2MS40SDh2LTEuNGg4Wk0xOSA2djEuNEg1VjZoMTRaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-paragraph-align-right {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5IDE2LjZWMThINXYtMS40aDE0Wm0wLTUuM3YxLjRoLTh2LTEuNGg4Wk0xOSA2djEuNEg1VjZoMTRaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-paragraph-top {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTEyIDguNjUgMyA0aC0yLjM3VjE5aC0xLjI1di02LjM1SDlsMy00Wm03LTMuMjV2MS40SDVWNS40aDE0WiIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+);
+}
+
+.myf-icon-paragraph-middle {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTEyIDE0IDIuNSAzaC0xLjg3djNoLTEuMjV2LTNIOS41bDIuNS0zWm03LjUtMi43djEuNGgtMTV2LTEuNGgxNVpNMTIuNjMgNGwtLjAwMSAyLjk5OUwxNC41IDcgMTIgMTAgOS41IDdsMS44NzktLjAwMUwxMS4zOCA0aDEuMjVaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-paragraph-bottom {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTEyIDE1Ljc1IDMtNGgtMi4zN1Y1LjRoLTEuMjV2Ni4zNUg5bDMgNFpNMTkgMTl2LTEuNEg1VjE5aDE0WiIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+);
+}
+
+.myf-icon-merge-cells {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEwLjUgNWEuNS41IDAgMCAxIC41LjV2NEg5LjY5OUw5LjcgNi4zSDV2MTIuNGg0LjdsLS4wMDEtMy4ySDExdjRhLjUuNSAwIDAgMS0uNS41SDQuMmEuNS41IDAgMCAxLS41LS41di0xNGEuNS41IDAgMCAxIC41LS41aDYuM1ptOC4zIDBhLjUuNSAwIDAgMSAuNDkyLjQxbC4wMDguMDl2MTRhLjUuNSAwIDAgMS0uNDEuNDkyTDE4LjggMjBoLTYuM2EuNS41IDAgMCAxLS40OTItLjQxTDEyIDE5LjV2LTRoMS4zMDFsLS4wMDEgMy4ySDE4VjYuM2gtNC43bC4wMDEgMy4ySDEydi00YS41LjUgMCAwIDEgLjQxLS40OTJMMTIuNSA1aDYuM1pNOC41IDEwLjVsMi41IDEuOTc1di4wNUw4LjUgMTQuNVYxM0g2LjI1di0xSDguNXYtMS41Wm02IDBWMTJoMi4yNXYxSDE0LjV2MS41TDEyIDEyLjUyNXYtLjA1bDIuNS0xLjk3NVoiIGZpbGw9IiM0NjRENUEiIGZpbGwtcnVsZT0ibm9uemVybyIvPjwvc3ZnPg==);
+}
+
+.myf-icon-freeze {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTguNSA1YS41LjUgMCAwIDEgLjUuNXYxM2EuNS41IDAgMCAxLS41LjVoLTEzYS41LjUgMCAwIDEtLjUtLjV2LTEzYS41LjUgMCAwIDEgLjUtLjVoMTNaTTYuMjUgMTcuNzVoNS4xMDl2LTUuMTI1SDYuMjV2NS4xMjVabTExLjUtNS4xMjVoLTUuMTQxdjUuMTI1aDUuMTQxdi01LjEyNVptMC0xLjI1VjYuMjVoLTUuMTQxdjUuMTI1aDUuMTQxWk0xMS4zNTkgNi4yNUg2LjI1djUuMTI1aDUuMTA5VjYuMjVaIiBmaWxsPSIjNDY0RDVBIi8+PHBhdGggc3Ryb2tlPSIjNDY0RDVBIiBkPSJNNiAxOCAxOCA2TTYgMTJsNi4wMTUtNiIvPjwvZz48L3N2Zz4=);
+}
+
+.myf-icon-add-function {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTkuMjI1IDcgNS42NzYgNC42MTJhLjUuNSAwIDAgMSAwIC43NzZMOS4yMjQgMTdIMTl2MS41SDYuNDA4YS41LjUgMCAwIDEtLjMxNS0uODg4TDEzIDEyIDYuMDkzIDYuMzg4YS41LjUgMCAwIDEgLjMxNS0uODg4SDE5VjdIOS4yMjVaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-add-chart {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNNCA2aDEuM3YxM0g0ek03IDEyaDN2NUg3ek0xMSA5aDN2OGgtM3pNMTUgNmgzdjExaC0zeiIvPjxwYXRoIGQ9Ik00IDE4aDE2djEuM0g0eiIvPjwvZz48L3N2Zz4=);
+}
+
+.myf-icon-filter {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE4LjQwOCA1YS41LjUgMCAwIDEgLjQwMi43OTdMMTMgMTMuNjQ4djQuNjAybC0xLjUwMiAxLjMxNWEuMy4zIDAgMCAxLS40OTgtLjIyNnYtNS42OUw1LjE5IDUuNzk3QS41LjUgMCAwIDEgNS41OTIgNWgxMi44MTZabS0xLjc4NyAxLjRINy4zNzhMMTIgMTIuNjQ2IDE2LjYyMSA2LjRaIiBmaWxsPSIjNDY0RDVBIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=);
+}
+
+.myf-icon-sort {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0iIzQ2NEQ1QSIgc3Ryb2tlLXdpZHRoPSIuMjUiPjxwYXRoIGQ9Ik05LjE2IDE3LjI5SDYuNzNMNi4xMyAxOUg1bDIuMzMtNkg4LjZsMi4zMiA2SDkuNzVsLS41OS0xLjcxWm0tLjI2LS43NC0uMy0uODFjLS4yNC0uNjUtLjQ1LTEuMzItLjY3LTItLjIuNjktLjQyIDEuMzUtLjY1IDJsLS4yOS44MUg4LjlaTTUuMjggMTEuMTMgOS4xMSA2LjVINS42di0uOGg1di41N0w2Ljc3IDEwLjloMy44M3YuOEg1LjI4eiIvPjwvZz48cGF0aCBkPSJtMTYuNSAxOS4zIDIuNS00LTEuODUxLjAwMUwxNy4xNSA1LjJoLTEuM2wtLjAwMSAxMC4xMDFMMTQgMTUuM2wyLjUgNFoiLz48L2c+PC9zdmc+);
+}
+
+.myf-icon-mention-ent {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkuODMzIDMuNWE2LjUgNi41IDAgMCAxIDYuNDk4IDYuMzEybC4wMDIuMTg4LS4wMDUuMTQzYTIuMjc4IDIuMjc4IDAgMCAxLTMuOTQgMS40MDNBMi45ODYgMi45ODYgMCAxIDEgMTIuODIgMTB2LS4wMTRoLjAwNmMwIC42OC41NSAxLjIzIDEuMjMgMS4yMy42NDMgMCAxLjE2OC0uNDk1IDEuMjItMS4xMjlsLjAwMy0uMVYxMGE1LjQ0NiA1LjQ0NiAwIDEgMC0yLjQ5IDQuNTc1bC4xODQtLjEyNS42MDkuODZBNi41IDYuNSAwIDEgMSA5LjgzMyAzLjVabTAgNC41NjhhMS45MzIgMS45MzIgMCAxIDAgMCAzLjg2NCAxLjkzMiAxLjkzMiAwIDAgMCAwLTMuODY0WiIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9zdmc+);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.myf-icon-comment-ent {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE1LjU1NiAzLjc1Yy4zODMgMCAuNjk0LjMyLjY5NC43MTR2OS4yODZjMCAuMzk0LS4zMS43MTQtLjY5NC43MTRoLTMuNzI3bC0xLjU5OCAxLjY4NWEuMzE2LjMxNiAwIDAgMS0uNDYyIDBMOC4xNyAxNC40NjRINC40NDRhLjcwNS43MDUgMCAwIDEtLjY5NC0uNzE0VjQuNDY0YzAtLjM5NC4zMS0uNzE0LjY5NC0uNzE0aDExLjExMlptLS4zNDggMS4wNzFINC43OTJ2OC41NzJIOC42MUwxMCAxNC44NThsMS4zOS0xLjQ2NWgzLjgxOFY0LjgyWm0tNC42ODcgMS44NDZ2MS43MzZoMS45MXYxLjA0MWgtMS45MXYyLjA4NEg5LjQ3OVY5LjQ0NGgtMS45MVY4LjQwM2gxLjkxVjYuNjY3aDEuMDQyWiIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9zdmc+);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.myf-icon-find-replace {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUuOTkgNi40OWE2LjUgNi41IDAgMCAxIDkuNjkyIDguNjMybDIuNDE3IDIuNDE2YS42MjUuNjI1IDAgMSAxLS44ODQuODg0bC0yLjQtMi40QTYuNSA2LjUgMCAwIDEgNS45OSA2LjQ5Wm0uOTkuOTlhNS4xIDUuMSAwIDEgMCA3LjIxMiA3LjIxMkE1LjEgNS4xIDAgMCAwIDYuOTggNy40OFoiIGZpbGw9IiM0NjRENUEiIGZpbGwtcnVsZT0ibm9uemVybyIvPjwvc3ZnPg==);
+}
+
+.myf-icon-arrow-down {
+    float: right;
+    padding: 0;
+    vertical-align: middle;
+    width: 6px;
+    height: 4px;
+    margin-left: 3px;
+    margin-right: 0;
+    pointer-events: none;
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2cHgiIGhlaWdodD0iNHB4IiB2aWV3Qm94PSIwIDAgNiA0IiB2ZXJzaW9uPSIxLjEiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDU1LjIgKDc4MTgxKSAtIGh0dHBzOi8vc2tldGNoYXBwLmNvbSAtLT4KICA8ZyBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIwLjQwMDAwMDAwNiI+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtNDI4LjAwMDAwMCwgLTc2LjAwMDAwMCkiIGZpbGw9IiMwMDAwMDAiIGZpbGwtcnVsZT0ibm9uemVybyI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iNDI4IDc2IDQzNCA3NiA0MzEuMDExNzAxIDgwIj48L3BvbHlnb24+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4=)
+}
+
+.icon-add-link {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyLjk4MyA5LjY3NmE0LjM1MSA0LjM1MSAwIDAgMSAuNzQ0IDYuNzQ1bC0yLjMwNiAyLjMwNmE0LjM0NyA0LjM0NyAwIDEgMS02LjE0OC02LjE0OGwxLjgyMy0xLjgyNGMuMTEzLjQzNS4zMi44MzIuNiAxLjE2N2wtMS41MzkgMS41NGEzLjA5NyAzLjA5NyAwIDAgMCA0LjIzOCA0LjUxNWwuMTQyLS4xMzQgMi4zMDYtMi4zMDZhMy4wOTcgMy4wOTcgMCAwIDAgLjEzNC00LjIzN2wtLjEzNC0uMTQzLS4wNTQtLjA1YTIuOTkyIDIuOTkyIDAgMCAwIC4xOTQtMS40M1ptNS43NDQtNC40MDNhNC4zNDcgNC4zNDcgMCAwIDEgMCA2LjE0OGwtMS41MzMgMS41MzNhMy4wMSAzLjAxIDAgMCAwLTEuMDQzLS43MjVsMS42OTItMS42OTJhMy4wOTcgMy4wOTcgMCAwIDAgLjEzNC00LjIzN2wtLjEzNC0uMTQzYTMuMDk3IDMuMDk3IDAgMCAwLTQuMjM4LS4xMzRsLS4xNDIuMTM0LTIuMzA2IDIuMzA2YTMuMDk3IDMuMDk3IDAgMCAwIDEuMTk3IDUuMTI0IDIuOTcxIDIuOTcxIDAgMCAwLS4zNDcgMS4yMDEgNC4zNDcgNC4zNDcgMCAwIDEtMS43MzQtNy4yMWwyLjMwNi0yLjMwNWE0LjM0NyA0LjM0NyAwIDAgMSA2LjE0OCAwWiIgZmlsbD0iIzQ2NEQ1QSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9zdmc+);
+}
+
+/* 与 demo 差异：PNG 图标拷贝进本项目 assets 目录（demo 为 ../images/icons/*.png） */
+.icon-add-img-for-cell {
+    background-image: url(./assets/add-img-for-cell.png);
+}
+
+.icon-add-img-for-fix {
+    background-image: url(./assets/add-img-for-fix.png);
+}
+
+.icon-insert-doc-link-ent {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xNC44MzMgNC4xNjdhMSAxIDAgMCAxIDEgMXYxMC42NjZjMCAuNDYtLjM3My44MzQtLjgzMy44MzRINWEuODMzLjgzMyAwIDAgMS0uODMzLS44MzRWNWMwLS40Ni4zNzMtLjgzMy44MzMtLjgzM2g5LjgzM1pNNS4yNSA1LjI1djEwLjMzM2g5LjVMMTUgNS4yNUg1LjI1Wm04LjA4MyA1LjgzM1YxMEg2LjY2N3YxLjA4M2g2LjY2NlptMC0zLjU4M3YxLjA4M0g2LjY2N1Y3LjVoNi42NjZabS0yLjUgNi4wODNWMTIuNUg2LjY2N3YxLjA4M2g0LjE2NloiIGZpbGw9IiM0NTRENUEiLz48L3N2Zz4=);
+}
+
+.icon-insert-file-link {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik05LjQxIDQuNDFhLjgzMy44MzMgMCAwIDAtLjU4OS0uMjQzSDQuMTY3QS44MzMuODMzIDAgMCAwIDMuMzMzIDV2MTBjMCAuNDYuMzczLjgzMy44MzQuODMzaDExLjY2NmMuNDYgMCAuODM0LS4zNzMuODM0LS44MzNWNi42NjdhLjgzMy44MzMgMCAwIDAtLjgzNC0uODM0aC01TDkuNDExIDQuNDExWm0tNC45OTMuODRoNC4zbDEuNjY4IDEuNjY3aDUuMTk4djcuODMzSDQuNDE3di05LjVaIiBmaWxsPSIjNDU0RDVBIi8+PC9zdmc+);
+}
+
+.icon-add-todo {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMuNSAxMC41YTYgNiAwIDEgMSAxMiAwIDYgNiAwIDAgMS0xMiAweiIgc3Ryb2tlPSIjNDQ0RDVCIi8+PHBhdGggZD0ibTcuNSAxMSAxLjI3IDEuMjdhLjMuMyAwIDAgMCAuNDQtLjAxNkwxMiA5IiBzdHJva2U9IiM0NDRENUIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==);
+}
+
+.myf-icon-selected{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyNzg0MDQ5NzAxIiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE1ODQ1IiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiPjxwYXRoIGQ9Ik0zNDEuMDkgNDY5LjA5bDcyLjc4IDcyLjc4YTQ4LjI3IDQ4LjI3IDAgMCAwIDY4LjI2IDBMNzQzLjQgMjgwLjZhNDguMjYgNDguMjYgMCAwIDEgNTUuNzEtOWwzNyAxOC41YTQ4LjI2IDQ4LjI2IDAgMCAxIDEyLjU0IDc3LjI5TDQ3OC41NCA3MzcuNDZhNDguMjcgNDguMjcgMCAwIDEtNjQuMjcgMy41NGwtMjE3LTE3My42Yy0yOS44Ni0yMy45LTIxLjQtNzEuMzggMTQuODktODMuNDdsNzkuNTQtMjYuNTJhNDguMjYgNDguMjYgMCAwIDEgNDkuMzkgMTEuNjh6IiBmaWxsPSIjMmMyYzJjIiBwLWlkPSIxNTg0NiI+PC9wYXRoPjwvc3ZnPg==)
+}
+.myf-icon-insert-right-col{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyNzU1NDk3OTY5IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE0ODciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTY0Mi45NDQgNzI0LjQxNmw0MS4xNTItNDEuMDg4IDUzLjI0OCA1My4xMlY1NzMuOTUyaDU4LjE3NnYxNjIuNDk2bDUzLjI0OC01My4xMiA0MS4xNTIgNDEuMDg4LTEyMy40NTYgMTIzLjUyeiBtLTE0MC44IDEyMy42NDhWMzkxLjQyNGgtNTEuMnY0NTYuNjRIMzc3LjQwOFYzMTguMjA4aDE5OC40djUyOS44NTZ6IG0tMjQwLjQ0OCAwVjM5MS40MjRoLTUzLjk1MnY0NTYuNjRIMTM0LjIwOFYzMTguMjA4aDIwMC45NnY1MjkuODU2eiBtNDAxLjIxNi0zNzYuMDY0VjE3Ni4wNjRoMjExLjJ2Mjk1Ljg3MnogbTczLjAyNC03My4yOGg2NFYyNDkuNDA4aC02NHoiIGZpbGw9IiM3MDcwNzAiIHAtaWQ9IjE0ODgiPjwvcGF0aD48L3N2Zz4=)
+}
+.myf-icon-insert-left-col{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyNzU1NjY1MjQ0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIzNjEiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTgxMy4xODQgODQ0LjU0NFYzODcuOTA0SDc2MS42djQ1Ni42NGgtNzMuMzQ0VjMxNC42ODhoMTk4LjR2NTI5Ljg1NnogbS0yNDAuNTEyIDBWMzg3LjkwNEg1MTguNHY0NTYuNjRINDQ1LjA1NlYzMTQuNjg4aDIwMC44OTZ2NTI5Ljg1NnogbS00MzUuMi0xMjMuNTJsNDEuMTUyLTQxLjA4OCA1My4yNDggNTMuMTJWNTcwLjU2aDU4LjE3NnYxNjIuNDk2bDUzLjI0OC01My4xMiA0MS4xNTIgNDEuMDg4LTEyMy40NTYgMTIzLjUyeiBtMjAuMjI0LTI1Mi41NDRWMTcyLjU0NGgyMTEuMnYyOTUuODcyeiBtNzMuMDI0LTczLjI4aDY0VjI0NS44ODhoLTY0eiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iMjM2MiI+PC9wYXRoPjwvc3ZnPg==)
+}
+.myf-icon-insert-top-row{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyNzYxNjMyOTkwIiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjEwNTAxIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiPjxwYXRoIGQ9Ik03MjQuNDE2IDM4MS4wNTZsLTQxLjA4OC00MS4xNTIgNTMuMTItNTMuMjQ4SDU3My45NTJWMjI4LjQ4aDE2Mi40OTZsLTUzLjEyLTUzLjI0OCA0MS4wODgtNDEuMTUyIDEyMy41MiAxMjMuNDU2eiBtMTIzLjY0OCAxNDAuOEgzOTEuNDI0djUxLjJoNDU2LjY0djczLjUzNkgzMTguMjA4di0xOTguNGg1MjkuODU2eiBtMCAyNDAuNDQ4SDM5MS40MjR2NTMuOTUyaDQ1Ni42NHY3My41MzZIMzE4LjIwOHYtMjAwLjk2aDUyOS44NTZ6TTQ3MiAzNjEuMDg4SDE3Ni4wNjR2LTIxMS4yaDI5NS44NzJ6TTM5OC43MiAyODguMDY0di02NEgyNDkuNDA4djY0eiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iMTA1MDIiPjwvcGF0aD48L3N2Zz4=)
+}
+.myf-icon-insert-bottom-row{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyNzYxNjkxMTI0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjExNzIxIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiPjxwYXRoIGQ9Ik04NDguMDY0IDIxMC44MTZIMzkxLjQyNFYyNjIuNGg0NTYuNjR2NzMuMzQ0SDMxOC4yMDh2LTE5OC40aDUyOS44NTZ6IG0wIDI0MC41MTJIMzkxLjQyNFY1MDUuNmg0NTYuNjR2NzMuMzQ0SDMxOC4yMDhWMzc4LjA0OGg1MjkuODU2eiBtLTEyMy41MiA0MzUuMmwtNDEuMDg4LTQxLjE1MiA1My4xMi01My4yNDhINTc0LjA4di01OC4xNzZoMTYyLjQ5NmwtNTMuMTItNTMuMjQ4IDQxLjA4OC00MS4xNTIgMTIzLjUyIDEyMy40NTZ6IG0tMjUyLjU0NC0yMC4yMjRIMTc2LjA2NHYtMjExLjJoMjk1Ljg3MnpNMzk4LjcyIDc5My4yOHYtNjRIMjQ5LjQwOHY2NHoiIGZpbGw9IiM1MTUxNTEiIHAtaWQ9IjExNzIyIj48L3BhdGg+PC9zdmc+)
+}
+.myf-icon-file-menu{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyODM5NDkwNzYwIiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjI2ODQyIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiPjxwYXRoIGQ9Ik0yMTYuNjE1Mzg1IDI5NS4zODQ2MTVoNTg2LjgzMDc2OWMxNS43NTM4NDYgMCAzMS41MDc2OTItMTEuODE1Mzg1IDMxLjUwNzY5Mi0zMS41MDc2OTJzLTE1Ljc1Mzg0Ni0zMS41MDc2OTItMzEuNTA3NjkyLTMxLjUwNzY5MkgyMTYuNjE1Mzg1Yy0xOS42OTIzMDggMC0zMS41MDc2OTIgMTEuODE1Mzg1LTMxLjUwNzY5MyAzMS41MDc2OTJzMTUuNzUzODQ2IDMxLjUwNzY5MiAzMS41MDc2OTMgMzEuNTA3Njkyek04MDMuNDQ2MTU0IDQ4MC40OTIzMDhIMjE2LjYxNTM4NWMtMTkuNjkyMzA4IDAtMzEuNTA3NjkyIDExLjgxNTM4NS0zMS41MDc2OTMgMzEuNTA3NjkyczE1Ljc1Mzg0NiAzMS41MDc2OTIgMzEuNTA3NjkzIDMxLjUwNzY5Mmg1ODYuODMwNzY5YzE1Ljc1Mzg0NiAwIDMxLjUwNzY5Mi0xMS44MTUzODUgMzEuNTA3NjkyLTMxLjUwNzY5MnMtMTUuNzUzODQ2LTMxLjUwNzY5Mi0zMS41MDc2OTItMzEuNTA3Njkyek04MDMuNDQ2MTU0IDcyNC42NzY5MjNIMjE2LjYxNTM4NWMtMTkuNjkyMzA4IDAtMzEuNTA3NjkyIDExLjgxNTM4NS0zMS41MDc2OTMgMzEuNTA3NjkyczE1Ljc1Mzg0NiAzMS41MDc2OTIgMzEuNTA3NjkzIDMxLjUwNzY5M2g1ODYuODMwNzY5YzE1Ljc1Mzg0NiAwIDMxLjUwNzY5Mi0xMS44MTUzODUgMzEuNTA3NjkyLTMxLjUwNzY5M3MtMTUuNzUzODQ2LTMxLjUwNzY5Mi0zMS41MDc2OTItMzEuNTA3NjkyeiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iMjY4NDMiPjwvcGF0aD48L3N2Zz4=)
+}
+.myf-icon-file-export{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyODQwMjYwMTc5IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjQ5MjQiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTkwOS41IDY3MS40aC02MjVjLTE3LjcgMC0zMi0xNC4zLTMyLTMyczE0LjMtMzIgMzItMzJoNjI1YzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyeiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iNDkyNSI+PC9wYXRoPjxwYXRoIGQ9Ik05MDQuOCA2NjIuN2MtOC4yIDAtMTYuNC0zLjEtMjIuNi05LjRsLTIyNS0yMjVjLTEyLjUtMTIuNS0xMi41LTMyLjggMC00NS4zczMyLjgtMTIuNSA0NS4zIDBsMjI1IDIyNWMxMi41IDEyLjUgMTIuNSAzMi44IDAgNDUuMy02LjMgNi4zLTE0LjUgOS40LTIyLjcgOS40eiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iNDkyNiI+PC9wYXRoPjxwYXRoIGQ9Ik02NzkuNSA5MDUuMmMtOC4yIDAtMTYuNC0zLjEtMjIuNi05LjQtMTIuNS0xMi41LTEyLjUtMzIuOCAwLTQ1LjNsMjI1LTIyNWMxMi41LTEyLjUgMzIuOC0xMi41IDQ1LjMgMHMxMi41IDMyLjggMCA0NS4zbC0yMjUgMjI1Yy02LjMgNi4zLTE0LjUgOS40LTIyLjcgOS40ek00NDguMiA5NTguM0gyMjkuN2MtODkuMyAwLTE2Mi03Mi43LTE2Mi0xNjJWMjI4LjJjMC04OS4zIDcyLjctMTYyIDE2Mi0xNjJoNTY4LjFjODkuMyAwIDE2MiA3Mi43IDE2MiAxNjJ2MjA4LjFjMCAxNy43LTE0LjMgMzItMzIgMzJzLTMyLTE0LjMtMzItMzJWMjI4LjJjMC01NC00NC05OC05OC05OEgyMjkuN2MtNTQgMC05OCA0NC05OCA5OHY1NjguMWMwIDU0IDQ0IDk4IDk4IDk4aDIxOC41YzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyeiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iNDkyNyI+PC9wYXRoPjwvc3ZnPg==)
+}
+.myf-icon-file-import{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyODQwMTU3NTk0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjQwODkiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTkyNi40IDYzNy43SDI5OWMtMTcuNyAwLTMyLTE0LjMtMzItMzJzMTQuMy0zMiAzMi0zMmg2MjcuNGMxNy43IDAgMzIgMTQuMyAzMiAzMnMtMTQuMyAzMi0zMiAzMnoiIGZpbGw9IiM1MTUxNTEiIHAtaWQ9IjQwOTAiPjwvcGF0aD48cGF0aCBkPSJNNTI5LjYgODcyLjJjLTguMiAwLTE2LjQtMy4xLTIyLjYtOS40TDI4MS4yIDYzN2MtMTIuNS0xMi41LTEyLjUtMzIuOCAwLTQ1LjNzMzIuOC0xMi41IDQ1LjMgMGwyMjUuOCAyMjUuOGMxMi41IDEyLjUgMTIuNSAzMi44IDAgNDUuMy02LjMgNi4zLTE0LjUgOS40LTIyLjcgOS40eiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iNDA5MSI+PC9wYXRoPjxwYXRoIGQ9Ik0zMDQuMSA2MjguOGMtOC4yIDAtMTYuNC0zLjEtMjIuNi05LjQtMTIuNS0xMi41LTEyLjUtMzIuOCAwLTQ1LjNsMjI1LjgtMjI1LjhjMTIuNS0xMi41IDMyLjgtMTIuNSA0NS4zIDBzMTIuNSAzMi44IDAgNDUuM0wzMjYuNyA2MTkuNGMtNi4yIDYuMy0xNC40IDkuNC0yMi42IDkuNHoiIGZpbGw9IiM1MTUxNTEiIHAtaWQ9IjQwOTIiPjwvcGF0aD48cGF0aCBkPSJNNDQ3LjYgOTU4LjNIMjI5LjFjLTg5LjMgMC0xNjItNzIuNy0xNjItMTYyVjIyOC4yYzAtODkuMyA3Mi43LTE2MiAxNjItMTYyaDU2OC4xYzg5LjMgMCAxNjIgNzIuNyAxNjIgMTYydjIwOC4xYzAgMTcuNy0xNC4zIDMyLTMyIDMycy0zMi0xNC4zLTMyLTMyVjIyOC4yYzAtNTQtNDQtOTgtOTgtOThIMjI5LjFjLTU0IDAtOTggNDQtOTggOTh2NTY4LjFjMCA1NCA0NCA5OCA5OCA5OGgyMTguNWMxNy43IDAgMzIgMTQuMyAzMiAzMnMtMTQuMyAzMi0zMiAzMnoiIGZpbGw9IiM1MTUxNTEiIHAtaWQ9IjQwOTMiPjwvcGF0aD48L3N2Zz4=)
+}
+.myf-icon-file-download{
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB0PSIxNzMyODQwMTE0ODY1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjM4MTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTgyOC4xIDg5Ni43SDE5OS45Yy03My4yIDAtMTMyLjgtNTkuNi0xMzIuOC0xMzIuOFY1MTQuNWMwLTE3LjcgMTQuMy0zMiAzMi0zMnMzMiAxNC4zIDMyIDMydjI0OS40YzAgMzcuOSAzMC45IDY4LjggNjguOCA2OC44aDYyOC4yYzM3LjkgMCA2OC44LTMwLjkgNjguOC02OC44VjUxNC41YzAtMTcuNyAxNC4zLTMyIDMyLTMyczMyIDE0LjMgMzIgMzJ2MjQ5LjRjMCA3My4yLTU5LjYgMTMyLjgtMTMyLjggMTMyLjh6IiBmaWxsPSIjNTE1MTUxIiBwLWlkPSIzODE3Ij48L3BhdGg+PHBhdGggZD0iTTUxMi40IDc0MC43Yy0xNy43IDAtMzItMTQuMy0zMi0zMlYxNTEuOGMwLTE3LjcgMTQuMy0zMiAzMi0zMnMzMiAxNC4zIDMyIDMydjU1Ni45YzAgMTcuNy0xNC4zIDMyLTMyIDMyeiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iMzgxOCI+PC9wYXRoPjxwYXRoIGQ9Ik01MTguNSA3MzcuNGMtOC4yIDAtMTYuNC0zLjEtMjIuNi05LjQtMTIuNS0xMi41LTEyLjUtMzIuOCAwLTQ1LjNsMTU2LjktMTU2LjljMTIuNS0xMi41IDMyLjgtMTIuNSA0NS4zIDBzMTIuNSAzMi44IDAgNDUuM0w1NDEuMSA3MjhjLTYuMiA2LjMtMTQuNCA5LjQtMjIuNiA5LjR6IiBmaWxsPSIjNTE1MTUxIiBwLWlkPSIzODE5Ij48L3BhdGg+PHBhdGggZD0iTTUwNi4yIDczNy4yYy04LjIgMC0xNi40LTMuMS0yMi42LTkuNEwzMjYuNyA1NzAuOWMtMTIuNS0xMi41LTEyLjUtMzIuOCAwLTQ1LjNzMzIuOC0xMi41IDQ1LjMgMGwxNTYuOSAxNTYuOWMxMi41IDEyLjUgMTIuNSAzMi44IDAgNDUuMy02LjMgNi4zLTE0LjUgOS40LTIyLjcgOS40eiIgZmlsbD0iIzUxNTE1MSIgcC1pZD0iMzgyMCI+PC9wYXRoPjwvc3ZnPg==)
+}
+
+.myf-sheet-tools ul li.right-icon a {
+    padding: 0px;
+}
+
+.myf-sheet-tools ul li a.myf-arrow-icon {
+    display: block;
+    height: 9px;
+    width: 6px;
+    line-height: 10px;
+    text-align: center;
+    padding: 0;
+}
+
+.myf-sheet-tools ul li .myf-right-icons {
+    display: inline-block;
+}
+.myf-sheet-tools ul li.active a{
+    background-color: #e8e8e8;
+}
+
+/* 整体容器样式 */
+.myf-arrows-container {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 8px;
+}
+
+.myf-sheet-tools ul li .myf-arrows-container:hover, .myf-sheet-tools ul li .myf-arrows-container:hover a.myf-arrow-icon {
+    background-color: #e8e8e8;
+}
+
+.myf-sheet-tools ul li .myf-arrows-container:hover a.myf-arrow-icon:hover {
+    background-color: #c9c9c9;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container {
+    padding: 0;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container:hover a {
+    background-color: #e8e8e8;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container:hover a:hover {
+    background-color: #c9c9c9;
+}
+
+/* 与 demo 差异：类名 pr-2 → myf-pr-2，避免与 Tailwind 同名工具类冲突 */
+.myf-sheet-tools ul li.right-icon .myf-arrows-container a.myf-pr-2 {
+    padding-right: 3px;
+    margin-left: 0px;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container a.arrows-left {
+    position: relative;
+    display: inline-block; /* 保持 inline 布局 */
+    width: 20px;
+    height: 20px;
+    margin-right: 0;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container a.arrows-left .myf-icon {
+    width: 17px;
+    height: 17px;
+    position: absolute;
+    left: 1px;
+    top: 0;
+}
+
+.myf-sheet-tools ul li.right-icon .myf-arrows-container .myf-icon-bottom-color {
+    position: absolute;
+    background-color: #1e9fff;
+    width: 15px;
+    height: 1px;
+    bottom: 2px; /* 调整到字体颜色图标下方 */
+    left: 50%;
+    transform: translateX(-50%); /* 居中对齐 */
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* 文本与右侧图标容器对齐 */
+.myf-arrows-container .myf-icon-text {
+    font-size: 12px;
+    line-height: 14px;
+    margin-right: 4px; /* 与右侧箭头保持间距 */
+}
+
+/* 右侧箭头图标容器 */
+.myf-arrows-container .myf-right-icons {
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    align-items: center; /* 居中对齐箭头 */
+    justify-content: center; /* 确保整体上下居中 */
+    height: 20px; /* 确定右侧区域高度 */
+}
+
+/* 每个箭头按钮的样式 */
+.myf-arrow-icon {
+    display: inline-flex;
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
+    width: 10px; /* 按钮宽度 */
+    height: 10px; /* 按钮高度 */
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+/* 向上的箭头 */
+.myf-icons-arrow-up {
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNiIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDRoNkwzLjAxMiAweiIgZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJub256ZXJvIiBvcGFjaXR5PSIuNCIvPjwvc3ZnPg==') no-repeat;
+    width: 6px; /* 图标宽度 */
+    height: 4px; /* 图标高度 */
+}
+
+/* 向下的箭头 */
+.myf-icons-arrow-down {
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNiIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDBoNkwzLjAxMiA0eiIgZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJub256ZXJvIiBvcGFjaXR5PSIuNCIvPjwvc3ZnPg==') no-repeat;
+    width: 6px; /* 图标宽度 */
+    height: 4px; /* 图标高度 */
+}
+
+/* 上下箭头的间距 */
+.myf-right-icons .myf-arrow-icon + .myf-arrow-icon {
+    margin-top: 1px; /* 上下箭头间距 */
+}
+
+/*---------------------------XPanel-----------------------*/
+
+/* 与 demo 差异：去掉 display:none（面板由 React 条件渲染控制显隐） */
+.myf-x-panel {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 6px 0;
+    cursor: default;
+    position: absolute;
+    z-index: 99;
+    overflow: auto;
+    font: 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    min-width: 100px;
+    width: 220px;
+    top: 100%;
+    left: 0;
+    margin-top: 2px;
+    text-align: left;
+}
+
+.myf-x-panel.myf-x-right {
+    left: auto;
+    right: 0;
+}
+
+/* 边框面板含 hover 二级菜单，不能裁剪溢出 */
+.myf-x-panel.myf-x-visible {
+    overflow: visible;
+}
+
+.myf-x-panel .myf-x-item {
+    color: #1f2329;
+    padding: 0 12px;
+    margin: 0 4px;
+    height: 36px;
+    line-height: 36px;
+    position: relative;
+    border-radius: 4px;
+}
+.myf-x-panel .x-disabled {
+    color: #808080;
+}
+.myf-x-panel .myf-x-item:hover{
+    background-color: #f2f3f4;
+    cursor: pointer;
+}
+.myf-x-panel .x-disabled:hover{
+    color: #808080;
+    background-color: #fff;
+    cursor: default;
+}
+
+.myf-x-panel .x-on {
+    background-color: #f2f3f4;
+}
+
+.myf-x-panel .myf-x-icon,.myf-x-panel .myf-x-icon2 {
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    position: absolute;
+    margin-top: 8px;
+    margin-left: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+}
+.myf-x-panel .myf-x-icon2{
+    left: 34px;
+}
+
+.myf-x-panel .myf-x-ico {
+    width: 18px;
+    height: 18px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    margin-left: 10px;
+    margin-top: 9px;
+}
+
+.myf-x-panel .myf-x-text,.myf-x-panel .myf-x-text2 {
+    overflow: hidden;
+    position: absolute;
+    left: 42px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 13px;
+}
+.myf-x-panel .myf-x-text2{
+    left: 72px;
+}
+.myf-x-panel-no-icon .myf-x-text{
+    left: 12px;
+}
+.myf-x-panel .myf-x-arrow{
+    width: 10px;
+    height: 10px;
+    position: absolute;
+    right: 12px;
+    top: 13px;
+}
+.myf-x-panel .myf-x-right-text{
+    position: absolute;
+    right: 12px;
+    top: 0;
+    color: #8f959e;
+    height: 36px;
+    line-height: 36px;
+    font-size: 12px;
+}
+
+.x-split {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.05);
+    margin: 4px 8px;
+    overflow: hidden;
+}
+
+/*---------------------------系统风格下拉菜单（flex 布局，icon 与文字间距）-----------------------*/
+
+.myf-sys-panel {
+    position: absolute;
+    z-index: 200;
+    top: 100%;
+    left: 0;
+    margin-top: 2px;
+    min-width: 132px;
+    padding: 4px 0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    font: 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    text-align: left;
+    overflow: visible;
+}
+
+.myf-sys-panel.myf-sys-panel--static {
+    position: static;
+    margin-top: 0;
+}
+
+.myf-sys-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: calc(100% - 8px);
+    min-height: 36px;
+    margin: 0 4px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #1f2329;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+
+.myf-sys-item:hover,
+.myf-sys-item--active {
+    background-color: #f2f3f4;
+}
+
+.myf-sys-item__icon {
+    display: flex;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.myf-sys-item__icon-bg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.myf-sys-item__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.myf-sys-item__right {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #8f959e;
+}
+
+.myf-sys-item__chevron {
+    flex-shrink: 0;
+    color: #8f959e;
+}
+
+.myf-sys-item--align {
+    gap: 8px;
+}
+
+.myf-sys-divider {
+    height: 1px;
+    margin: 4px 8px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.myf-sys-menu-row {
+    position: absolute;
+    z-index: 200;
+    top: 100%;
+    left: 0;
+    display: flex;
+    align-items: flex-start;
+    margin-top: 2px;
+}
+
+/* 图表类型选择：锚定在工具栏按钮下方，与其他下拉面板视觉一致 */
+@keyframes myf-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.myf-chart-picker {
+    position: absolute;
+    z-index: 200;
+    top: 100%;
+    left: 0;
+    display: flex;
+    width: 520px;
+    max-height: min(400px, calc(100vh - 96px));
+    margin-top: 2px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    font: 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    animation: myf-dropdown-in 0.12s ease-out;
+    transform-origin: top left;
+}
+
+.myf-chart-picker--align-right {
+    left: auto;
+    right: 0;
+    transform-origin: top right;
+}
+
+.myf-chart-picker__body {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.myf-chart-picker__group {
+    scroll-margin-top: 8px;
+}
+
+.myf-chart-picker__group-title {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f2329;
+}
+
+.myf-chart-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.myf-chart-picker__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid #e7e9eb;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.12s, background-color 0.12s;
+}
+
+.myf-chart-picker__item:hover {
+    border-color: #3370ff;
+    background: #f8faff;
+}
+
+.myf-chart-picker__thumb {
+    width: 88px;
+    height: 58px;
+}
+
+.myf-chart-picker__item-label {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 11px;
+    color: #5f6672;
+}
+
+.myf-chart-picker__nav {
+    width: 88px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 4px 0;
+}
+
+.myf-chart-picker__nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: #1f2329;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s, color 0.12s;
+}
+
+.myf-chart-picker__nav-item:hover {
+    background: #f2f3f4;
+}
+
+.myf-chart-picker__nav-item--active {
+    color: #3370ff;
+}
+
+.myf-chart-picker__nav-item--active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 16px;
+    border-radius: 0 2px 2px 0;
+    background: #3370ff;
+    transform: translateY(-50%);
+}
+
+.myf-sys-submenu {
+    margin-left: 2px;
+}
+
+/* 调色面板（替代 demo 的 spectrum 取色器） */
+.myf-palette {
+    display: grid;
+    grid-template-columns: repeat(10, 16px);
+    gap: 4px;
+    padding: 8px 10px 4px;
+}
+.myf-palette button {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 2px;
+    padding: 0;
+    cursor: pointer;
+}
+.myf-palette button:hover {
+    outline: 2px solid #2b72ef;
+    outline-offset: -1px;
+}
+.myf-palette-action {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
+    color: #464d5a;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.myf-palette-action:hover {
+    background-color: #eee;
+}
+
+/* 边框预设网格（布局沿用原边框面板，外框样式对齐 myf-x-panel） */
+.myf-border-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 36px);
+    gap: 2px;
+    padding: 6px 10px;
+}
+.myf-border-grid button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 30px;
+    border: none;
+    border-radius: 2px;
+    background: none;
+    cursor: pointer;
+}
+.myf-border-grid button:hover {
+    background-color: #eee;
+}
+
+/* 边框面板内的二级菜单行 */
+.myf-border-sub {
+    position: relative;
+}
+.myf-border-sub > button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 13px;
+    color: #464d5a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+.myf-border-sub > button:hover {
+    background-color: #f2f3f4;
+}
+.myf-border-sub .myf-border-sub-panel {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    z-index: 100;
+    margin-left: 2px;
+    width: 200px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    padding: 6px 0;
+    font: 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+.myf-border-style-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #464d5a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+.myf-border-style-row:hover {
+    background-color: #f2f3f4;
+}
+.myf-border-style-row.on {
+    color: #1d4ed8;
+}
+
+/* 面板内普通菜单文字行（如「更多格式」「更多边框设置」） */
+.myf-x-plain {
+    display: block;
+    width: calc(100% - 8px);
+    min-height: 36px;
+    margin: 0 4px;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 13px;
+    color: #464d5a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 4px;
+}
+.myf-x-plain:hover {
+    background-color: #f2f3f4;
+}

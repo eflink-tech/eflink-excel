@@ -1,0 +1,24 @@
+{
+  "name": "eflink-excel-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:demo": "pnpm --filter eflink-excel-demo dev",
+    "build": "pnpm --filter @eflink-tech/excel build && pnpm --filter eflink-excel-demo build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @eflink-tech/excel test",
+    "test:watch": "pnpm --filter @eflink-tech/excel test:watch",
+    "test:e2e": "playwright test",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@playwright/test": "^1.62.1",
+    "exceljs": "^4.4.0"
+  }
+}
