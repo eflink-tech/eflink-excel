@@ -6,5 +6,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["eflink-excel-demo", "eflink-excel-monorepo"]
+  "ignore": ["eflink-excel-demo"]
 }
