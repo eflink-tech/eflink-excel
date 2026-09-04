@@ -14,7 +14,8 @@
     "test:e2e": "playwright test",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "release:ci": "bash scripts/release-ci.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

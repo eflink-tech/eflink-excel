@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 发布后推 tag、创建 Version PR 都需要写权限
+permissions:
+  contents: write
+  pull-requests: write
+
 concurrency:
   group: release
   cancel-in-progress: false
@@ -39,7 +44,7 @@ jobs:
         uses: changesets/action@v1
         with:
           version: pnpm version-packages
-          publish: pnpm release
+          publish: pnpm release:ci
           commit: 'chore: version packages'
           title: 'chore: version packages'
         env:
