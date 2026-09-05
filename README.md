@@ -4,6 +4,12 @@
 
 A spreadsheet editor (Excel-like) for the web. Run it standalone, or embed `<SheetEditor />` into your React app.
 
+## 截图预览
+
+| 数据与公式 | 图表 | 图表设置 |
+| --- | --- | --- |
+| ![数据与公式](docs/screenshots/formula.png) | ![图表](docs/screenshots/chart.png) | ![图表设置](docs/screenshots/chart-settings.png) |
+
 ## 功能特性
 
 - 表格引擎：Univer（Apache-2.0 免费核心，`@univerjs/presets` 集成，zh-CN）
