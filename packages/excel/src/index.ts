@@ -16,6 +16,10 @@ export { getDefaultStorage, setDefaultStorage } from './storage/registry';
 // 宿主外观：顶栏返回按钮链接
 export { setEditorBackHref } from './core/chrome';
 
+// 分享桥接：宿主注入分享实现（编辑器分享按钮调用）
+export { setExcelShareHandler } from './core/share/shareBridge';
+export type { ExcelShareHandler, ExcelShareDoc, ExcelShareResult } from './core/share/shareBridge';
+
 // headless：.efexcel 文档备份导入导出、xlsx 转换、PNG 截图导出
 export { exportEfexcel, importEfexcel, DEFAULT_EFEXCEL_SOURCE } from './core/efexcel';
 export type { EfexcelSource } from './core/efexcel';

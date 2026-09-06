@@ -1,7 +1,10 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { saveNow } from '../core/saveService';
+import { Share2 } from 'lucide-react';
+import { saveNow, currentSnapshot } from '../core/saveService';
 import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
+import { getExcelShareHandler } from '../core/share/shareBridge';
 import { ConfirmDialogHost } from './ConfirmDialog';
+import { ShareDialog } from './ShareDialog';
 import { FormulaBar } from './toolbar/FormulaBar';
 import { SheetToolbar } from './toolbar/SheetToolbar';
 import { TitleBar } from './TitleBar';
@@ -9,6 +12,7 @@ import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { useEditorStore } from '../store/editorStore';
 import type { SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
+import type { ExcelShareDoc } from '../core/share/shareBridge';
 import type { StorageAdapter } from '../storage/types';
 
 // Univer 体积较大，编辑器进入时才加载
@@ -92,6 +96,20 @@ export function SheetEditor({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // 分享弹窗（doc 为点击"分享"时刻的快照，弹窗期间编辑不影响本次分享内容）
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareDoc, setShareDoc] = useState<ExcelShareDoc | null>(null);
+  const closeShare = useRef(() => setShareOpen(false)).current;
+  // 分享前先落库最新快照，再捕获当前文档
+  const openShare = async () => {
+    await saveNow();
+    const { docId, title } = useEditorStore.getState();
+    const snap = currentSnapshot();
+    if (!docId || !snap) return;
+    setShareDoc({ id: docId, title, snapshot: snap });
+    setShareOpen(true);
+  };
+
   if (!snapshot) {
     return <div className="flex h-full items-center justify-center text-sm text-slate-400">加载中…</div>;
   }
@@ -99,11 +117,25 @@ export function SheetEditor({
   const hasTopRow = Boolean(branding) || showToolbar;
   return (
     <div className="flex h-full flex-col bg-white">
-      {/* 顶行：品牌区与工具栏同行 */}
+      {/* 顶行：品牌区与工具栏同行，行尾分享入口 */}
       {hasTopRow && (
         <div className="flex shrink-0 items-stretch border-b border-[#dadbdd] bg-white">
           {branding ? <TitleBar logo={branding.logo} name={branding.name} /> : null}
           {showToolbar ? <SheetToolbar /> : null}
+          {/* 分享入口仅在宿主注入分享实现后出现（纯组件独立运行时不显示） */}
+          {getExcelShareHandler() !== null && (
+            <div className="flex items-center px-2">
+              <button
+                type="button"
+                onClick={() => void openShare()}
+                title="生成分享链接"
+                className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-[#5f6062] transition-colors hover:bg-[#f2f3f4] hover:text-[#26282b]"
+              >
+                <Share2 size={14} />
+                分享
+              </button>
+            </div>
+          )}
         </div>
       )}
       {showFormulaBar ? <FormulaBar /> : null}
@@ -118,6 +150,7 @@ export function SheetEditor({
       </div>
       {/* 确认弹窗宿主（新建文档等二次确认经 useUiStore.requestConfirm 发起） */}
       <ConfirmDialogHost />
+      <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
     </div>
   );
 }
