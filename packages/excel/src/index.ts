@@ -13,6 +13,8 @@ export type { StorageAdapter } from './storage/types';
 export { indexedDbStorage } from './storage/indexedDb';
 export { memoryStorage } from './storage/memory';
 export { getDefaultStorage, setDefaultStorage } from './storage/registry';
+// 宿主外观：顶栏返回按钮链接
+export { setEditorBackHref } from './core/chrome';
 
 // headless：.efexcel 文档备份导入导出、xlsx 转换、PNG 截图导出
 export { exportEfexcel, importEfexcel, DEFAULT_EFEXCEL_SOURCE } from './core/efexcel';
