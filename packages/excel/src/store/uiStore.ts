@@ -25,6 +25,9 @@ interface UiStore {
   /** 发起确认：resolve(true)=确定，resolve(false)=取消 */
   requestConfirm: (opts: ConfirmOptions) => Promise<boolean>;
   resolveConfirm: (ok: boolean) => void;
+  /** 右侧 AI 助手面板开关 */
+  aiPanelOpen: boolean;
+  toggleAIPanel: () => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -43,4 +46,6 @@ export const useUiStore = create<UiStore>((set) => ({
       return { confirm: null };
     });
   },
+  aiPanelOpen: false,
+  toggleAIPanel: () => set((s) => ({ aiPanelOpen: !s.aiPanelOpen })),
 }));

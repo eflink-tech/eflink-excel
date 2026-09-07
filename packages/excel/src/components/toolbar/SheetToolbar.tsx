@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { ChevronRight, PenLine } from 'lucide-react';
+import { ChevronRight, PenLine, Sparkles } from 'lucide-react';
 import * as cmd from '../../core/univer/commands';
 import type { BorderStyleKey, BorderTypeKey } from '../../core/univer/commands';
 import { getUniverApi } from '../../core/univer/controller';
@@ -98,6 +98,8 @@ const MORE_RESERVE = 44;
 
 export function SheetToolbar() {
   const showToast = useUiStore((s) => s.showToast);
+  const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
+  const toggleAIPanel = useUiStore((s) => s.toggleAIPanel);
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [chartPickerSource, setChartPickerSource] = useState<'insert' | 'chart' | null>(null);
@@ -852,6 +854,21 @@ export function SheetToolbar() {
       <li key="findReplace">
         <a role="button" tabIndex={0} title="查找替换" aria-label="查找替换" onClick={run(cmd.openFindReplace)}>
           <span className="myf-icon myf-icon-find-replace" />
+        </a>
+      </li>,
+      // AI 助手开关（measure 行为宽度测量的隐藏副本，不带 testid 避免 e2e 重复命中）
+      <li className="right-icon" key="aiAssistant">
+        <a
+          role="button"
+          tabIndex={0}
+          title="AI 助手"
+          aria-label="AI 助手"
+          className={aiPanelOpen ? 'active' : undefined}
+          style={aiPanelOpen ? { color: '#107c41' } : undefined}
+          onClick={toggleAIPanel}
+          data-testid={measure ? undefined : 'ai-toggle'}
+        >
+          <Sparkles size={15} />
         </a>
       </li>,
     );

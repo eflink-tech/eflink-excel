@@ -10,7 +10,9 @@ import { SheetToolbar } from './toolbar/SheetToolbar';
 import { TitleBar } from './TitleBar';
 import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
+import { AIChatPanel } from './ai/AIChatPanel';
 import { useEditorStore } from '../store/editorStore';
+import { useUiStore } from '../store/uiStore';
 import type { SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
 import type { ExcelShareDoc } from '../core/share/shareBridge';
 import type { StorageAdapter } from '../storage/types';
@@ -51,6 +53,7 @@ export function SheetEditor({
   onDocError,
 }: SheetEditorProps) {
   const [snapshot, setSnapshot] = useState<WorkbookSnapshot | null>(null);
+  const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
@@ -139,14 +142,18 @@ export function SheetEditor({
         </div>
       )}
       {showFormulaBar ? <FormulaBar /> : null}
-      <div className="relative flex-1">
-        <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">编辑器加载中…</div>}>
-          <UniverContainer snapshot={snapshot} />
-        </Suspense>
-        {/* 网格边缘追加行列（参考稿同款 ⊕）：紧挨最后一列右侧 / 最后一行下方，随滚动缩放跟随 */}
-        <GridEdgeControls />
-        {/* 图表设置面板：双击插入的图表后从右侧滑出 */}
-        <ChartSettingsPanel />
+      <div className="relative flex flex-1">
+        <div className="relative min-w-0 flex-1">
+          <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">编辑器加载中…</div>}>
+            <UniverContainer snapshot={snapshot} />
+          </Suspense>
+          {/* 网格边缘追加行列（参考稿同款 ⊕）：紧挨最后一列右侧 / 最后一行下方，随滚动缩放跟随 */}
+          <GridEdgeControls />
+          {/* 图表设置面板：双击插入的图表后从右侧滑出 */}
+          <ChartSettingsPanel />
+        </div>
+        {/* AI 助手面板（右侧独立列，参考 eflink-draw / eflink-pptx） */}
+        {aiPanelOpen && <AIChatPanel />}
       </div>
       {/* 确认弹窗宿主（新建文档等二次确认经 useUiStore.requestConfirm 发起） */}
       <ConfirmDialogHost />

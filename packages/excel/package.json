@@ -49,6 +49,7 @@
     "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.37.0",
+    "openai": "^6.49.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
