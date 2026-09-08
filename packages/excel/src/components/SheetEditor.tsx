@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { Share2 } from 'lucide-react';
+import { Share2, MessageCircle } from 'lucide-react';
 import { saveNow, currentSnapshot } from '../core/saveService';
 import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
 import { getExcelShareHandler } from '../core/share/shareBridge';
@@ -136,6 +136,15 @@ export function SheetEditor({
               >
                 <Share2 size={14} />
                 分享
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open('/contact', '_blank')}
+                title="问题反馈"
+                className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-[#5f6062] transition-colors hover:bg-[#f2f3f4] hover:text-[#26282b]"
+              >
+                <MessageCircle size={14} />
+                反馈
               </button>
             </div>
           )}
