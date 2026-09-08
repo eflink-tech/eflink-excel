@@ -291,6 +291,11 @@ export function AIChatPanel() {
               <div className="mb-1 text-xs text-slate-500">{label}</div>
               <input
                 type={key === 'apiKey' ? 'password' : 'text'}
+                name={`eflink-ai-${key}`}
+                autoComplete={key === 'apiKey' ? 'new-password' : 'off'}
+                // 只读直到聚焦：避免 Chrome 把「接口地址 + 密码框」识别为登录表单而自动填充保存的账号密码
+                readOnly
+                onFocus={(e) => { e.currentTarget.readOnly = false }}
                 value={settings[key]}
                 placeholder={placeholder}
                 onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
