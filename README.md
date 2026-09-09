@@ -159,6 +159,18 @@ pnpm build        # 构建组件库与 demo
 - xlsx 高级特性（图表/透视表/条件格式）暂不迁移
 - 不做服务端同步与旧 Luckysheet 数据迁移
 
+## 联系我们
+
+- **在线体验**：<https://eflink.tech>（易飞表格 · 免费在线电子表格）
+- **问题反馈与交流**：[eflink.tech/contact](https://eflink.tech/contact)
+- **邮箱**：[support@eflink.tech](mailto:support@eflink.tech)
+
+使用微信或企业微信扫码添加（二维码长期有效）：
+
+<p align="center">
+  <img src="./docs/wecom-contact-qr.png" width="220" alt="企业微信二维码" />
+</p>
+
 ## License
 
 [MIT](./LICENSE)
