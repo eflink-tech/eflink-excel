@@ -68,7 +68,7 @@ export interface UniverController {
 }
 
 export interface MountHooks {
-  /** 任意命令执行后触发（自动保存防抖入口） */
+  /** 任意命令执行后触发（置 dirty + 防抖写本地草稿入口） */
   onChange(): void;
 }
 

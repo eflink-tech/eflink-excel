@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Share2, MessageCircle } from 'lucide-react';
 import { saveNow, currentSnapshot } from '../core/saveService';
 import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
+import { readDraft, clearDraft } from '../storage/draft';
 import { getExcelShareHandler } from '../core/share/shareBridge';
 import { ConfirmDialogHost } from './ConfirmDialog';
 import { ShareDialog } from './ShareDialog';
@@ -12,6 +13,7 @@ import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { AIChatPanel } from './ai/AIChatPanel';
 import { useEditorStore } from '../store/editorStore';
+import { useDocumentsStore } from '../store/documentsStore';
 import { useUiStore } from '../store/uiStore';
 import type { SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
 import type { ExcelShareDoc } from '../core/share/shareBridge';
@@ -79,7 +81,17 @@ export function SheetEditor({
         onLoadedRef.current?.(doc);
       })
       .catch((err) => {
+        if (disposed) return;
         console.error('加载文档失败', err);
+        // 云端加载失败（网络异常等）：回退本地草稿恢复表格；云端成功时不读草稿
+        const draft = readDraft(docId);
+        if (draft) {
+          const knownTitle = useDocumentsStore.getState().docs.find((d) => d.id === docId)?.title;
+          useEditorStore.getState().openDoc({ id: docId, title: knownTitle ?? docId });
+          useEditorStore.getState().markDirty(); // 草稿内容尚未云端落库，视为未保存
+          setSnapshot(draft);
+          return;
+        }
         onErrorRef.current?.(err);
       });
     return () => {
@@ -88,16 +100,31 @@ export function SheetEditor({
   }, [docId, storage]);
 
   useEffect(() => {
-    // Ctrl/Cmd+S 手动保存
+    // Ctrl/Cmd+S 手动保存（云端保存；成功后由 saveService 清 dirty 并删除本地草稿）
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        void saveNow();
+        saveNow().catch((err) => {
+          console.error('保存失败', err);
+          useUiStore.getState().showToast('保存失败');
+        });
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  // 宿主 bridge：查询脏状态 / 触发云端保存 / 丢弃本地草稿（卸载时移除）
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__eflinkEditorBridge = {
+      isDirty: () => useEditorStore.getState().dirty,
+      save: () => saveNow(),
+      discard: () => clearDraft(docId),
+    };
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__eflinkEditorBridge;
+    };
+  }, [docId]);
 
   // 分享弹窗（doc 为点击"分享"时刻的快照，弹窗期间编辑不影响本次分享内容）
   const [shareOpen, setShareOpen] = useState(false);

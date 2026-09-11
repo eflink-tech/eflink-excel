@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // 局部 mock 默认存储：默认透传真实内存实现，可注入写库失败
@@ -29,8 +30,11 @@ import { useEditorStore } from '../store/editorStore';
 import { createDocument } from '../types/spreadsheet';
 import type { WorkbookSnapshot } from '../types/spreadsheet';
 
+const DRAFT_PREFIX = 'eflink:draft:excel:';
+
 beforeEach(async () => {
   failUpdate = false;
+  localStorage.clear();
   const storage = getDefaultStorage();
   await storage.clear?.();
   const doc = createDocument('保存服务测试');
@@ -56,11 +60,11 @@ describe('saveService 保存服务', () => {
     expect(useEditorStore.getState().dirty).toBe(false);
   });
 
-  // 注意：saveService 的 autosaver 固定 1500ms，且 fake-indexeddb 依赖真实定时器，
-  // 这里用真实计时 + 略长于防抖周期的等待来验证防抖落库。
-  it('notifyChanged 标记脏状态，防抖到期后自动落库', async () => {
+  // 注意：saveService 的 autosaver 固定 1500ms，这里用真实计时 + 略长于防抖周期的等待。
+  it('notifyChanged 置脏，防抖到期仅写本地草稿：不动云端、不清脏', async () => {
+    const docId = useEditorStore.getState().docId!;
     let latest: WorkbookSnapshot | null = null;
-    bindEditor(useEditorStore.getState().docId!, () => latest);
+    bindEditor(docId, () => latest);
 
     notifyChanged();
     expect(useEditorStore.getState().dirty).toBe(true);
@@ -68,23 +72,34 @@ describe('saveService 保存服务', () => {
     latest = boundSnapshot();
     await new Promise((r) => setTimeout(r, 1800));
 
-    const saved = await getDefaultStorage().load(useEditorStore.getState().docId!);
-    expect(saved?.snapshot.sheets['sheet-01'].cellData[0]?.[0]?.v).toBe('当前内容');
-    expect(useEditorStore.getState().dirty).toBe(false);
-    expect(useEditorStore.getState().savedAt).not.toBeNull();
+    // 云端内容未被自动保存触碰
+    const cloud = await getDefaultStorage().load(docId);
+    expect(cloud?.snapshot.sheets['sheet-01'].cellData[0]).toBeUndefined();
+    // 本地草稿已写入最新快照，且 dirty 保持 true
+    const draft = localStorage.getItem(DRAFT_PREFIX + docId);
+    expect(draft).not.toBeNull();
+    const parsed = JSON.parse(draft!) as WorkbookSnapshot;
+    expect(parsed.sheets['sheet-01'].cellData[0]?.[0]?.v).toBe('当前内容');
+    expect(useEditorStore.getState().dirty).toBe(true);
+    expect(useEditorStore.getState().savedAt).toBeNull();
   }, 10_000);
 
-  it('saveNow 立即落库最新标题与快照', async () => {
+  it('saveNow 云端保存成功：落库最新标题与快照、清 dirty 并删除草稿', async () => {
+    const docId = useEditorStore.getState().docId!;
     let latest: WorkbookSnapshot | null = boundSnapshot();
-    bindEditor(useEditorStore.getState().docId!, () => latest);
+    bindEditor(docId, () => latest);
 
+    notifyChanged(); // dirty=true
+    localStorage.setItem(DRAFT_PREFIX + docId, JSON.stringify(latest)); // 模拟防抖已写入草稿
     useEditorStore.getState().setTitle('手动保存的标题');
     await saveNow();
 
-    const saved = await getDefaultStorage().load(useEditorStore.getState().docId!);
+    const saved = await getDefaultStorage().load(docId);
     expect(saved?.title).toBe('手动保存的标题');
     expect(saved?.snapshot.sheets['sheet-01'].cellData[0]?.[0]?.v).toBe('当前内容');
+    expect(useEditorStore.getState().dirty).toBe(false);
     expect(useEditorStore.getState().saving).toBe(false);
+    expect(localStorage.getItem(DRAFT_PREFIX + docId)).toBeNull();
   });
 
   it('currentSnapshot 返回绑定 getter 的最新值', () => {
@@ -101,20 +116,24 @@ describe('saveService 保存服务', () => {
     await expect(saveNow()).resolves.toBeUndefined();
   });
 
-  it('写库失败时 saveNow 抛错且 saving 复位，不误报已保存', async () => {
+  it('写库失败时 saveNow 抛错且 saving 复位：dirty 保持、草稿保留兜底', async () => {
     failUpdate = true;
+    const docId = useEditorStore.getState().docId!;
     let latest: WorkbookSnapshot | null = boundSnapshot();
-    bindEditor(useEditorStore.getState().docId!, () => latest);
+    bindEditor(docId, () => latest);
 
+    notifyChanged(); // dirty=true
     await expect(saveNow()).rejects.toThrow('mock 写库失败');
     expect(useEditorStore.getState().saving).toBe(false);
     expect(useEditorStore.getState().savedAt).toBeNull();
-    expect(useEditorStore.getState().dirty).toBe(false);
+    expect(useEditorStore.getState().dirty).toBe(true);
+    // 保存失败：⌘S 前写入的兜底草稿不被清除
+    expect(localStorage.getItem(DRAFT_PREFIX + docId)).not.toBeNull();
   });
 
-  it('unbindEditor 取消待执行的自动保存', async () => {
-    let latest: WorkbookSnapshot | null = boundSnapshot();
+  it('unbindEditor 取消待执行的草稿写入', async () => {
     const docId = useEditorStore.getState().docId!;
+    let latest: WorkbookSnapshot | null = boundSnapshot();
     bindEditor(docId, () => latest);
 
     notifyChanged();
@@ -123,5 +142,6 @@ describe('saveService 保存服务', () => {
 
     const saved = await getDefaultStorage().load(docId);
     expect(saved?.snapshot.sheets['sheet-01'].cellData[0]).toBeUndefined();
+    expect(localStorage.getItem(DRAFT_PREFIX + docId)).toBeNull();
   }, 10_000);
 });
