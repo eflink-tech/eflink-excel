@@ -127,13 +127,15 @@ describe('fileActions 文件动作', () => {
     const container = document.createElement('div');
     container.id = 'univer-container';
     document.body.appendChild(container);
-    const snapshot = createEmptySnapshot();
-    mockCurrentSnapshot.mockReturnValueOnce(snapshot);
+    useEditorStore.setState({ dirty: true });
 
     await exportPngAction();
 
     expect(mockExportPng).toHaveBeenCalledWith(container, '基础文档');
     expect(useUiStore.getState().toast).toBe('已导出图片');
+    // 纯读操作：不触发保存、不改变 dirty 状态
+    expect(mockSaveNow).not.toHaveBeenCalled();
+    expect(useEditorStore.getState().dirty).toBe(true);
     container.remove();
   });
 

@@ -43,12 +43,12 @@ export async function exportEfexcelAction(): Promise<void> {
   }
 }
 
+/** 导出图片是纯读操作：直接截当前 DOM，不保存、不改变 dirty 状态 */
 export async function exportPngAction(): Promise<void> {
   const el = document.getElementById('univer-container');
   if (!el) return;
   const { title } = useEditorStore.getState();
   try {
-    await saveNow();
     await exportPng(el, title || '未命名表格');
     useUiStore.getState().showToast('已导出图片');
   } catch (err) {
