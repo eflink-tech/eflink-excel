@@ -9,6 +9,7 @@ import { ShareDialog } from './ShareDialog';
 import { FormulaBar } from './toolbar/FormulaBar';
 import { SheetToolbar } from './toolbar/SheetToolbar';
 import { TitleBar } from './TitleBar';
+import { BottomBar } from './BottomBar';
 import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { AIChatPanel } from './ai/AIChatPanel';
@@ -79,6 +80,11 @@ export function SheetEditor({
         useEditorStore.getState().openDoc({ id: doc.id, title: doc.title });
         setSnapshot(doc.snapshot);
         onLoadedRef.current?.(doc);
+        // Univer 应用初始快照的命令流不属于用户编辑：待其落定后复位脏标记，
+        // 避免刚打开文档就显示"● 未保存"并误触离页拦截
+        window.setTimeout(() => {
+          if (!disposed) useEditorStore.getState().markSaved();
+        }, 1000);
       })
       .catch((err) => {
         if (disposed) return;
@@ -191,6 +197,8 @@ export function SheetEditor({
         {/* AI 助手面板（右侧独立列，参考 eflink-draw / eflink-pptx） */}
         {aiPanelOpen && <AIChatPanel />}
       </div>
+      {/* 底部状态栏：文档名（点击改名）+ 保存状态；始终渲染，不随 branding 隐藏 */}
+      <BottomBar />
       {/* 确认弹窗宿主（新建文档等二次确认经 useUiStore.requestConfirm 发起） */}
       <ConfirmDialogHost />
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
