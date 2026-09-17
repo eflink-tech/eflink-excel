@@ -157,7 +157,7 @@ describe('xlsx 双向转换', () => {
         },
       },
     };
-    s1.freeze = { startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 };
+    s1.freeze = { startRow: 2, startColumn: 1, xSplit: 1, ySplit: 2 };
     s1.rowData = { 0: { h: 32 }, 3: { h: 0, hd: 1 } };
     s1.columnData = { 0: { w: 120 }, 2: { w: 0, hd: 1 } };
 
@@ -174,7 +174,7 @@ describe('xlsx 双向转换', () => {
     expect(st.bd?.b).toEqual({ s: 7, cl: { rgb: '#00ff00' } });
     expect(st.bd?.l).toEqual({ s: 4, cl: { rgb: '#000000' } });
     expect(st.bd?.r).toEqual({ s: 13, cl: { rgb: '#0000ff' } });
-    expect(os1.freeze).toEqual({ startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 });
+    expect(os1.freeze).toEqual({ startRow: 2, startColumn: 1, xSplit: 1, ySplit: 2 });
     expect(os1.rowData?.[3]?.hd).toBe(1);
     expect(os1.columnData?.[2]?.hd).toBe(1);
     const p = os1.cellData[6]?.[0]?.p;
@@ -241,7 +241,7 @@ describe('xlsx 导入方向：扩展样式', () => {
     ws.getColumn(3).hidden = true;
     const snap = workbookToSnapshot(wb, '冻结测试');
     const sheet = snap.sheets['sheet-01'];
-    expect(sheet.freeze).toEqual({ startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 });
+    expect(sheet.freeze).toEqual({ startRow: 2, startColumn: 1, xSplit: 1, ySplit: 2 });
     expect(sheet.rowData?.[3]).toEqual({ h: 0, hd: 1 });
     expect(sheet.columnData?.[2]).toEqual({ w: 0, hd: 1 });
   });
@@ -266,8 +266,9 @@ describe('xlsx 导入方向：扩展样式', () => {
     const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
     expect(cell?.p?.body.dataStream).toBe('普通红色结尾\r\n');
     const runs = cell?.p?.body.textRuns ?? [];
-    expect(runs).toHaveLength(1); // 无样式 run 不产出
-    expect(runs[0]).toMatchObject({ st: 2, ed: 4, ts: { bl: 1, cl: { rgb: '#ff0000' } } });
+    expect(runs).toHaveLength(2); // 仅有字号差异的 run 也产出（字号/字体族属规格承诺的 run 样式）
+    expect(runs[0]).toMatchObject({ st: 0, ed: 2, ts: { fs: 12 } });
+    expect(runs[1]).toMatchObject({ st: 2, ed: 4, ts: { bl: 1, cl: { rgb: '#ff0000' } } });
   });
 
   it('富文本含换行时 dataStream 展开存储、run 区间按归一化文本计长', () => {
@@ -306,7 +307,7 @@ describe('xlsx 导入方向：扩展样式', () => {
     ws.getCell('A1').value = '冻结区';
     ws.views = [{ state: 'frozen', topLeftCell: 'C4' }] as never;
     const snap = workbookToSnapshot(wb, '回退');
-    expect(snap.sheets['sheet-01'].freeze).toEqual({ startRow: 3, startColumn: 2, xAxisSplit: 2, yAxisSplit: 3 });
+    expect(snap.sheets['sheet-01'].freeze).toEqual({ startRow: 3, startColumn: 2, xSplit: 2, ySplit: 3 });
   });
 });
 
@@ -349,7 +350,7 @@ describe('xlsx 导出方向：扩展样式', () => {
 
   it('冻结窗格与隐藏行列写入 exceljs', () => {
     const snap = sampleSnapshot();
-    snap.sheets.s1.freeze = { startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 };
+    snap.sheets.s1.freeze = { startRow: 2, startColumn: 1, xSplit: 1, ySplit: 2 };
     snap.sheets.s1.rowData = { 0: { h: 32 }, 3: { h: 0, hd: 1 } };
     snap.sheets.s1.columnData = { 0: { w: 120 }, 2: { w: 0, hd: 1 } };
     const wb = new ExcelJS.Workbook();

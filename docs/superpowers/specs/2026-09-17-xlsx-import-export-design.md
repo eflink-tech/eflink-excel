@@ -63,7 +63,7 @@ export interface CellStyle {
 }
 ```
 
-`SnapshotSheet` 新增 `freeze?: { startRow: number; startColumn: number; xAxisSplit?: number; yAxisSplit?: number }`；
+`SnapshotSheet` 新增 `freeze?: { startRow: number; startColumn: number; xSplit?: number; ySplit?: number }`；
 隐藏行列在现有 `rowData`/`columnData` 条目上加 `hd?: 0 | 1`。
 另加 `SnapshotCell.p?: RichTextDoc`（Univer `IDocumentData` 的子集类型：`dataStream` + `textRuns: { st, ed, ts }[]`），
 形状与 Univer 一致，快照仍 `as never` 直通 `createWorkbook`，持久化链路零改动。
@@ -77,7 +77,7 @@ export interface CellStyle {
   `alignment.{horizontal,vertical,wrapText}` → `ht/vt/tb`、`font.{underline,strikethrough,name}` → `ul/st/ff`
 - `readCell` 富文本分支改为构建 `cell.p`：`richText[]` 拼接 `dataStream`（段间 `\r\n`），
   按段切 `textRuns`，run 样式映射进 `ts`；单元格级样式 `s` 取 runs 公共样式（首个 run）
-- `readSheet` 补：`ws.views[0].state === 'frozen'` 的 `xSplit/ySplit/topLeftCell` → `freeze`；
+- `readSheet` 补：`ws.views[0].state === 'frozen'` 的 `xSplit/ySplit/topLeftCell` → `freeze`（Univer IFreeze 键名 xSplit/ySplit）；
   `row.hidden` / `column.hidden` → `hd` 标记
 - 公式分支维持现状（保留 `f` 字符串）
 

@@ -73,8 +73,8 @@ export interface SnapshotSheet {
   columnCount: number;
   cellData: Record<number, Record<number, SnapshotCell>>;
   mergeData?: MergeRange[];
-  /** 冻结窗格：startRow/startColumn = 冻结区行/列数（与 Univer IFreeze 的 yAxisSplit/xAxisSplit 语义一致） */
-  freeze?: { startRow: number; startColumn: number; xAxisSplit: number; yAxisSplit: number };
+  /** 冻结窗格（形状对齐 Univer IFreeze）：xSplit=冻结列数 ySplit=冻结行数，startRow/startColumn=滚动区起点 */
+  freeze?: { startRow: number; startColumn: number; xSplit: number; ySplit: number };
   /** h: 行高(px)；hd: 1 表示隐藏 */
   rowData?: Record<number, { h?: number; hd?: 0 | 1 }>;
   /** w: 列宽(px)；hd: 1 表示隐藏 */

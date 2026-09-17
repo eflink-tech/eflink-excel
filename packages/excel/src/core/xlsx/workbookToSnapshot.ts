@@ -92,9 +92,9 @@ function readFreeze(ws: Worksheet): SnapshotSheet['freeze'] {
     if (!tl) return undefined;
     const { row, col } = decodeRef(tl);
     if (!row && !col) return undefined;
-    return { startRow: row, startColumn: col, xAxisSplit: col, yAxisSplit: row };
+    return { startRow: row, startColumn: col, xSplit: col, ySplit: row };
   }
-  return { startRow: y, startColumn: x, xAxisSplit: x, yAxisSplit: y };
+  return { startRow: y, startColumn: x, xSplit: x, ySplit: y };
 }
 
 /** exceljs 类型包里 merges 挂在 model 上且可选，做防御式读取 */
@@ -213,7 +213,7 @@ function fontToStyle(font: { bold?: boolean; italic?: boolean; size?: number; na
   return st;
 }
 
-/** run 是否携带形状样式（粗/斜/色/下划线/删除线/底色）——仅 fs/ff 度量差异不算 */
+/** run 是否携带视觉样式（粗/斜/色/下划线/删除线/底色/字号/字体族）——完全无差异的 run 不产出 */
 function hasShapeStyle(ts: CellStyle): boolean {
-  return ts.bl !== undefined || ts.it !== undefined || ts.cl !== undefined || ts.ul !== undefined || ts.st !== undefined || ts.bg !== undefined;
+  return ts.bl !== undefined || ts.it !== undefined || ts.cl !== undefined || ts.ul !== undefined || ts.st !== undefined || ts.bg !== undefined || ts.fs !== undefined || ts.ff !== undefined;
 }
