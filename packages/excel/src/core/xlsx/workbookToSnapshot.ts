@@ -1,11 +1,32 @@
 // exceljs Workbook -> Univer snapshot：导入方向的纯映射（不涉及文件读取）
 import type { Cell, CellErrorValue, CellFormulaValue, CellRichTextValue, Workbook, Worksheet } from 'exceljs';
-import type { CellStyle, MergeRange, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
+import type { BorderStyle, CellStyle, MergeRange, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 import { newId } from '../../types/spreadsheet';
 
-const fromArgb = (argb: string): string => '#' + argb.slice(2);
+/** ARGB → #RRGGBB（统一小写，ExcelJS 保留输入原样大小写） */
+const fromArgb = (argb: string): string => '#' + argb.slice(2).toLowerCase();
 const PT_TO_PX = 1 / 0.75;
 const CHAR_TO_PX = 10;
+
+/** exceljs/OOXML 线型 → Univer BorderStyleTypes 数值枚举（1=THIN…13=THICK），两侧词表一致故 1:1 直映 */
+const BORDER_STYLE_IDS: Record<string, number> = {
+  thin: 1, hair: 2, dotted: 3, dashed: 4, dashDot: 5, dashDotDot: 6, double: 7,
+  medium: 8, mediumDashed: 9, mediumDashDot: 10, mediumDashDotDot: 11,
+  slantDashDot: 12, thick: 13,
+};
+/** exceljs 对齐 → Univer HorizontalAlign / VerticalAlign 数值枚举 */
+const H_ALIGN_IDS: Record<string, number> = { left: 1, center: 2, right: 3 };
+const V_ALIGN_IDS: Record<string, number> = { top: 1, middle: 2, bottom: 3 };
+const WRAP_STRATEGY_WRAP = 3; // Univer WrapStrategy.WRAP
+
+type BorderSide = { style?: string; color?: { argb?: string } } | undefined;
+
+/** 读取单边边框：无有效线型时忽略，缺省颜色补黑色 */
+function readBorderSide(side: BorderSide): BorderStyle | undefined {
+  const s = side?.style ? BORDER_STYLE_IDS[side.style] : undefined;
+  if (!s) return undefined;
+  return { s, cl: { rgb: side?.color?.argb ? fromArgb(side.color.argb) : '#000000' } };
+}
 
 export function workbookToSnapshot(wb: Workbook, name: string): WorkbookSnapshot {
   const sheets: Record<string, SnapshotSheet> = {};
@@ -102,10 +123,25 @@ function readStyle(cell: Cell): CellStyle | undefined {
   if (font?.italic) st.it = 1;
   if (font?.size != null) st.fs = font.size;
   if (font?.color?.argb) st.cl = { rgb: fromArgb(font.color.argb) };
+  if (font?.name) st.ff = font.name;
+  if (font?.underline && font.underline !== 'none') st.ul = { s: 1 };
+  if (font?.strike) st.st = { s: 1 };
   const fill = cell.style?.fill;
   if (fill && 'pattern' in fill && fill.pattern === 'solid') {
     const fg = fill.fgColor?.argb;
     if (fg) st.bg = { rgb: fromArgb(fg) };
+  }
+  const align = cell.style?.alignment;
+  if (align?.horizontal && H_ALIGN_IDS[align.horizontal] !== undefined) st.ht = H_ALIGN_IDS[align.horizontal];
+  if (align?.vertical && V_ALIGN_IDS[align.vertical] !== undefined) st.vt = V_ALIGN_IDS[align.vertical];
+  if (align?.wrapText) st.tb = WRAP_STRATEGY_WRAP;
+  const bd = cell.style?.border;
+  if (bd) {
+    const t = readBorderSide(bd.top);
+    const b = readBorderSide(bd.bottom);
+    const l = readBorderSide(bd.left);
+    const r = readBorderSide(bd.right);
+    if (t || b || l || r) st.bd = { ...(t && { t }), ...(b && { b }), ...(l && { l }), ...(r && { r }) };
   }
   const numFmt = cell.style?.numFmt;
   if (numFmt) st.n = { pattern: numFmt };

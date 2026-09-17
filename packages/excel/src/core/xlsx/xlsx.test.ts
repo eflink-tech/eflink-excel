@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as ExcelJS from 'exceljs';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
-import type { WorkbookSnapshot } from '../../types/spreadsheet';
+import type { CellStyle, WorkbookSnapshot } from '../../types/spreadsheet';
 
 function sampleSnapshot(): WorkbookSnapshot {
   return {
@@ -131,5 +131,55 @@ describe('xlsx 双向转换', () => {
     expect(a1.font.color?.argb).toBe('FFFF0000');
     expect(wb.worksheets[0].getCell('B1').numFmt).toBe('0.00%');
     expect(wb.worksheets[0].getCell('C1').value).toMatchObject({ formula: '1+2', result: 3 });
+  });
+});
+
+describe('xlsx 导入方向：扩展样式', () => {
+  function importWorkbook(build: (ws: ExcelJS.Worksheet) => void) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('样式表');
+    build(ws);
+    return workbookToSnapshot(wb, '样式测试');
+  }
+
+  it('字体族/下划线/删除线/对齐/换行导入为 Univer 形状样式', () => {
+    const snap = importWorkbook((ws) => {
+      const a1 = ws.getCell('A1');
+      a1.value = '混合样式';
+      a1.font = { name: '微软雅黑', underline: true, strike: true, size: 12 };
+      a1.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    const st = snap.sheets['sheet-01'].cellData[0]?.[0]?.s as CellStyle;
+    expect(st.ff).toBe('微软雅黑');
+    expect(st.ul).toEqual({ s: 1 });
+    expect(st.st).toEqual({ s: 1 });
+    expect(st.ht).toBe(2);
+    expect(st.vt).toBe(2);
+    expect(st.tb).toBe(3);
+  });
+
+  it('四边边框（线型枚举 + 颜色）导入，缺省颜色补黑色', () => {
+    const snap = importWorkbook((ws) => {
+      const a1 = ws.getCell('A1');
+      a1.value = '边框';
+      a1.border = {
+        top: { style: 'thin', color: { argb: 'FFFF0000' } },
+        bottom: { style: 'double', color: { argb: 'FF00FF00' } },
+        left: { style: 'dashed' },
+        right: { style: 'thick', color: { argb: 'FF0000FF' } },
+      };
+    });
+    const st = snap.sheets['sheet-01'].cellData[0]?.[0]?.s as CellStyle;
+    expect(st.bd?.t).toEqual({ s: 1, cl: { rgb: '#ff0000' } });
+    expect(st.bd?.b).toEqual({ s: 7, cl: { rgb: '#00ff00' } });
+    expect(st.bd?.l).toEqual({ s: 4, cl: { rgb: '#000000' } });
+    expect(st.bd?.r).toEqual({ s: 13, cl: { rgb: '#0000ff' } });
+  });
+
+  it('普通单元格不产出空样式', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = '普通';
+    });
+    expect(snap.sheets['sheet-01'].cellData[0]?.[0]?.s).toBeUndefined();
   });
 });
