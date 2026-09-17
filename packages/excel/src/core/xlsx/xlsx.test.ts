@@ -132,6 +132,55 @@ describe('xlsx 双向转换', () => {
     expect(wb.worksheets[0].getCell('B1').numFmt).toBe('0.00%');
     expect(wb.worksheets[0].getCell('C1').value).toMatchObject({ formula: '1+2', result: 3 });
   });
+
+  it('扩展样式/冻结/隐藏/富文本 全链路 roundtrip 无损', () => {
+    const snap = sampleSnapshot();
+    const s1 = snap.sheets.s1;
+    s1.cellData[0]![1]!.s = {
+      ff: '微软雅黑', ul: { s: 1 }, st: { s: 1 }, ht: 2, vt: 2, tb: 3,
+      bd: {
+        t: { s: 1, cl: { rgb: '#ff0000' } },
+        b: { s: 7, cl: { rgb: '#00ff00' } },
+        l: { s: 4, cl: { rgb: '#000000' } },
+        r: { s: 13, cl: { rgb: '#0000ff' } },
+      },
+    };
+    s1.cellData[6] = {
+      0: {
+        p: {
+          id: '__eflink-rich-text',
+          documentStyle: {},
+          body: {
+            dataStream: '第一段\r\n第二段\r\n',
+            textRuns: [{ st: 3, ed: 6, ts: { bl: 1, cl: { rgb: '#ff0000' } } }],
+          },
+        },
+      },
+    };
+    s1.freeze = { startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 };
+    s1.rowData = { 0: { h: 32 }, 3: { h: 0, hd: 1 } };
+    s1.columnData = { 0: { w: 120 }, 2: { w: 0, hd: 1 } };
+
+    const out = roundTrip(snap);
+    const os1 = Object.values(out.sheets)[0];
+    const st = os1.cellData[0]?.[1]?.s as CellStyle;
+    expect(st.ff).toBe('微软雅黑');
+    expect(st.ul).toEqual({ s: 1 });
+    expect(st.st).toEqual({ s: 1 });
+    expect(st.ht).toBe(2);
+    expect(st.vt).toBe(2);
+    expect(st.tb).toBe(3);
+    expect(st.bd?.t).toEqual({ s: 1, cl: { rgb: '#ff0000' } });
+    expect(st.bd?.b).toEqual({ s: 7, cl: { rgb: '#00ff00' } });
+    expect(st.bd?.l).toEqual({ s: 4, cl: { rgb: '#000000' } });
+    expect(st.bd?.r).toEqual({ s: 13, cl: { rgb: '#0000ff' } });
+    expect(os1.freeze).toEqual({ startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 });
+    expect(os1.rowData?.[3]?.hd).toBe(1);
+    expect(os1.columnData?.[2]?.hd).toBe(1);
+    const p = os1.cellData[6]?.[0]?.p;
+    expect(p?.body.dataStream.replace(/\r\n/g, '')).toBe('第一段第二段');
+    expect(p?.body.textRuns?.[0]).toMatchObject({ st: 3, ed: 6, ts: { bl: 1, cl: { rgb: '#ff0000' } } });
+  });
 });
 
 describe('xlsx 导入方向：扩展样式', () => {
