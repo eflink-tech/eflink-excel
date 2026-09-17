@@ -6,6 +6,16 @@ const toArgb = (rgb: string): string => 'FF' + rgb.replace('#', '').toUpperCase(
 const PX_TO_PT = 0.75; // Univer 行高(px) -> excel 行高(pt)
 const PX_TO_CHAR = 10; // Univer 列宽(px) -> excel 字符宽（经验换算）
 
+/** Univer BorderStyleTypes 数值枚举 → exceljs/OOXML 线型（1:1 直映） */
+const BORDER_STYLE_NAMES: Record<number, string> = {
+  1: 'thin', 2: 'hair', 3: 'dotted', 4: 'dashed', 5: 'dashDot', 6: 'dashDotDot', 7: 'double',
+  8: 'medium', 9: 'mediumDashed', 10: 'mediumDashDot', 11: 'mediumDashDotDot',
+  12: 'slantDashDot', 13: 'thick',
+};
+const H_ALIGN_NAMES: Record<number, string> = { 1: 'left', 2: 'center', 3: 'right' };
+const V_ALIGN_NAMES: Record<number, string> = { 1: 'top', 2: 'middle', 3: 'bottom' };
+const WRAP_STRATEGY_WRAP = 3;
+
 export function snapshotToWorkbook(snapshot: WorkbookSnapshot, wb: Workbook): void {
   const styles = snapshot.styles ?? {};
   const order = snapshot.sheetOrder?.filter((id) => snapshot.sheets[id]) ?? Object.keys(snapshot.sheets);
@@ -52,9 +62,31 @@ function applyStyle(target: Cell, st: CellStyle | undefined): void {
     bold: st.bl === 1,
     italic: st.it === 1,
     size: st.fs ?? 11,
+    ...(st.ff ? { name: st.ff } : {}),
     ...(st.cl ? { color: { argb: toArgb(st.cl.rgb) } } : {}),
+    ...(st.ul?.s ? { underline: true } : {}),
+    ...(st.st?.s ? { strike: true } : {}),
   };
   if (st.bg) {
     target.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(st.bg.rgb) } };
+  }
+  const alignment: Record<string, unknown> = {};
+  if (st.ht && H_ALIGN_NAMES[st.ht]) alignment.horizontal = H_ALIGN_NAMES[st.ht];
+  if (st.vt && V_ALIGN_NAMES[st.vt]) alignment.vertical = V_ALIGN_NAMES[st.vt];
+  if (st.tb === WRAP_STRATEGY_WRAP) alignment.wrapText = true;
+  if (Object.keys(alignment).length) target.alignment = alignment as never;
+  const bd = st.bd;
+  if (bd) {
+    const border: Record<string, unknown> = {};
+    const sides = [
+      ['top', bd.t], ['bottom', bd.b], ['left', bd.l], ['right', bd.r],
+    ] as const;
+    for (const [key, side] of sides) {
+      if (!side) continue;
+      const style = BORDER_STYLE_NAMES[side.s];
+      if (!style) continue;
+      border[key] = { style, color: { argb: toArgb(side.cl.rgb) } };
+    }
+    if (Object.keys(border).length) target.border = border as never;
   }
 }

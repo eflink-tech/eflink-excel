@@ -260,3 +260,41 @@ describe('xlsx 导入方向：扩展样式', () => {
     expect(snap.sheets['sheet-01'].freeze).toEqual({ startRow: 3, startColumn: 2, xAxisSplit: 2, yAxisSplit: 3 });
   });
 });
+
+describe('xlsx 导出方向：扩展样式', () => {
+  it('字体族/下划线/删除线/对齐/换行/边框写入 exceljs', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.cellData[0]![0]!.s = {
+      ff: '微软雅黑', ul: { s: 1 }, st: { s: 1 },
+      ht: 2, vt: 2, tb: 3,
+      bd: {
+        t: { s: 1, cl: { rgb: '#ff0000' } },
+        b: { s: 7, cl: { rgb: '#00ff00' } },
+        l: { s: 4, cl: { rgb: '#000000' } },
+      },
+    };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const a1 = wb.worksheets[0].getCell('A1');
+    expect(a1.font.name).toBe('微软雅黑');
+    expect(a1.font.underline).toBe(true);
+    expect(a1.font.strike).toBe(true);
+    expect(a1.alignment).toMatchObject({ horizontal: 'center', vertical: 'middle', wrapText: true });
+    expect(a1.border.top?.style).toBe('thin');
+    expect(a1.border.top?.color?.argb).toBe('FFFF0000');
+    expect(a1.border.bottom?.style).toBe('double');
+    expect(a1.border.left?.style).toBe('dashed');
+    expect(a1.border.left?.color?.argb).toBe('FF000000');
+  });
+
+  it('样式 id 形式的运行时快照同样走扩展样式导出', () => {
+    const snap = sampleSnapshot();
+    snap.styles = { sx: { ht: 3, vt: 3, tb: 3, ff: '宋体' } };
+    snap.sheets.s1.cellData[1]![0]!.s = 'sx';
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const a2 = wb.worksheets[0].getCell('A2');
+    expect(a2.alignment).toMatchObject({ horizontal: 'right', vertical: 'bottom', wrapText: true });
+    expect(a2.font.name).toBe('宋体');
+  });
+});
