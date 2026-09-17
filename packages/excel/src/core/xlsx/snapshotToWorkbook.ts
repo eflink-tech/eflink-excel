@@ -1,5 +1,5 @@
 // Univer snapshot -> exceljs Workbook：导出方向的纯映射（不涉及 DOM/下载）
-import type { Cell, CellValue, Workbook, Worksheet } from 'exceljs';
+import type { Cell, CellRichTextValue, CellValue, Workbook, Worksheet } from 'exceljs';
 import type { CellStyle, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 
 const toArgb = (rgb: string): string => 'FF' + rgb.replace('#', '').toUpperCase();
@@ -63,8 +63,41 @@ function resolveStyle(cell: SnapshotCell, styles: Record<string, CellStyle>): Ce
 }
 
 function toCellValue(cell: SnapshotCell): CellValue {
+  if (cell.p) return richTextToCellValue(cell.p) as never;
   if (cell.f) return { formula: cell.f.replace(/^=/, ''), result: (cell.v ?? 0) as number };
   return cell.v ?? null;
+}
+
+/** Univer 文档子集 → exceljs 富文本：流去段落符还原文本，runs 覆盖区间外的字符输出无样式片段 */
+function richTextToCellValue(p: { body: { dataStream: string; textRuns?: { st: number; ed: number; ts?: CellStyle }[] } }): CellRichTextValue {
+  const stream = p.body.dataStream.replace(/\r\n/g, '\n').replace(/\n$/, '');
+  const runs = [...(p.body.textRuns ?? [])].sort((a, b) => a.st - b.st);
+  const richText: { text: string; font?: Record<string, unknown> }[] = [];
+  let cursor = 0;
+  const pushRun = (text: string, ts?: CellStyle) => {
+    if (!text) return;
+    richText.push({
+      text,
+      ...(ts && {
+        font: {
+          ...(ts.bl != null && { bold: ts.bl === 1 }),
+          ...(ts.it != null && { italic: ts.it === 1 }),
+          ...(ts.fs != null && { size: ts.fs }),
+          ...(ts.ff && { name: ts.ff }),
+          ...(ts.cl && { color: { argb: toArgb(ts.cl.rgb) } }),
+          ...(ts.ul != null && { underline: ts.ul.s === 1 }),
+          ...(ts.st != null && { strike: ts.st.s === 1 }),
+        },
+      }),
+    });
+  };
+  for (const run of runs) {
+    if (run.st > cursor) pushRun(stream.slice(cursor, run.st)); // 无样式间隙
+    pushRun(stream.slice(Math.max(run.st, cursor), run.ed), run.ts);
+    cursor = Math.max(cursor, run.ed);
+  }
+  pushRun(stream.slice(cursor));
+  return { richText: richText as CellRichTextValue['richText'] };
 }
 
 function applyStyle(target: Cell, st: CellStyle | undefined): void {

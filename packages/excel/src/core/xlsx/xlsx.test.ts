@@ -221,7 +221,7 @@ describe('xlsx 导入方向：扩展样式', () => {
     expect(runs[0]).toMatchObject({ st: 2, ed: 4, ts: { bl: 1, cl: { rgb: '#ff0000' } } });
   });
 
-  it('富文本含换行时按展开后的流计算 run 区间', () => {
+  it('富文本含换行时 dataStream 展开存储、run 区间按归一化文本计长', () => {
     const snap = importWorkbook((ws) => {
       ws.getCell('A1').value = {
         richText: [
@@ -231,7 +231,7 @@ describe('xlsx 导入方向：扩展样式', () => {
       };
     });
     const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
-    // A\n 展开为 A\r\n（3 字符），C 在流中位于 [3, 4)
+    // dataStream 物理展开为 A\r\n（3 字符）；run 的 st/ed 按归一化文本（\r\n 记 1 字符）计长，C 在 [3, 4)
     expect(cell?.p?.body.dataStream).toBe('A\r\nBC\r\n');
     expect(cell?.p?.body.textRuns?.[0]?.ts?.bl).toBe(1);
   });
@@ -311,5 +311,32 @@ describe('xlsx 导出方向：扩展样式', () => {
     expect(ws.getRow(4).hidden).toBe(true);
     expect(ws.getColumn(1).width).toBeCloseTo(12, 0);
     expect(ws.getColumn(3).hidden).toBe(true);
+  });
+
+  it('cell.p 富文本写入 exceljs 富文本值', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.cellData[0]![0] = {
+      p: {
+        id: '__eflink-rich-text',
+        documentStyle: {},
+        body: {
+          dataStream: '普通红色结尾\r\n',
+          textRuns: [
+            { st: 0, ed: 2, ts: { fs: 12 } },
+            { st: 2, ed: 4, ts: { bl: 1, cl: { rgb: '#ff0000' } } },
+          ],
+        },
+      },
+    };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const value = wb.worksheets[0].getCell('A1').value;
+    expect(value).toMatchObject({
+      richText: [
+        { text: '普通', font: { size: 12 } },
+        { text: '红色', font: { bold: true, color: { argb: 'FFFF0000' } } },
+        { text: '结尾' },
+      ],
+    });
   });
 });
