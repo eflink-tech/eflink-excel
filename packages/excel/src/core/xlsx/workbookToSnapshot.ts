@@ -125,7 +125,8 @@ function readCell(cell: Cell): SnapshotCell {
     const result = (val as CellFormulaValue).result;
     if (result != null) uc.v = result as string | number | boolean;
   } else if (val != null && typeof val === 'object' && 'richText' in (val as CellRichTextValue)) {
-    applyRichText(uc, val as CellRichTextValue, cell.row, cell.col);
+    // exceljs 类型缺陷：Cell 继承的 Address 把 row/col 误声明为 string，运行时实为 number
+    applyRichText(uc, val as CellRichTextValue, Number(cell.row), Number(cell.col));
   } else if (val instanceof Date) {
     uc.v = formatDate(val);
   } else if (val != null && typeof val === 'object' && 'error' in (val as CellErrorValue)) {
