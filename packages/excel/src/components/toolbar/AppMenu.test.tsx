@@ -15,7 +15,9 @@ vi.mock('../../core/univer/commands', () => ({
 vi.mock('../../core/fileActions', () => ({
   exportPngAction: vi.fn(),
   exportEfexcelAction: vi.fn(),
+  exportXlsxAction: vi.fn(),
   importFileAction: vi.fn(),
+  importXlsxMenuAction: vi.fn(),
   newDocAction: vi.fn(),
   saveAction: vi.fn(),
 }));
@@ -54,13 +56,27 @@ describe('AppMenu 主菜单', () => {
     expect(screen.getByRole('button', { name: '新建表格' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '保存⌘S' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导入表格(.efexcel)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '导入 Excel(.xlsx)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导出表格(.efexcel)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '导出 Excel(.xlsx)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导出图片' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '导出表格(.efexcel)' }));
     expect(actions.exportEfexcelAction).toHaveBeenCalledTimes(1);
     // 执行动作后面板收起
     expect(screen.queryByRole('button', { name: '新建表格' })).toBeNull();
+  });
+
+  it('文件面板：xlsx 导入/导出入口触发对应动作', () => {
+    openMenu();
+    fireEvent.mouseEnter(branch('文件'));
+    fireEvent.click(screen.getByRole('button', { name: '导入 Excel(.xlsx)' }));
+    expect(actions.importXlsxMenuAction).toHaveBeenCalledTimes(1);
+
+    openMenu();
+    fireEvent.mouseEnter(branch('文件'));
+    fireEvent.click(screen.getByRole('button', { name: '导出 Excel(.xlsx)' }));
+    expect(actions.exportXlsxAction).toHaveBeenCalledTimes(1);
   });
 
   it('编辑面板：撤销 / 重做 / 清除内容 / 清除格式', () => {

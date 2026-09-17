@@ -7,6 +7,8 @@ import { closeAllToolbarDropdowns, registerToolbarDropdown } from './toolbarDrop
 import {
   exportEfexcelAction,
   exportPngAction,
+  exportXlsxAction,
+  importXlsxMenuAction,
   newDocAction,
   saveAction,
 } from '../../core/fileActions';
@@ -37,7 +39,9 @@ function useMenuItems(importRef: React.RefObject<HTMLInputElement | null>): Menu
     { label: '新建表格', iconClass: 'myf-icon-add', action: () => void newDocAction() },
     { label: '保存', icon: <Save size={16} />, shortcut: '⌘S', action: () => void saveAction() },
     { label: '导入表格(.efexcel)', iconClass: 'myf-icon-file-import', action: () => importRef.current?.click() },
+    { label: '导入 Excel(.xlsx)', iconClass: 'myf-icon-file-import', action: () => void importXlsxMenuAction() },
     { label: '导出表格(.efexcel)', iconClass: 'myf-icon-file-export', action: () => void exportEfexcelAction() },
+    { label: '导出 Excel(.xlsx)', iconClass: 'myf-icon-file-export', action: () => void exportXlsxAction() },
     { label: '导出图片', iconClass: 'myf-icon-file-download', action: () => void exportPngAction() },
   ];
   const editChildren: MenuLeaf[] = [
