@@ -27,7 +27,7 @@ describe('efexcel 文档备份格式', () => {
 
     expect(mockDownload).toHaveBeenCalledTimes(1);
     const [blob, filename] = mockDownload.mock.calls[0];
-    expect(filename).toBe('季度报表.efexcel');
+    expect(filename).toBe('季度报表.efx.json');
     expect(blob).toBeInstanceOf(Blob);
     const payload = JSON.parse(await blob!.text());
     expect(payload.source).toEqual({ app: '易飞表格', url: 'https://eflink.tech/office/excel' });

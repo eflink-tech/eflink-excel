@@ -55,13 +55,13 @@ describe('AppMenu 主菜单', () => {
     fireEvent.mouseEnter(branch('文件'));
     expect(screen.getByRole('button', { name: '新建表格' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '保存⌘S' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '导入表格(.efexcel)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '导入数据(.efx.json)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导入 Excel(.xlsx)' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '导出表格(.efexcel)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '导出数据(.efx.json)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导出 Excel(.xlsx)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '导出图片' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '导出表格(.efexcel)' }));
+    fireEvent.click(screen.getByRole('button', { name: '导出数据(.efx.json)' }));
     expect(actions.exportEfexcelAction).toHaveBeenCalledTimes(1);
     // 执行动作后面板收起
     expect(screen.queryByRole('button', { name: '新建表格' })).toBeNull();

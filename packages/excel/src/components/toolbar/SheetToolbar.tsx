@@ -885,7 +885,7 @@ export function SheetToolbar() {
       <input
         ref={importInputRef}
         type="file"
-        accept=".efexcel,application/json"
+        accept=".efx.json,.efexcel,application/json"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

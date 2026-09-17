@@ -1,5 +1,5 @@
-import { ChevronRight, Keyboard, Pencil, Save } from 'lucide-react';
-import { cloneElement, isValidElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { ChevronRight, FileJson, FileSpreadsheet, Keyboard, Pencil, Save } from 'lucide-react';
+import { Fragment, cloneElement, isValidElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { ShortcutsDialog } from './ShortcutsDialog';
 import { ToolbarDropdownPanel, ToolbarMenuDivider, ToolbarMenuItem, ToolbarSysIcon } from './ToolbarMenuPanel';
 import './myfsheet.css';
@@ -19,6 +19,8 @@ interface MenuLeaf {
   icon?: ReactNode;
   iconClass?: string;
   shortcut?: string;
+  /** 在该项上方渲染分组分隔线 */
+  divider?: boolean;
   action: () => void;
 }
 
@@ -38,10 +40,10 @@ function useMenuItems(importRef: React.RefObject<HTMLInputElement | null>): Menu
   const fileChildren: MenuLeaf[] = [
     { label: '新建表格', iconClass: 'myf-icon-add', action: () => void newDocAction() },
     { label: '保存', icon: <Save size={16} />, shortcut: '⌘S', action: () => void saveAction() },
-    { label: '导入表格(.efexcel)', iconClass: 'myf-icon-file-import', action: () => importRef.current?.click() },
-    { label: '导入 Excel(.xlsx)', iconClass: 'myf-icon-file-import', action: () => void importXlsxMenuAction() },
-    { label: '导出表格(.efexcel)', iconClass: 'myf-icon-file-export', action: () => void exportEfexcelAction() },
-    { label: '导出 Excel(.xlsx)', iconClass: 'myf-icon-file-export', action: () => void exportXlsxAction() },
+    { label: '导入数据(.efx.json)', icon: <FileJson size={16} />, divider: true, action: () => importRef.current?.click() },
+    { label: '导入 Excel(.xlsx)', icon: <FileSpreadsheet size={16} />, action: () => void importXlsxMenuAction() },
+    { label: '导出数据(.efx.json)', icon: <FileJson size={16} />, divider: true, action: () => void exportEfexcelAction() },
+    { label: '导出 Excel(.xlsx)', icon: <FileSpreadsheet size={16} />, action: () => void exportXlsxAction() },
     { label: '导出图片', iconClass: 'myf-icon-file-download', action: () => void exportPngAction() },
   ];
   const editChildren: MenuLeaf[] = [
@@ -174,7 +176,7 @@ export function MenuDropdown({
         <ToolbarDropdownPanel className="myf-sys-submenu myf-sys-panel--static" style={{ width: 224, position: 'static', marginTop: 0 }}>
           {active.children.map((leaf) => (
             <div key={leaf.label}>
-              {leaf.label === '清除内容' && <ToolbarMenuDivider />}
+              {(leaf.divider || leaf.label === '清除内容') && <ToolbarMenuDivider />}
               <ToolbarMenuItem
                 label={leaf.label}
                 icon={leaf.iconClass ? undefined : leaf.icon}
@@ -236,16 +238,18 @@ export function MenuDropdown({
           {active && isBranch(active) && (
             <div className="ml-1 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
               {active.children.map((leaf) => (
-                <button
-                  key={leaf.label}
-                  type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[13px] text-slate-700 transition-colors hover:bg-[#f2f3f4]"
-                  onClick={() => run(leaf.action)}
-                >
-                  {renderMenuIcon(leaf)}
-                  <span className="flex-1">{leaf.label}</span>
-                  {leaf.shortcut && <span className="text-xs text-slate-400">{leaf.shortcut}</span>}
-                </button>
+                <Fragment key={leaf.label}>
+                  {leaf.divider && <div className="mt-1 border-t border-slate-100" />}
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[13px] text-slate-700 transition-colors hover:bg-[#f2f3f4]"
+                    onClick={() => run(leaf.action)}
+                  >
+                    {renderMenuIcon(leaf)}
+                    <span className="flex-1">{leaf.label}</span>
+                    {leaf.shortcut && <span className="text-xs text-slate-400">{leaf.shortcut}</span>}
+                  </button>
+                </Fragment>
               ))}
             </div>
           )}

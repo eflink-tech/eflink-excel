@@ -1,9 +1,9 @@
-// .efexcel 文档备份格式：SheetDocument（标题 + 快照 + 元信息）的 JSON 序列化
+// .efx.json 文档备份格式：SheetDocument（标题 + 快照 + 元信息）的 JSON 序列化
 import { createDocument } from '../types/spreadsheet';
 import type { SheetDocument } from '../types/spreadsheet';
 import { downloadBlob } from './xlsx/fileIO';
 
-const EFEXCEL_EXT = '.efexcel';
+const EFEXCEL_EXT = '.efx.json';
 
 /** 导出文件的来源信息（写入协议 source 字段，便于追溯文件由哪个应用产生） */
 export interface EfexcelSource {
@@ -34,7 +34,7 @@ export function exportEfexcel(doc: SheetDocument, source: EfexcelSource = DEFAUL
 }
 
 /**
- * 解析 .efexcel / .json 备份文件；结构不合法时抛错。
+ * 解析 .efx.json / .efexcel / .json 备份文件；结构不合法时抛错。
  * 返回全新 id 的文档副本，避免导入后落库覆盖源文档。
  */
 export async function importEfexcel(file: File): Promise<SheetDocument> {
