@@ -45,6 +45,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-function trimExt(filename: string): string {
+export function trimExt(filename: string): string {
   return filename.replace(/\.(xlsx|xlsm|xls)$/i, '');
 }

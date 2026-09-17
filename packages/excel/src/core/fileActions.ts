@@ -1,8 +1,10 @@
 // 顶部菜单可用的文件操作（标题栏、AppMenu 共用）
 import { currentSnapshot, saveNow } from './saveService';
 import { exportEfexcel, importEfexcel } from './efexcel';
-import { exportPng } from './xlsx/fileIO';
+import { exportPng, exportXlsx, importXlsx, trimExt } from './xlsx/fileIO';
+import { pickFile } from './filePicker';
 import { getDefaultStorage } from '../storage/registry';
+import { clearDraft } from '../storage/draft';
 import { useDocumentsStore } from '../store/documentsStore';
 import { useEditorStore } from '../store/editorStore';
 import { useUiStore } from '../store/uiStore';
@@ -67,4 +69,50 @@ export async function importFileAction(file: File): Promise<void> {
     console.error('导入失败', err);
     useUiStore.getState().showToast('导入失败：无法解析该文件');
   }
+}
+
+/** 导出 Excel (.xlsx)：先保存，再取最新快照转换下载 */
+export async function exportXlsxAction(): Promise<void> {
+  const { docId } = useEditorStore.getState();
+  if (!docId || !currentSnapshot()) return;
+  try {
+    await saveNow();
+    const doc = await getDefaultStorage().load(docId);
+    if (!doc) throw new Error(`文档不存在: ${docId}`);
+    await exportXlsx(doc.snapshot, doc.title);
+    useUiStore.getState().showToast('已导出 xlsx');
+  } catch (err) {
+    console.error('导出 xlsx 失败', err);
+    useUiStore.getState().showToast('导出失败');
+  }
+}
+
+/** 导入 Excel (.xlsx)：解析成功后替换当前文档内容（docId 不变），并触发编辑器重载 */
+export async function importXlsxAction(file: File): Promise<void> {
+  const { docId, title } = useEditorStore.getState();
+  if (!docId) return;
+  const ok = await useUiStore.getState().requestConfirm({
+    title: '导入 Excel',
+    message: `导入将替换当前文档「${title}」的内容，确定继续吗？`,
+  });
+  if (!ok) return;
+  try {
+    // 先解析：失败在落盘前抛出，当前文档不受影响
+    const snapshot = await importXlsx(file);
+    await getDefaultStorage().updateContent(docId, trimExt(file.name), snapshot);
+    clearDraft(docId); // 防重载读到旧草稿
+    void useDocumentsStore.getState().refresh();
+    useEditorStore.getState().bumpReload();
+    useUiStore.getState().showToast('导入成功');
+  } catch (err) {
+    console.error('导入 Excel 失败', err);
+    useUiStore.getState().showToast('导入失败：无法解析该文件');
+  }
+}
+
+/** 菜单入口：弹文件选择框（限 xlsx/xlsm），选中后走导入动作 */
+export async function importXlsxMenuAction(): Promise<void> {
+  const file = await pickFile('.xlsx,.xlsm');
+  if (!file) return;
+  await importXlsxAction(file);
 }
