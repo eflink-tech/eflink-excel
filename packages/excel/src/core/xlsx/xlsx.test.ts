@@ -339,4 +339,61 @@ describe('xlsx 导出方向：扩展样式', () => {
       ],
     });
   });
+
+  it('隐藏行列保留原尺寸（hidden 与 height/width 共存）', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.rowData = { 3: { h: 40, hd: 1 } };
+    snap.sheets.s1.columnData = { 2: { w: 100, hd: 1 } };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const ws = wb.worksheets[0];
+    expect(ws.getRow(4).hidden).toBe(true);
+    expect(ws.getRow(4).height).toBeCloseTo(30, 0);
+    expect(ws.getColumn(3).hidden).toBe(true);
+    expect(ws.getColumn(3).width).toBeCloseTo(10, 0);
+  });
+
+  it('toArgb 颜色防御：3 位展开、8 位去 alpha、异常回退黑色', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.cellData[0]![0]!.s = { cl: { rgb: '#F00' } };
+    snap.sheets.s1.cellData[0]![1]!.s = { cl: { rgb: '#80FF0000' } };
+    snap.sheets.s1.cellData[1]![0]!.s = { cl: { rgb: 'FFFFFF' } };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const ws = wb.worksheets[0];
+    expect(ws.getCell('A1').font.color?.argb).toBe('FFFF0000');
+    expect(ws.getCell('B1').font.color?.argb).toBe('FFFF0000'); // 8 位 AARRGGBB 去掉 alpha
+    expect(ws.getCell('A2').font.color?.argb).toBe('FF000000'); // 无 # 的异常长度回退黑色
+  });
+
+  it('仅背景/对齐等非字体样式时不产出冗余 font', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.cellData[0]![0]!.s = { bg: { rgb: '#4472C4' }, ht: 2 };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    expect(wb.worksheets[0].getCell('A1').font).toBeUndefined();
+  });
+
+  it('导出富文本单独 \\r 同样归一化为 \\n，负 st 钳制到 0', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.cellData[0]![0] = {
+      p: {
+        id: '__eflink-rich-text',
+        documentStyle: {},
+        body: {
+          dataStream: 'A\rBC\r\n',
+          textRuns: [{ st: -1, ed: 1, ts: { bl: 1 } }],
+        },
+      },
+    };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const value = wb.worksheets[0].getCell('A1').value;
+    expect(value).toMatchObject({
+      richText: [
+        { text: 'A', font: { bold: true } },
+        { text: '\nBC' },
+      ],
+    });
+  });
 });

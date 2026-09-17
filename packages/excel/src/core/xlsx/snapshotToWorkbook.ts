@@ -2,7 +2,15 @@
 import type { Cell, CellRichTextValue, CellValue, Workbook, Worksheet } from 'exceljs';
 import type { CellStyle, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 
-const toArgb = (rgb: string): string => 'FF' + rgb.replace('#', '').toUpperCase();
+/** 颜色 → 8 位 ARGB：3 位展开、8 位去掉自定义 alpha、无 # 或长度异常回退黑色 */
+const toArgb = (rgb: string): string => {
+  if (!rgb.startsWith('#')) return 'FF000000';
+  const v = rgb.slice(1).toUpperCase();
+  if (/^[0-9A-F]{6}$/.test(v)) return 'FF' + v;
+  if (/^[0-9A-F]{3}$/.test(v)) return 'FF' + [...v].map((c) => c + c).join('');
+  if (/^[0-9A-F]{8}$/.test(v)) return 'FF' + v.slice(2); // AARRGGBB：去掉自定义 alpha，强制不透明
+  return 'FF000000';
+};
 const PX_TO_PT = 0.75; // Univer 行高(px) -> excel 行高(pt)
 const PX_TO_CHAR = 10; // Univer 列宽(px) -> excel 字符宽（经验换算）
 
@@ -47,12 +55,14 @@ function writeSheet(sheet: SnapshotSheet, ws: Worksheet, styles: Record<string, 
     }] as never;
   }
   for (const [r, rd] of Object.entries(sheet.rowData ?? {})) {
-    if (rd.hd) ws.getRow(Number(r) + 1).hidden = true;
-    else if (rd.h) ws.getRow(Number(r) + 1).height = Math.max(6, rd.h * PX_TO_PT);
+    const row = ws.getRow(Number(r) + 1);
+    if (rd.hd) row.hidden = true;
+    if (rd.h) row.height = Math.max(6, rd.h * PX_TO_PT); // 隐藏行也保留原尺寸
   }
   for (const [c, cd] of Object.entries(sheet.columnData ?? {})) {
-    if (cd.hd) ws.getColumn(Number(c) + 1).hidden = true;
-    else if (cd.w) ws.getColumn(Number(c) + 1).width = Math.max(5, cd.w / PX_TO_CHAR);
+    const col = ws.getColumn(Number(c) + 1);
+    if (cd.hd) col.hidden = true;
+    if (cd.w) col.width = Math.max(5, cd.w / PX_TO_CHAR); // 隐藏列也保留原尺寸
   }
 }
 
@@ -70,7 +80,7 @@ function toCellValue(cell: SnapshotCell): CellValue {
 
 /** Univer 文档子集 → exceljs 富文本：流去段落符还原文本，runs 覆盖区间外的字符输出无样式片段 */
 function richTextToCellValue(p: { body: { dataStream: string; textRuns?: { st: number; ed: number; ts?: CellStyle }[] } }): CellRichTextValue {
-  const stream = p.body.dataStream.replace(/\r\n/g, '\n').replace(/\n$/, '');
+  const stream = p.body.dataStream.replace(/\r\n?/g, '\n').replace(/\n$/, '');
   const runs = [...(p.body.textRuns ?? [])].sort((a, b) => a.st - b.st);
   const richText: { text: string; font?: Record<string, unknown> }[] = [];
   let cursor = 0;
@@ -92,8 +102,9 @@ function richTextToCellValue(p: { body: { dataStream: string; textRuns?: { st: n
     });
   };
   for (const run of runs) {
-    if (run.st > cursor) pushRun(stream.slice(cursor, run.st)); // 无样式间隙
-    pushRun(stream.slice(Math.max(run.st, cursor), run.ed), run.ts);
+    const st = Math.max(0, run.st); // 负 st 钳制到流起点
+    if (st > cursor) pushRun(stream.slice(cursor, st)); // 无样式间隙
+    pushRun(stream.slice(Math.max(st, cursor), run.ed), run.ts);
     cursor = Math.max(cursor, run.ed);
   }
   pushRun(stream.slice(cursor));
@@ -103,15 +114,18 @@ function richTextToCellValue(p: { body: { dataStream: string; textRuns?: { st: n
 function applyStyle(target: Cell, st: CellStyle | undefined): void {
   if (!st) return;
   if (st.n?.pattern) target.numFmt = st.n.pattern;
-  target.font = {
-    bold: st.bl === 1,
-    italic: st.it === 1,
-    size: st.fs ?? 11,
-    ...(st.ff ? { name: st.ff } : {}),
-    ...(st.cl ? { color: { argb: toArgb(st.cl.rgb) } } : {}),
-    ...(st.ul?.s ? { underline: true } : {}),
-    ...(st.st?.s ? { strike: true } : {}),
-  };
+  // 仅当存在字体相关字段时才赋 font，避免 bg/对齐/边框样式产出冗余 styles.xml 条目
+  if (st.bl != null || st.it != null || st.fs != null || st.ff || st.cl || st.ul || st.st) {
+    target.font = {
+      bold: st.bl === 1,
+      italic: st.it === 1,
+      size: st.fs ?? 11,
+      ...(st.ff ? { name: st.ff } : {}),
+      ...(st.cl ? { color: { argb: toArgb(st.cl.rgb) } } : {}),
+      ...(st.ul?.s ? { underline: true } : {}),
+      ...(st.st?.s ? { strike: true } : {}),
+    };
+  }
   if (st.bg) {
     target.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(st.bg.rgb) } };
   }
