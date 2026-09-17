@@ -96,12 +96,29 @@ export async function importXlsxAction(file: File): Promise<void> {
     message: `导入将替换当前文档「${title}」的内容，确定继续吗？`,
   });
   if (!ok) return;
+  // 确认期间文档可能已被切换/关闭，重新快照 docId（TOCTOU）
+  const confirmedDocId = useEditorStore.getState().docId;
+  if (!confirmedDocId) return;
+  try {
+    // 先保存：冲掉 dirty 与自动保存防抖，避免导入后 ⌘S/自动保存用旧编辑器快照覆盖导入结果
+    await saveNow();
+  } catch (err) {
+    console.error('导入前保存失败', err);
+    useUiStore.getState().showToast('导入失败：保存文档失败');
+    return;
+  }
   try {
     // 先解析：失败在落盘前抛出，当前文档不受影响
     const snapshot = await importXlsx(file);
-    await getDefaultStorage().updateContent(docId, trimExt(file.name), snapshot);
-    clearDraft(docId); // 防重载读到旧草稿
-    void useDocumentsStore.getState().refresh();
+    try {
+      await getDefaultStorage().updateContent(confirmedDocId, trimExt(file.name), snapshot);
+    } catch (err) {
+      console.error('导入保存文档失败', err);
+      useUiStore.getState().showToast('导入失败：保存文档失败');
+      return;
+    }
+    clearDraft(confirmedDocId); // 防重载读到旧草稿
+    void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
     useEditorStore.getState().bumpReload();
     useUiStore.getState().showToast('导入成功');
   } catch (err) {

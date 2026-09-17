@@ -208,6 +208,34 @@ describe('fileActions 文件动作', () => {
     await action;
 
     expect(mockImportXlsx).not.toHaveBeenCalled();
+    expect(mockSaveNow).not.toHaveBeenCalled(); // 取消路径不触发导入前保存
+    expect(useEditorStore.getState().reloadToken).toBe(reloadBefore);
+  });
+
+  it('importXlsxAction 导入前保存失败提示保存文档失败且不解析', async () => {
+    const reloadBefore = useEditorStore.getState().reloadToken;
+    mockSaveNow.mockRejectedValueOnce(new Error('写库失败'));
+    const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
+    useUiStore.getState().resolveConfirm(true);
+    await action;
+
+    expect(mockImportXlsx).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toast).toBe('导入失败：保存文档失败');
+    expect(useEditorStore.getState().reloadToken).toBe(reloadBefore);
+  });
+
+  it('importXlsxAction 落盘失败提示保存文档失败且不触发重载', async () => {
+    const reloadBefore = useEditorStore.getState().reloadToken;
+    setDefaultStorage({
+      ...memoryStorage(),
+      updateContent: vi.fn(async () => { throw new Error('写库失败'); }),
+    });
+    mockImportXlsx.mockResolvedValueOnce(createEmptySnapshot('导入表'));
+    const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
+    useUiStore.getState().resolveConfirm(true);
+    await action;
+
+    expect(useUiStore.getState().toast).toBe('导入失败：保存文档失败');
     expect(useEditorStore.getState().reloadToken).toBe(reloadBefore);
   });
 
