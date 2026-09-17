@@ -1,6 +1,32 @@
 // 表格领域类型：WorkbookSnapshot 是 Univer snapshot (IWorkbookData) 的结构子集，
 // 仅覆盖本应用读写的字段；与 Univer 的类型对接只在 UniverContainer 处做一次 cast。
 
+/** 四边边框的单边样式；s 取 Univer BorderStyleTypes 数值枚举（1=THIN … 13=THICK），cl 为边框色 */
+export interface BorderStyle {
+  s: number;
+  cl: { rgb: string };
+}
+
+/** 富文本 run：区间 [st, ed) 的样式（形状对齐 Univer ITextRun） */
+export interface SheetRichTextRun {
+  st: number;
+  ed: number;
+  ts?: CellStyle;
+}
+
+/** 富文本正文子集（形状对齐 Univer IDocumentData.body） */
+export interface SheetRichTextBody {
+  dataStream: string;
+  textRuns?: SheetRichTextRun[];
+}
+
+/** 单元格富文本子集（形状对齐 Univer IDocumentData；快照经 as never 直通 createWorkbook） */
+export interface SheetRichText {
+  id: string;
+  body: SheetRichTextBody;
+  documentStyle: Record<string, unknown>;
+}
+
 export interface CellStyle {
   bl?: 0 | 1;
   it?: 0 | 1;
@@ -8,11 +34,27 @@ export interface CellStyle {
   cl?: { rgb: string };
   bg?: { rgb: string };
   n?: { pattern: string };
+  /** 字体族（如「微软雅黑」「Arial」） */
+  ff?: string;
+  /** 下划线（形状对齐 Univer ITextDecoration 的 show 开关） */
+  ul?: { s: 0 | 1 };
+  /** 删除线 */
+  st?: { s: 0 | 1 };
+  /** 水平对齐：Univer HorizontalAlign（1=左 2=中 3=右） */
+  ht?: number;
+  /** 垂直对齐：Univer VerticalAlign（1=上 2=中 3=下） */
+  vt?: number;
+  /** 换行策略：Univer WrapStrategy（3=自动换行） */
+  tb?: number;
+  /** 四边边框 */
+  bd?: { t?: BorderStyle; b?: BorderStyle; l?: BorderStyle; r?: BorderStyle };
 }
 
 export interface SnapshotCell {
   v?: string | number | boolean;
   f?: string;
+  /** 富文本（Univer 文档子集；xlsx 导入方向产出，渲染/持久化由 Univer 原生支持） */
+  p?: SheetRichText;
   /** 内联样式对象（导入方向）或 Univer 归一化样式 id（运行时快照，经 workbook.styles 解析） */
   s?: CellStyle | string;
 }
@@ -31,8 +73,12 @@ export interface SnapshotSheet {
   columnCount: number;
   cellData: Record<number, Record<number, SnapshotCell>>;
   mergeData?: MergeRange[];
-  rowData?: Record<number, { h: number }>;
-  columnData?: Record<number, { w: number }>;
+  /** 冻结窗格：startRow/startColumn = 冻结区行/列数（与 Univer IFreeze 的 yAxisSplit/xAxisSplit 语义一致） */
+  freeze?: { startRow: number; startColumn: number; xAxisSplit: number; yAxisSplit: number };
+  /** h: 行高(px)；hd: 1 表示隐藏 */
+  rowData?: Record<number, { h?: number; hd?: 0 | 1 }>;
+  /** w: 列宽(px)；hd: 1 表示隐藏 */
+  columnData?: Record<number, { w?: number; hd?: 0 | 1 }>;
 }
 
 export interface WorkbookSnapshot {
