@@ -203,4 +203,36 @@ describe('xlsx 导入方向：扩展样式', () => {
     const snap = workbookToSnapshot(wb, '普通');
     expect(snap.sheets['sheet-01'].freeze).toBeUndefined();
   });
+
+  it('富文本单元格导入为 cell.p（Univer 文档子集）', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = {
+        richText: [
+          { text: '普通', font: { size: 12 } },
+          { text: '红色', font: { bold: true, color: { argb: 'FFFF0000' } } },
+          { text: '结尾' },
+        ],
+      };
+    });
+    const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
+    expect(cell?.p?.body.dataStream).toBe('普通红色结尾\r\n');
+    const runs = cell?.p?.body.textRuns ?? [];
+    expect(runs).toHaveLength(1); // 无样式 run 不产出
+    expect(runs[0]).toMatchObject({ st: 2, ed: 4, ts: { bl: 1, cl: { rgb: '#ff0000' } } });
+  });
+
+  it('富文本含换行时按展开后的流计算 run 区间', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = {
+        richText: [
+          { text: 'A\nB', font: { bold: true } },
+          { text: 'C' },
+        ],
+      };
+    });
+    const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
+    // A\n 展开为 A\r\n（3 字符），C 在流中位于 [3, 4)
+    expect(cell?.p?.body.dataStream).toBe('A\r\nBC\r\n');
+    expect(cell?.p?.body.textRuns?.[0]?.ts?.bl).toBe(1);
+  });
 });

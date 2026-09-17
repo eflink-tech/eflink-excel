@@ -1,6 +1,6 @@
 // exceljs Workbook -> Univer snapshot：导入方向的纯映射（不涉及文件读取）
 import type { Cell, CellErrorValue, CellFormulaValue, CellRichTextValue, Workbook, Worksheet } from 'exceljs';
-import type { BorderStyle, CellStyle, MergeRange, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
+import type { BorderStyle, CellStyle, MergeRange, SheetRichTextRun, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 import { newId } from '../../types/spreadsheet';
 
 /** ARGB → #RRGGBB（统一小写，ExcelJS 保留输入原样大小写） */
@@ -45,7 +45,8 @@ function readSheet(ws: Worksheet, id: string): SnapshotSheet {
     cellData[r - 1] ??= {};
     row.eachCell({ includeEmpty: false }, (cell, c) => {
       const uc = readCell(cell);
-      if (uc.v !== undefined || uc.f || uc.s) cellData[r - 1][c - 1] = uc;
+      // 富文本单元格仅有 p，也需保留
+      if (uc.v !== undefined || uc.f || uc.s || uc.p) cellData[r - 1][c - 1] = uc;
     });
   });
 
@@ -117,8 +118,7 @@ function readCell(cell: Cell): SnapshotCell {
     const result = (val as CellFormulaValue).result;
     if (result != null) uc.v = result as string | number | boolean;
   } else if (val != null && typeof val === 'object' && 'richText' in (val as CellRichTextValue)) {
-    // 富文本第一版降级为纯文本
-    uc.v = (val as CellRichTextValue).richText.map((t) => t.text).join('');
+    applyRichText(uc, val as CellRichTextValue);
   } else if (val instanceof Date) {
     uc.v = formatDate(val);
   } else if (val != null && typeof val === 'object' && 'error' in (val as CellErrorValue)) {
@@ -167,4 +167,42 @@ function readStyle(cell: Cell): CellStyle | undefined {
 function formatDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const RICH_TEXT_DOC_ID = '__eflink-rich-text';
+
+/** exceljs 富文本 → Univer 文档子集：拼接 dataStream（\r\n 为段落分隔，流以 \r\n 结尾）+ 按区间切 textRuns */
+function applyRichText(uc: SnapshotCell, val: CellRichTextValue): void {
+  const parts = val.richText.map((t) => ({ text: t.text.replace(/\n/g, '\r\n'), ts: t.font ? fontToStyle(t.font) : undefined }));
+  const dataStream = parts.map((p) => p.text).join('') + '\r\n';
+  const textRuns: SheetRichTextRun[] = [];
+  let offset = 0;
+  for (const part of parts) {
+    // 纯字体度量差异（仅 fs/ff）不产出 run，避免普通文本碎片化；仅形状样式才切 run
+    if (part.ts && hasShapeStyle(part.ts)) textRuns.push({ st: offset, ed: offset + part.text.length, ts: part.ts });
+    offset += part.text.length;
+  }
+  uc.p = {
+    id: RICH_TEXT_DOC_ID,
+    body: { dataStream, ...(textRuns.length && { textRuns }) },
+    documentStyle: {},
+  };
+}
+
+/** exceljs run 字体 → CellStyle（字段名与 CellStyle 有差异，先做显式转换） */
+function fontToStyle(font: { bold?: boolean; italic?: boolean; size?: number; name?: string; color?: { argb?: string }; underline?: boolean | string; strike?: boolean }): CellStyle {
+  const st: CellStyle = {};
+  if (font.bold) st.bl = 1;
+  if (font.italic) st.it = 1;
+  if (font.size != null) st.fs = font.size;
+  if (font.name) st.ff = font.name;
+  if (font.color?.argb) st.cl = { rgb: fromArgb(font.color.argb) };
+  if (font.underline && font.underline !== 'none') st.ul = { s: 1 };
+  if (font.strike) st.st = { s: 1 };
+  return st;
+}
+
+/** run 是否携带形状样式（粗/斜/色/下划线/删除线/底色）——仅 fs/ff 度量差异不算 */
+function hasShapeStyle(ts: CellStyle): boolean {
+  return ts.bl !== undefined || ts.it !== undefined || ts.cl !== undefined || ts.ul !== undefined || ts.st !== undefined || ts.bg !== undefined;
 }
