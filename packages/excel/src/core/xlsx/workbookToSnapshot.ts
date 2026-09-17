@@ -53,12 +53,17 @@ function readSheet(ws: Worksheet, id: string): SnapshotSheet {
 
   const rowData: SnapshotSheet['rowData'] = {};
   for (let r = 1; r <= ws.rowCount; r++) {
-    const h = ws.getRow(r).height;
-    if (h) rowData[r - 1] = { h: Math.round(h * PT_TO_PX) };
+    const row = ws.getRow(r);
+    const h = row.height;
+    if (row.hidden) rowData[r - 1] = { h: h ? Math.round(h * PT_TO_PX) : 0, hd: 1 };
+    else if (h) rowData[r - 1] = { h: Math.round(h * PT_TO_PX) };
   }
   const columnData: SnapshotSheet['columnData'] = {};
   ws.columns?.forEach((col, i) => {
-    if (col?.width) columnData[i] = { w: Math.round(col.width * CHAR_TO_PX) };
+    if (!col) return;
+    const w = col.width ? Math.round(col.width * CHAR_TO_PX) : 0;
+    if (col.hidden) columnData[i] = { w, hd: 1 };
+    else if (w) columnData[i] = { w };
   });
 
   return {
@@ -68,9 +73,20 @@ function readSheet(ws: Worksheet, id: string): SnapshotSheet {
     columnCount: Math.max(ws.columnCount + 3, 20),
     cellData,
     mergeData,
+    freeze: readFreeze(ws),
     rowData,
     columnData,
   };
+}
+
+/** exceljs 冻结视图（xSplit/ySplit=冻结行列数）→ Univer freeze（startRow/startColumn=滚动区起点） */
+function readFreeze(ws: Worksheet): SnapshotSheet['freeze'] {
+  const view = ws.views?.[0] as { state?: string; xSplit?: number; ySplit?: number } | undefined;
+  if (!view || view.state !== 'frozen') return undefined;
+  const x = view.xSplit ?? 0;
+  const y = view.ySplit ?? 0;
+  if (!x && !y) return undefined;
+  return { startRow: y, startColumn: x, xAxisSplit: x, yAxisSplit: y };
 }
 
 /** exceljs 类型包里 merges 挂在 model 上且可选，做防御式读取 */

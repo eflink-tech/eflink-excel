@@ -182,4 +182,25 @@ describe('xlsx 导入方向：扩展样式', () => {
     });
     expect(snap.sheets['sheet-01'].cellData[0]?.[0]?.s).toBeUndefined();
   });
+
+  it('冻结窗格与隐藏行列导入', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('冻结表');
+    ws.getCell('A1').value = '冻结区';
+    ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 2, topLeftCell: 'B3' }] as never;
+    ws.getRow(4).hidden = true;
+    ws.getColumn(3).hidden = true;
+    const snap = workbookToSnapshot(wb, '冻结测试');
+    const sheet = snap.sheets['sheet-01'];
+    expect(sheet.freeze).toEqual({ startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 });
+    expect(sheet.rowData?.[3]).toEqual({ h: 0, hd: 1 });
+    expect(sheet.columnData?.[2]).toEqual({ w: 0, hd: 1 });
+  });
+
+  it('非冻结视图不产出 freeze', () => {
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('普通表');
+    const snap = workbookToSnapshot(wb, '普通');
+    expect(snap.sheets['sheet-01'].freeze).toBeUndefined();
+  });
 });
