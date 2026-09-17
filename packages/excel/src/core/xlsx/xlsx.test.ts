@@ -235,4 +235,28 @@ describe('xlsx 导入方向：扩展样式', () => {
     expect(cell?.p?.body.dataStream).toBe('A\r\nBC\r\n');
     expect(cell?.p?.body.textRuns?.[0]?.ts?.bl).toBe(1);
   });
+
+  it('富文本源含 \\r\\n 时归一化不双重展开', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = {
+        richText: [
+          { text: 'A\r\nB', font: { bold: true } },
+          { text: 'C' },
+        ],
+      };
+    });
+    const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
+    // 'A\r\nB' 保持 3 字符，不被展开成 \r\r\n；C 位于 [3, 4)
+    expect(cell?.p?.body.dataStream).toBe('A\r\nBC\r\n');
+    expect(cell?.p?.body.textRuns?.[0]).toMatchObject({ st: 0, ed: 3 });
+  });
+
+  it('冻结窗格仅 topLeftCell 时回退解析', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('回退表');
+    ws.getCell('A1').value = '冻结区';
+    ws.views = [{ state: 'frozen', topLeftCell: 'C4' }] as never;
+    const snap = workbookToSnapshot(wb, '回退');
+    expect(snap.sheets['sheet-01'].freeze).toEqual({ startRow: 3, startColumn: 2, xAxisSplit: 2, yAxisSplit: 3 });
+  });
 });

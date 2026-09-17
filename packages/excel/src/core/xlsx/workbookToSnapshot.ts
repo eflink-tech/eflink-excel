@@ -80,13 +80,20 @@ function readSheet(ws: Worksheet, id: string): SnapshotSheet {
   };
 }
 
-/** exceljs 冻结视图（xSplit/ySplit=冻结行列数）→ Univer freeze（startRow/startColumn=滚动区起点） */
+/** exceljs 冻结视图 → Univer freeze：xSplit/ySplit 为冻结行列数；部分生产者只写 topLeftCell，此时回退解析 */
 function readFreeze(ws: Worksheet): SnapshotSheet['freeze'] {
-  const view = ws.views?.[0] as { state?: string; xSplit?: number; ySplit?: number } | undefined;
+  const view = ws.views?.[0];
   if (!view || view.state !== 'frozen') return undefined;
   const x = view.xSplit ?? 0;
   const y = view.ySplit ?? 0;
-  if (!x && !y) return undefined;
+  if (!x && !y) {
+    // 回退：仅 topLeftCell 时，其行列号即冻结的列数/行数（如 'B3' → 冻结 1 列 2 行）
+    const tl = view.topLeftCell;
+    if (!tl) return undefined;
+    const { row, col } = decodeRef(tl);
+    if (!row && !col) return undefined;
+    return { startRow: row, startColumn: col, xAxisSplit: col, yAxisSplit: row };
+  }
   return { startRow: y, startColumn: x, xAxisSplit: x, yAxisSplit: y };
 }
 
@@ -118,7 +125,7 @@ function readCell(cell: Cell): SnapshotCell {
     const result = (val as CellFormulaValue).result;
     if (result != null) uc.v = result as string | number | boolean;
   } else if (val != null && typeof val === 'object' && 'richText' in (val as CellRichTextValue)) {
-    applyRichText(uc, val as CellRichTextValue);
+    applyRichText(uc, val as CellRichTextValue, cell.row, cell.col);
   } else if (val instanceof Date) {
     uc.v = formatDate(val);
   } else if (val != null && typeof val === 'object' && 'error' in (val as CellErrorValue)) {
@@ -169,22 +176,25 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-const RICH_TEXT_DOC_ID = '__eflink-rich-text';
-
 /** exceljs 富文本 → Univer 文档子集：拼接 dataStream（\r\n 为段落分隔，流以 \r\n 结尾）+ 按区间切 textRuns */
-function applyRichText(uc: SnapshotCell, val: CellRichTextValue): void {
-  const parts = val.richText.map((t) => ({ text: t.text.replace(/\n/g, '\r\n'), ts: t.font ? fontToStyle(t.font) : undefined }));
-  const dataStream = parts.map((p) => p.text).join('') + '\r\n';
+function applyRichText(uc: SnapshotCell, val: CellRichTextValue, row: number, col: number): void {
+  const parts = val.richText.map((t) => {
+    // 先把 \r\n? 归一化为 \n，再统一展开为 \r\n，避免源文本含 \r\n 时双重展开成 \r\r\n
+    const normalized = t.text.replace(/\r\n?/g, '\n');
+    return { expanded: normalized.replace(/\n/g, '\r\n'), normalized, ts: t.font ? fontToStyle(t.font) : undefined };
+  });
+  const dataStream = parts.map((p) => p.expanded).join('') + '\r\n';
   const textRuns: SheetRichTextRun[] = [];
   let offset = 0;
   for (const part of parts) {
-    // 纯字体度量差异（仅 fs/ff）不产出 run，避免普通文本碎片化；仅形状样式才切 run
-    if (part.ts && hasShapeStyle(part.ts)) textRuns.push({ st: offset, ed: offset + part.text.length, ts: part.ts });
-    offset += part.text.length;
+    // run 区间按 Univer 惯例以归一化文本计长（\r\n 段落分隔算 1 字符），与 dataStream 的 \r\n 展开无关
+    if (part.ts && hasShapeStyle(part.ts)) textRuns.push({ st: offset, ed: offset + part.normalized.length, ts: part.ts });
+    offset += part.normalized.length;
   }
   uc.p = {
-    id: RICH_TEXT_DOC_ID,
-    body: { dataStream, ...(textRuns.length && { textRuns }) },
+    // 每单元格唯一 id（含坐标），避免多个富文本单元格共享同一文档 id
+    id: `__eflink-rich-text-r${row}-c${col}`,
+    body: { dataStream, ...(textRuns.length ? { textRuns } : {}) },
     documentStyle: {},
   };
 }
