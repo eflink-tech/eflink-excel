@@ -13,6 +13,9 @@ interface EditorStore {
   setTitle: (title: string) => void;
   setSaving: (saving: boolean) => void;
   markSaved: () => void;
+  /** 导入替换等场景：递增触发 SheetEditor 重新加载当前文档（docId 不变内容已换） */
+  reloadToken: number;
+  bumpReload: () => void;
 }
 
 export const useEditorStore = create<EditorStore>((set) => ({
@@ -27,4 +30,6 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setTitle: (title) => set({ title }),
   setSaving: (saving) => set({ saving }),
   markSaved: () => set({ dirty: false, saving: false, savedAt: Date.now() }),
+  reloadToken: 0,
+  bumpReload: () => set((s) => ({ reloadToken: s.reloadToken + 1 })),
 }));

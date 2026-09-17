@@ -57,6 +57,8 @@ export function SheetEditor({
 }: SheetEditorProps) {
   const [snapshot, setSnapshot] = useState<WorkbookSnapshot | null>(null);
   const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
+  // 导入替换等场景触发文档重载（docId 不变，仅此计数变化）
+  const reloadToken = useEditorStore((s) => s.reloadToken);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
@@ -103,7 +105,7 @@ export function SheetEditor({
     return () => {
       disposed = true;
     };
-  }, [docId, storage]);
+  }, [docId, storage, reloadToken]);
 
   useEffect(() => {
     // Ctrl/Cmd+S 手动保存（云端保存；成功后由 saveService 清 dirty 并删除本地草稿）
