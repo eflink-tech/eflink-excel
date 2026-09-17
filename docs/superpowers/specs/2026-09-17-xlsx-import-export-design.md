@@ -31,8 +31,9 @@
 
 ### 近似映射（接受视觉误差）
 
-- 边框线型：Excel `thin/medium/thick/hair/dotted/dashed/dashDot/double…` → Univer
-  `thin/medium/hair/dotted/dashed…` 映射表收敛；`thick`→`medium`，`double`→`medium`
+- 边框线型：exceljs 与 Univer 均沿用 OOXML 线型词表（thin/hair/dotted/dashed/dashDot/
+  dashDotDot/double/medium/mediumDashed/mediumDashDot/mediumDashDotDot/slantDashDot/thick），
+  经映射表**全量 1:1 直映**（Univer `BorderStyleTypes` 数值枚举 1–13），无视觉损失
 - 列宽：字符宽↔px 经验换算维持现状（不同字体有像素级偏差）
 
 ### 明确不支持（导入静默丢弃，导出不生成）
@@ -48,16 +49,16 @@
 `CellStyle` 向 Univer `IStyleData` 形状对齐扩展（现有键名本就沿用 Univer 惯例）：
 
 ```ts
-interface BorderStyle { s: string; cl: { rgb: string } }   // s: Univer BorderStyleTypes 字符串
+interface BorderStyle { s: number; cl: { rgb: string } }   // s: Univer BorderStyleTypes 数值枚举（1=THIN … 13=THICK）
 export interface CellStyle {
   bl?: 0 | 1; it?: 0 | 1; fs?: number;
   cl?: { rgb: string }; bg?: { rgb: string };
   n?: { pattern: string };
   ff?: string;                                    // 字体族
   ul?: { s: 0 | 1 }; st?: { s: 0 | 1 };           // 下划线 / 删除线
-  ht?: 'left' | 'center' | 'right';               // 水平对齐
-  vt?: 'top' | 'middle' | 'bottom';               // 垂直对齐
-  tb?: 0 | 1;                                     // 自动换行
+  ht?: number;                                    // 水平对齐（Univer HorizontalAlign：1=左 2=中 3=右）
+  vt?: number;                                    // 垂直对齐（Univer VerticalAlign：1=上 2=中 3=下）
+  tb?: number;                                    // 换行策略（Univer WrapStrategy：3=自动换行）
   bd?: { t?: BorderStyle; b?: BorderStyle; l?: BorderStyle; r?: BorderStyle };
 }
 ```
