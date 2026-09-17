@@ -297,4 +297,19 @@ describe('xlsx 导出方向：扩展样式', () => {
     expect(a2.alignment).toMatchObject({ horizontal: 'right', vertical: 'bottom', wrapText: true });
     expect(a2.font.name).toBe('宋体');
   });
+
+  it('冻结窗格与隐藏行列写入 exceljs', () => {
+    const snap = sampleSnapshot();
+    snap.sheets.s1.freeze = { startRow: 2, startColumn: 1, xAxisSplit: 1, yAxisSplit: 2 };
+    snap.sheets.s1.rowData = { 0: { h: 32 }, 3: { h: 0, hd: 1 } };
+    snap.sheets.s1.columnData = { 0: { w: 120 }, 2: { w: 0, hd: 1 } };
+    const wb = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb);
+    const ws = wb.worksheets[0];
+    expect(ws.views?.[0]).toMatchObject({ state: 'frozen', xSplit: 1, ySplit: 2 });
+    expect(ws.getRow(1).height).toBeCloseTo(24, 0);
+    expect(ws.getRow(4).hidden).toBe(true);
+    expect(ws.getColumn(1).width).toBeCloseTo(12, 0);
+    expect(ws.getColumn(3).hidden).toBe(true);
+  });
 });

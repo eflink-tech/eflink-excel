@@ -36,11 +36,23 @@ function writeSheet(sheet: SnapshotSheet, ws: Worksheet, styles: Record<string, 
   for (const m of sheet.mergeData ?? []) {
     ws.mergeCells(m.startRow + 1, m.startColumn + 1, m.endRow + 1, m.endColumn + 1);
   }
+  const freeze = sheet.freeze;
+  if (freeze && (freeze.startRow || freeze.startColumn)) {
+    // Univer freeze（startRow/startColumn=冻结行列数）→ exceljs 冻结视图（ySplit/xSplit 同语义）
+    ws.views = [{
+      state: 'frozen',
+      xSplit: freeze.startColumn,
+      ySplit: freeze.startRow,
+      topLeftCell: encodeRef(freeze.startRow, freeze.startColumn),
+    }] as never;
+  }
   for (const [r, rd] of Object.entries(sheet.rowData ?? {})) {
-    if (rd.h) ws.getRow(Number(r) + 1).height = Math.max(6, rd.h * PX_TO_PT);
+    if (rd.hd) ws.getRow(Number(r) + 1).hidden = true;
+    else if (rd.h) ws.getRow(Number(r) + 1).height = Math.max(6, rd.h * PX_TO_PT);
   }
   for (const [c, cd] of Object.entries(sheet.columnData ?? {})) {
-    if (cd.w) ws.getColumn(Number(c) + 1).width = Math.max(5, cd.w / PX_TO_CHAR);
+    if (cd.hd) ws.getColumn(Number(c) + 1).hidden = true;
+    else if (cd.w) ws.getColumn(Number(c) + 1).width = Math.max(5, cd.w / PX_TO_CHAR);
   }
 }
 
@@ -89,4 +101,15 @@ function applyStyle(target: Cell, st: CellStyle | undefined): void {
     }
     if (Object.keys(border).length) target.border = border as never;
   }
+}
+
+/** 0 基行列 → 'A1' 式引用（冻结视图 topLeftCell 用） */
+function encodeRef(row: number, col: number): string {
+  let s = '';
+  let c = col;
+  while (c >= 0) {
+    s = String.fromCharCode((c % 26) + 65) + s;
+    c = Math.floor(c / 26) - 1;
+  }
+  return `${s}${row + 1}`;
 }
