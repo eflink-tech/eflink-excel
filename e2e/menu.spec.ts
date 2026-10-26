@@ -29,7 +29,7 @@ test.describe('主菜单功能', () => {
     await waitEditor(page);
 
     await typeIntoFormulaBar(page, '旧文档内容');
-    const lastDocBefore = await page.evaluate(() => localStorage.getItem('eflink-excel:lastDoc'));
+    const lastDocBefore = await page.evaluate(() => localStorage.getItem('doculuma:excel:last-doc'));
 
     // 第一次：弹窗出现后取消，不新建
     await menuClick(page, '文件', '新建表格');
@@ -38,7 +38,7 @@ test.describe('主菜单功能', () => {
     await expect(page.getByText('新建文档将清空当前内容，请确保已经下载备份文档！')).toBeVisible();
     await dialog.getByRole('button', { name: '取消' }).click();
     await expect(dialog).toBeHidden();
-    expect(await page.evaluate(() => localStorage.getItem('eflink-excel:lastDoc'))).toBe(lastDocBefore);
+    expect(await page.evaluate(() => localStorage.getItem('doculuma:excel:last-doc'))).toBe(lastDocBefore);
 
     // 第二次：确认新建
     await menuClick(page, '文件', '新建表格');
@@ -47,7 +47,7 @@ test.describe('主菜单功能', () => {
     await dialog2.getByRole('button', { name: '确定' }).click();
     // 等待新文档落库并写入 lastDoc（避免在旧文档页面上过早断言）
     await expect
-      .poll(() => page.evaluate(() => localStorage.getItem('eflink-excel:lastDoc')), { timeout: 10000 })
+      .poll(() => page.evaluate(() => localStorage.getItem('doculuma:excel:last-doc')), { timeout: 10000 })
       .not.toBe(lastDocBefore);
     await expect(nameBox(page)).toHaveValue('A1', { timeout: 15000 });
 

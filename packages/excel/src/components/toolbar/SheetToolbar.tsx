@@ -6,6 +6,7 @@ import * as cmd from '../../core/univer/commands';
 import type { BorderStyleKey, BorderTypeKey } from '../../core/univer/commands';
 import { getUniverApi } from '../../core/univer/controller';
 import { useUiStore } from '../../store/uiStore';
+import { RECENT_COLORS_KEYS as RECENT_COLOR_KEYS } from '../../storage/keys';
 import { ColorPicker } from '../color';
 import { ChartPickerPanel } from './ChartPickerPanel';
 import { ToolbarAlignMenuItem, ToolbarDropdownPanel, ToolbarMenuDivider, ToolbarMenuItem } from './ToolbarMenuPanel';
@@ -36,12 +37,6 @@ const FONT_GROUPS: string[][] = [
   ['Arial', 'Tahoma', 'Verdana'],
 ];
 const FONT_SIZES = [10, 11, 12, 14, 16, 18, 20, 24];
-
-/** 字体色 / 填充色「最近使用」的 localStorage key（与 eflink-word 的 recentColors 约定一致） */
-const RECENT_COLOR_KEYS = {
-  fontColor: 'eflink-excel:recent-colors:fontColor',
-  fillColor: 'eflink-excel:recent-colors:fillColor',
-};
 
 interface NumFormatItem {
   label: string;

@@ -5,7 +5,7 @@ import '../../i18n';
 import { getUniverApi } from '../../core/univer/controller';
 
 /** Univer 实例就绪事件（UniverContainer 创建完成后派发） */
-export const UNIVER_READY_EVENT = 'eflink-excel:univer-ready';
+export const UNIVER_READY_EVENT = 'doculuma-excel:univer-ready';
 
 /** 企微式公式栏：左侧名称框（当前单元格引用）+ 右侧内容/公式编辑区 */
 export function FormulaBar() {

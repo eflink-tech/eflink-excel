@@ -1,4 +1,4 @@
-# EFLink Excel 易飞表格
+# DocuLuma Sheets
 
 参照企业微信在线表格布局的纯前端 Excel 编辑器。基于 [Univer](https://github.com/dream-num/univer) 表格引擎与 React 构建，**既可以独立运行（本仓库 demo 应用），也可以作为 React 组件嵌入任意应用**（npm 包 `@eflink-tech/excel`）。
 
@@ -38,7 +38,7 @@ function Page() {
 }
 ```
 
-不传 `storage` 时默认使用内置 IndexedDB 存储（库名 `eflink-excel`）。
+不传 `storage` 时默认使用内置 IndexedDB 存储（库名 `doculuma-excel`；首次读取会自动搬运旧库 `eflink-excel` 的文档，旧库保留不删）。
 
 ### SheetEditor Props
 
@@ -123,7 +123,7 @@ eflink-excel/
 │       ├── storage/    # StorageAdapter 接口与内置实现
 │       ├── store/      # zustand 状态
 │       └── index.ts    # 对外导出面
-├── apps/demo/          # 独立运行的应用（易飞表格）
+├── apps/demo/          # 独立运行的应用（DocuLuma Sheets）
 ├── e2e/                # Playwright 端到端测试（跑在 demo 上）
 └── scripts/            # （历史）已迁移至 packages/excel/scripts
 ```
@@ -161,7 +161,7 @@ pnpm build        # 构建组件库与 demo
 
 ## 联系我们
 
-- **在线体验**：<https://eflink.tech>（易飞表格 · 免费在线电子表格）
+- **在线体验**：<https://offices.doculuma.com/sheets>（DocuLuma Sheets · 免费在线电子表格）
 - **问题反馈与交流**：[eflink.tech/contact](https://eflink.tech/contact)
 - **邮箱**：[support@eflink.tech](mailto:support@eflink.tech)
 

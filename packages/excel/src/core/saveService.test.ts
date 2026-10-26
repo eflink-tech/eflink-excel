@@ -26,11 +26,10 @@ import {
   unbindEditor,
 } from './saveService';
 import { getDefaultStorage } from '../storage/registry';
+import { DRAFT_PREFIX } from '../storage/keys';
 import { useEditorStore } from '../store/editorStore';
 import { createDocument } from '../types/spreadsheet';
 import type { WorkbookSnapshot } from '../types/spreadsheet';
-
-const DRAFT_PREFIX = 'eflink:draft:excel:';
 
 beforeEach(async () => {
   failUpdate = false;

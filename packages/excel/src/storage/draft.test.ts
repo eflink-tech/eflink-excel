@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clearDraft, readDraft, writeDraft } from './draft';
+import { DRAFT_PREFIX } from './keys';
 import { createEmptySnapshot } from '../types/spreadsheet';
 
 beforeEach(() => {
@@ -8,10 +9,10 @@ beforeEach(() => {
 });
 
 describe('本地草稿（localStorage 兜底）', () => {
-  it('writeDraft 按 eflink:draft:excel:<docId> 键写入序列化快照', () => {
+  it('writeDraft 按 doculuma:draft:excel:<docId> 键写入序列化快照', () => {
     const snapshot = createEmptySnapshot();
     writeDraft('doc-1', snapshot);
-    const raw = localStorage.getItem('eflink:draft:excel:doc-1');
+    const raw = localStorage.getItem(DRAFT_PREFIX + 'doc-1');
     expect(raw).not.toBeNull();
     expect(JSON.parse(raw!)).toEqual(snapshot);
   });
@@ -30,7 +31,7 @@ describe('本地草稿（localStorage 兜底）', () => {
   });
 
   it('草稿损坏时 readDraft 返回 null 而非抛错', () => {
-    localStorage.setItem('eflink:draft:excel:bad', '{broken json');
+    localStorage.setItem(DRAFT_PREFIX + 'bad', '{broken json');
     expect(readDraft('bad')).toBeNull();
   });
 });

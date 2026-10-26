@@ -30,7 +30,7 @@ describe('efexcel 文档备份格式', () => {
     expect(filename).toBe('季度报表.efx.json');
     expect(blob).toBeInstanceOf(Blob);
     const payload = JSON.parse(await blob!.text());
-    expect(payload.source).toEqual({ app: '易飞表格', url: 'https://eflink.tech/office/excel' });
+    expect(payload.source).toEqual({ app: 'DocuLuma Sheets', url: 'https://offices.doculuma.com/sheets' });
   });
 
   it('exportEfexcel 支持自定义来源信息', async () => {

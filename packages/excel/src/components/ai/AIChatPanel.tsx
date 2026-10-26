@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, History, Settings, Sparkles, Table2, Trash2, Wand2, X } from 'lucide-react'
 import { useI18n } from '@eflink-tech/office-kit'
 import { useUiStore } from '../../store/uiStore'
-import { aiDb, aiSettingsStore, BUILTIN_TEMPLATES } from '../../ai/db'
+import { aiDb, aiSettingsStore, BUILTIN_TEMPLATES, listConversations } from '../../ai/db'
 import { errorMessage, sendMessage, type ChatMessage } from '../../ai/aiService'
 import { buildTablePrompt, parseAITable } from '../../ai/systemPrompt'
 import { describeContext, getSheetContext, writeAITable } from '../../ai/actionExecutor'
@@ -74,7 +74,7 @@ export function AIChatPanel() {
   }, [messages, convId])
 
   const loadHistory = () => {
-    void aiDb.conversations.orderBy('updatedAt').reverse().toArray().then(setHistoryList)
+    void listConversations().then(setHistoryList)
   }
 
   const openConversation = (conv: Conversation) => {
@@ -307,7 +307,7 @@ export function AIChatPanel() {
               <div className="mb-1 text-xs text-slate-500">{label}</div>
               <input
                 type={key === 'apiKey' ? 'password' : 'text'}
-                name={`eflink-ai-${key}`}
+                name={`doculuma-ai-${key}`}
                 autoComplete={key === 'apiKey' ? 'new-password' : 'off'}
                 // 只读直到聚焦：避免 Chrome 把「接口地址 + 密码框」识别为登录表单而自动填充保存的账号密码
                 readOnly

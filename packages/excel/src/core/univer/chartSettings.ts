@@ -2,6 +2,7 @@
 // 修改通过 buildChartOption 重建配置并 setSource 原位替换图片（保持位置与尺寸）。
 // 注意：元数据保存在内存中，页面刷新后图表仍显示但设置面板不可用（重新插入即可恢复）。
 import { getUniverApi } from './controller';
+import { CHART_META_PREFIX } from '../../storage/keys';
 import type { LiveChartRefs } from '../xlsx/chartImport';
 import { flattenRange, rebuildExplicitFromRefs } from './chartRebuild';
 export { rebuildExplicitFromRefs } from './chartRebuild';
@@ -35,7 +36,7 @@ export interface ChartMeta {
 const chartMetas = new Map<string, ChartMeta>();
 
 // 按工作簿 unitId 持久化到 localStorage：刷新页面后双击图表仍可打开设置面板
-const STORAGE_PREFIX = 'eflink-excel:chart-meta:';
+const STORAGE_PREFIX = CHART_META_PREFIX;
 let currentUnitId: string | null = null;
 
 /** 按工作簿（unitId）加载持久化的图表元数据，mountUniver 时调用 */

@@ -7,7 +7,7 @@ test('打开应用直接进入编辑器（企微式布局）', async ({ page }) 
     timeout: 30000,
   });
   // 顶部：logo 品牌名 + 工具栏「菜单」按钮（文档名已移除）
-  await expect(page.getByRole('img', { name: '易飞表格' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'DocuLuma Sheets' })).toBeVisible();
   await expect(page.getByRole('button', { name: '菜单', exact: true })).toBeVisible();
   // 工具栏：myf-sheet-demo 同款单行工具栏（插入面板 + 常规格式面板）
   await expect(page.getByRole('button', { name: '插入' })).toBeVisible();

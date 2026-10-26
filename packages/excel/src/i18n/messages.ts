@@ -7,7 +7,7 @@ import { registerOfficeMessages, type OfficeMessagesByLocale } from '@eflink-tec
 type Row = readonly [string, string, string, string];
 
 const ROWS = {
-  'excel.brand': ['易飞表格', '易飞表格', '易飞表格', '易飞表格'],
+  'excel.brand': ['DocuLuma Sheets', 'DocuLuma Sheets', 'DocuLuma Sheets', 'DocuLuma Sheets'],
   'excel.untitled': ['未命名表格', 'Untitled spreadsheet', 'Hoja de cálculo sin título', 'Planilha sem título'],
   'excel.loading': ['加载中…', 'Loading…', 'Cargando…', 'Carregando…'],
   'excel.editor.loading': ['编辑器加载中…', 'Loading editor…', 'Cargando el editor…', 'Carregando o editor…'],
@@ -274,7 +274,7 @@ const ROWS = {
   'excel.ai.writeFailed': ['写入失败', 'Write failed', 'No se pudo escribir', 'Falha ao gravar'],
   'excel.ai.emptyTable': ['当前表格为空，没有可分析的数据', 'The sheet is empty; there is no data to analyze', 'La hoja está vacía; no hay datos para analizar', 'A planilha está vazia; não há dados para analisar'],
   'excel.ai.generatedLabel': ['生成表格：{topic}（{rows} 行）', 'Generate table: {topic} ({rows} rows)', 'Generar tabla: {topic} ({rows} filas)', 'Gerar tabela: {topic} ({rows} linhas)'],
-  'excel.ai.systemPrompt': ['你是易飞表格的 AI 助手，回答简洁专业，用中文。', 'You are the Eflink Sheets AI assistant. Answer concisely and professionally in English.', 'Eres el asistente de IA de Eflink Hojas. Responde de forma breve y profesional en español.', 'Você é o assistente de IA do Eflink Planilhas. Responda de forma concisa e profissional em português.'],
+  'excel.ai.systemPrompt': ['你是 DocuLuma Sheets 的 AI 助手，回答简洁专业，用中文。', 'You are the DocuLuma Sheets AI assistant. Answer concisely and professionally in English.', 'Eres el asistente de IA de DocuLuma Sheets. Responde de forma breve y profesional en español.', 'Você é o assistente de IA do DocuLuma Sheets. Responda de forma concisa e profissional em português.'],
   'excel.ai.tableSystemPrompt': ['你是专业的数据表格设计师，只输出 JSON。', 'You are a professional data table designer. Output JSON only.', 'Eres un diseñador profesional de tablas de datos. Devuelve solo JSON.', 'Você é um designer profissional de tabelas de dados. Retorne apenas JSON.'],
   'excel.ai.tpl.analyze.name': ['分析数据', 'Analyze data', 'Analizar datos', 'Analisar dados'],
   'excel.ai.tpl.formula.name': ['建议公式', 'Suggest formulas', 'Sugerir fórmulas', 'Sugerir fórmulas'],

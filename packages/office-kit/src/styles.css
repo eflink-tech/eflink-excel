@@ -67,8 +67,8 @@
   width: 24px;
   height: 24px;
   flex: none;
-  border-radius: 999px;
-  object-fit: cover;
+  border-radius: 6px;
+  object-fit: contain;
 }
 
 .efk-brand-name {

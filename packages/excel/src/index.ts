@@ -1,5 +1,9 @@
 /** @eflink-tech/excel 对外导出面：组件 + headless API + 存储适配器 */
 import './styles.css';
+import { migrateLegacyLocalStorage } from './storage/legacy';
+
+// 模块加载即把 efLink 命名空间的 localStorage 数据搬到 doculuma 命名空间（幂等、静默失败）
+migrateLegacyLocalStorage();
 
 // 组件
 export { SheetEditor } from './components/SheetEditor';
@@ -17,6 +21,16 @@ export type { StorageAdapter } from './storage/types';
 export { indexedDbStorage } from './storage/indexedDb';
 export { memoryStorage } from './storage/memory';
 export { getDefaultStorage, setDefaultStorage } from './storage/registry';
+// 本地存储键名（唯一来源）与旧命名空间迁移
+export {
+  CHART_META_PREFIX,
+  DRAFT_PREFIX,
+  EXCEL_AI_DB_NAME,
+  EXCEL_DB_NAME,
+  LAST_DOC_KEY,
+  RECENT_COLORS_KEYS,
+} from './storage/keys';
+export { migrateLegacyLocalStorage } from './storage/legacy';
 // 宿主外观：顶栏返回按钮链接
 export { setEditorBackHref } from './core/chrome';
 

@@ -4,7 +4,7 @@
 
 ## 在线体验
 
-不想搭环境？打开浏览器即可使用托管在 [易飞办公](https://eflink.tech) 的完整版 **在线表格编辑器**，无需登录、免费可用；配套的 [Excel 表格库](https://eflink.tech/templates/excel) 提供精选模板，在线预览后一键复制编辑。
+不想搭环境？打开浏览器即可使用托管在 [DocuLuma Sheets](https://offices.doculuma.com/sheets) 的完整版 **在线表格编辑器**，无需登录、免费可用；配套的 [Excel 表格库](https://eflink.tech/templates/excel) 提供精选模板，在线预览后一键复制编辑。
 
 ## 安装
 

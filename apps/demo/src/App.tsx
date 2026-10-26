@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  LAST_DOC_KEY,
   SheetEditor,
   ToastHost,
   getDefaultStorage,
@@ -8,7 +9,7 @@ import {
   type OfficeLocale,
 } from '@eflink-tech/excel';
 
-export const LAST_DOC_KEY = 'eflink-excel:lastDoc';
+export { LAST_DOC_KEY };
 
 const LOCALES: { value: OfficeLocale; label: string }[] = [
   { value: 'zh-CN', label: '中文' },
@@ -99,7 +100,7 @@ export default function App() {
           key={docId}
           docId={docId}
           locale={locale}
-          branding={{ logo: '/logo.png', name: '易飞表格' }}
+          branding={{ logo: '/logo.png', name: 'DocuLuma Sheets' }}
           onDocLoaded={(doc) => localStorage.setItem(LAST_DOC_KEY, doc.id)}
         />
       ) : (

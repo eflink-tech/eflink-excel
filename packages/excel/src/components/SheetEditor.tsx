@@ -47,7 +47,7 @@ export interface SheetEditorProps {
   docId: string;
   /** 界面语言；缺省 zh-CN */
   locale?: OfficeLocale | string;
-  /** 文档存储实现；传入后注册为全局默认。缺省用内置 IndexedDB（库名 eflink-excel） */
+  /** 文档存储实现；传入后注册为全局默认。缺省用内置 IndexedDB（库名 doculuma-excel） */
   storage?: StorageAdapter;
   /** 品牌区（logo + 产品名）；不传或传 false 隐藏 */
   branding?: SheetEditorBrand | false;
@@ -159,13 +159,13 @@ function SheetEditorInner({
 
   // 宿主 bridge：查询脏状态 / 触发云端保存 / 丢弃本地草稿（卸载时移除）
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).__eflinkEditorBridge = {
+    (window as unknown as Record<string, unknown>).__doculumaEditorBridge = {
       isDirty: () => useEditorStore.getState().dirty,
       save: () => saveNow(),
       discard: () => clearDraft(docId),
     };
     return () => {
-      delete (window as unknown as Record<string, unknown>).__eflinkEditorBridge;
+      delete (window as unknown as Record<string, unknown>).__doculumaEditorBridge;
     };
   }, [docId]);
 

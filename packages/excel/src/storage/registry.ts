@@ -1,4 +1,5 @@
 import { indexedDbStorage } from './indexedDb';
+import { EXCEL_DB_NAME } from './keys';
 import type { StorageAdapter } from './types';
 
 let adapter: StorageAdapter | null = null;
@@ -8,8 +9,8 @@ export function setDefaultStorage(next: StorageAdapter): void {
   adapter = next;
 }
 
-/** 取当前默认存储；未注入时回退到内置 IndexedDB（库名 eflink-excel，与历史单体版一致）。 */
+/** 取当前默认存储；未注入时回退到内置 IndexedDB（库名 doculuma-excel，旧库数据自动搬运）。 */
 export function getDefaultStorage(): StorageAdapter {
-  adapter ??= indexedDbStorage('eflink-excel');
+  adapter ??= indexedDbStorage(EXCEL_DB_NAME);
   return adapter;
 }

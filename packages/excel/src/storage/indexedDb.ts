@@ -1,5 +1,7 @@
 import Dexie from 'dexie';
+import { readLegacyIndexedDb } from '@eflink-tech/office-kit';
 import type { DocumentMeta, SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
+import { EXCEL_DB_NAME } from './keys';
 import type { StorageAdapter } from './types';
 
 /** Dexie package `exports` omit types; cast keeps IndexedDB API typed under bundler resolution. */
@@ -8,6 +10,8 @@ type DocumentsTable = {
   get(id: string): Promise<SheetDocument | undefined>;
   delete(id: string): Promise<void>;
   clear(): Promise<void>;
+  count(): Promise<number>;
+  bulkPut(docs: SheetDocument[]): Promise<unknown>;
   update(id: string, changes: Partial<SheetDocument>): Promise<number>;
   orderBy(index: keyof SheetDocument | string): {
     reverse(): { toArray(): Promise<SheetDocument[]> };
@@ -30,17 +34,50 @@ class SheetDB extends DexieBase {
   }
 }
 
-/** 内置 IndexedDB 存储（Dexie）。dbName 缺省与历史单体版一致，老数据可直接读回。 */
-export function indexedDbStorage(dbName = 'eflink-excel'): StorageAdapter {
+/** 旧库名（efLink 品牌时期）：只读搬运，绝不删除，用户可随时回退旧版本 */
+const LEGACY_DB_NAME = 'eflink-excel';
+const LEGACY_DOCUMENTS_STORE = 'documents';
+
+const legacyImportCache = new Map<string, Promise<void>>();
+
+/**
+ * 一次性把旧库文档搬进新库：仅在目标表为空时写入，失败只告警、不阻断编辑器。
+ * 按目标库名 memoize，同一会话只跑一次。
+ */
+export function ensureLegacyImport(db: SheetDB, dbName: string): Promise<void> {
+  let pending = legacyImportCache.get(dbName);
+  if (!pending) {
+    pending = importLegacyDocuments(db, dbName).catch((err) => {
+      console.warn('[indexedDb] 旧库数据搬运失败', err);
+    });
+    legacyImportCache.set(dbName, pending);
+  }
+  return pending;
+}
+
+async function importLegacyDocuments(db: SheetDB, dbName: string): Promise<void> {
+  // 宿主显式沿用旧库名时无需搬运（数据本就在目标库）
+  if (dbName === LEGACY_DB_NAME) return;
+  if ((await db.documents.count()) > 0) return;
+  const legacy = await readLegacyIndexedDb(LEGACY_DB_NAME, [LEGACY_DOCUMENTS_STORE]);
+  const rows = legacy?.[LEGACY_DOCUMENTS_STORE] as SheetDocument[] | undefined;
+  if (!rows?.length) return;
+  await db.documents.bulkPut(rows);
+}
+
+/** 内置 IndexedDB 存储（Dexie）。dbName 缺省为 doculuma-excel，旧 eflink-excel 数据会自动搬运。 */
+export function indexedDbStorage(dbName = EXCEL_DB_NAME): StorageAdapter {
   const db = new SheetDB(dbName);
   return {
     async save(doc) {
       await db.documents.put(doc);
     },
     async load(id) {
+      await ensureLegacyImport(db, dbName);
       return db.documents.get(id);
     },
     async list(): Promise<DocumentMeta[]> {
+      await ensureLegacyImport(db, dbName);
       const all = await db.documents.orderBy('updatedAt').reverse().toArray();
       return all.map((doc) => ({ id: doc.id, title: doc.title, updatedAt: doc.updatedAt }));
     },

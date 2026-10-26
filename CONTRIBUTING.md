@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢关注 EFLink Excel！欢迎 Issue 与 PR。
+感谢关注 DocuLuma Sheets！欢迎 Issue 与 PR。
 
 ## 环境要求
 

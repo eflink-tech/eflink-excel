@@ -1,9 +1,8 @@
 // 本地草稿：手动保存策略下的兜底。
-// 内容变化后防抖写入 localStorage（eflink:draft:excel:<docId>），云端保存成功后清除；
+// 内容变化后防抖写入 localStorage（doculuma:draft:excel:<docId>），云端保存成功后清除；
 // 云端加载失败（网络异常）时用它回退恢复表格。读写全部静默失败，不影响编辑主流程。
 import type { WorkbookSnapshot } from '../types/spreadsheet';
-
-const DRAFT_PREFIX = 'eflink:draft:excel:';
+import { DRAFT_PREFIX } from './keys';
 
 function draftKey(docId: string): string {
   return DRAFT_PREFIX + docId;

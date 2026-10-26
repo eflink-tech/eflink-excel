@@ -34,7 +34,7 @@ test.describe('文件导入导出', () => {
     const download = await downloadPromise;
 
     const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
-    expect(payload.source).toEqual({ app: '易飞表格', url: 'https://eflink.tech/office/excel' });
+    expect(payload.source).toEqual({ app: 'DocuLuma Sheets', url: 'https://offices.doculuma.com/sheets' });
   });
 
   test('导出 efexcel：公式与计算结果随快照导出', async ({ page }) => {

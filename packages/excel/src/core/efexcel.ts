@@ -11,10 +11,10 @@ export interface EfexcelSource {
   url: string;
 }
 
-/** 默认来源：易飞表格 */
+/** 默认来源：DocuLuma Sheets */
 export const DEFAULT_EFEXCEL_SOURCE: EfexcelSource = {
-  app: '易飞表格',
-  url: 'https://eflink.tech/office/excel',
+  app: 'DocuLuma Sheets',
+  url: 'https://offices.doculuma.com/sheets',
 };
 
 /** 文件名安全化：去除各平台非法字符与首尾空白/点，避免下载文件名异常 */
