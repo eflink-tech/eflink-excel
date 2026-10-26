@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '@eflink-tech/office-kit';
+// 注册表格专属文案，保证组件脱离 I18nProvider 单独渲染时也有中文兜底
+import '../../i18n';
 import { getUniverApi } from '../../core/univer/controller';
 
 /** Univer 实例就绪事件（UniverContainer 创建完成后派发） */
@@ -6,6 +9,7 @@ export const UNIVER_READY_EVENT = 'eflink-excel:univer-ready';
 
 /** 企微式公式栏：左侧名称框（当前单元格引用）+ 右侧内容/公式编辑区 */
 export function FormulaBar() {
+  const { t } = useI18n();
   const [notation, setNotation] = useState('');
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,13 +73,13 @@ export function FormulaBar() {
         value={notation}
         placeholder="-"
         className="h-full w-24 shrink-0 border-r border-slate-200 bg-white px-3 text-[13px] text-slate-700 outline-none"
-        title="当前单元格"
+        title={t('excel.formula.currentCell')}
       />
       <span className="px-2 font-serif text-[13px] italic text-slate-400">fx</span>
       <input
         ref={inputRef}
         value={value}
-        placeholder="输入内容或公式，回车确认"
+        placeholder={t('excel.formula.placeholder')}
         className="h-full min-w-0 flex-1 px-1 text-[13px] text-slate-800 outline-none"
         onChange={(e) => {
           editingRef.current = true;

@@ -8,6 +8,10 @@ export { ToastHost } from './components/ToastHost';
 export { ConfirmDialogHost } from './components/ConfirmDialog';
 export type { ConfirmOptions } from './store/uiStore';
 
+// 多语言：四套界面语言与编辑器专属文案
+export { EXCEL_MESSAGES, setExcelLocale, getExcelLocale, excelT } from './i18n';
+export type { OfficeLocale } from '@eflink-tech/office-kit';
+
 // 存储适配器
 export type { StorageAdapter } from './storage/types';
 export { indexedDbStorage } from './storage/indexedDb';

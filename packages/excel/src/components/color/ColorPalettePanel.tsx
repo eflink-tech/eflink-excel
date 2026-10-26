@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { useI18n } from '@eflink-tech/office-kit';
 import { STANDARD_COLORS, THEME_COLORS } from './colorPalette';
 import { RECENT_MAX } from './recentColors';
 
@@ -49,6 +50,7 @@ function ColorSwatch({
 }
 
 export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: ColorPalettePanelProps) {
+  const { t } = useI18n();
   const recentSlots = Array.from({ length: RECENT_MAX }, (_, index) => recent[index] ?? null);
 
   return (
@@ -58,7 +60,7 @@ export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: Color
         onClick={onDefault}
         className="mb-3 w-full rounded border border-[#e7e9eb] bg-[#f2f3f4] px-3 py-2 text-[13px] text-[#1f2329] hover:bg-[#e7e9eb]"
       >
-        默认
+        {t('excel.color.default')}
       </button>
 
       <div className="grid grid-cols-10 gap-[3px]">
@@ -72,7 +74,7 @@ export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: Color
         ))}
       </div>
 
-      <div className="mt-3 text-[11px] text-[#8f959e]">标准色</div>
+      <div className="mt-3 text-[11px] text-[#8f959e]">{t('excel.color.standard')}</div>
       <div className="mt-1 grid grid-cols-10 gap-[3px]">
         {STANDARD_COLORS.map((color) => (
           <ColorSwatch
@@ -84,7 +86,7 @@ export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: Color
         ))}
       </div>
 
-      <div className="mt-3 text-[11px] text-[#8f959e]">最近使用</div>
+      <div className="mt-3 text-[11px] text-[#8f959e]">{t('excel.color.recent')}</div>
       <div className="mt-1 grid grid-cols-10 gap-[3px]">
         {recentSlots.map((color, index) =>
           color ? (
@@ -101,7 +103,7 @@ export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: Color
               type="button"
               data-testid="recent-slot"
               data-filled="false"
-              aria-label="空最近色槽"
+              aria-label={t('excel.color.emptyRecent')}
               disabled
               className="h-[18px] w-[18px] rounded-[2px] border border-[#e7e9eb] bg-white"
             />
@@ -124,7 +126,7 @@ export function ColorPalettePanel({ recent, onSelect, onDefault, onMore }: Color
               'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
           }}
         />
-        <span className="flex-1">更多颜色</span>
+        <span className="flex-1">{t('excel.color.more')}</span>
         <ChevronRight size={14} className="text-[#8f959e]" />
       </button>
     </div>

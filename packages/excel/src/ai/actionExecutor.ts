@@ -1,5 +1,6 @@
 // AI 产物 → 工作表数据（从当前活动单元格写入表格；读取选区/已用区域作为对话上下文）
 import type { ICellData } from '@univerjs/core'
+import { excelT } from '../i18n'
 import { currentSnapshot } from '../core/saveService'
 import { activeWorkbook } from '../core/univer/commands'
 import { getUniverApi } from '../core/univer/controller'
@@ -35,7 +36,7 @@ function cellRef(row: number, col: number): string {
 export function writeAITable(table: AIGenTable): number {
   const wb = activeWorkbook()
   const sheet = wb?.getActiveSheet()
-  if (!wb || !sheet) throw new Error('工作表尚未就绪')
+  if (!wb || !sheet) throw new Error(excelT('excel.ai.sheetNotReady'))
   const active = wb.getActiveRange()
   const startRow = active?.getRow() ?? 0
   const startCol = active?.getColumn() ?? 0
@@ -157,13 +158,22 @@ function matrixToTsv(rows: string[][]): string {
 
 /** 供 system prompt 使用的上下文描述 */
 export function describeContext(ctx: SheetContext): string {
-  if (!ctx.usedData && !ctx.selectionData) return '当前工作表为空。'
-  const parts: string[] = [`当前工作表：${ctx.sheetName}`]
+  if (!ctx.usedData && !ctx.selectionData) return excelT('excel.ai.context.empty')
+  const parts: string[] = [excelT('excel.ai.context.sheet', { name: ctx.sheetName })]
   if (ctx.usedData) {
-    parts.push(`已用区域 ${ctx.usedAddress}（TSV，最多 ${CONTEXT_MAX_ROWS} 行 × ${CONTEXT_MAX_COLS} 列）：\n${ctx.usedData}`)
+    parts.push(
+      excelT('excel.ai.context.used', {
+        address: ctx.usedAddress ?? '',
+        rows: CONTEXT_MAX_ROWS,
+        cols: CONTEXT_MAX_COLS,
+        data: ctx.usedData,
+      }),
+    )
   }
   if (ctx.selectionData) {
-    parts.push(`当前选区 ${ctx.selection}（TSV）：\n${ctx.selectionData}`)
+    parts.push(
+      excelT('excel.ai.context.selection', { address: ctx.selection ?? '', data: ctx.selectionData }),
+    )
   }
   return parts.join('\n')
 }

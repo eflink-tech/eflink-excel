@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useI18n } from '@eflink-tech/office-kit';
 import { useUiStore } from '../store/uiStore';
 
 /**
@@ -6,6 +7,7 @@ import { useUiStore } from '../store/uiStore';
  * resolve(true)=确定 / resolve(false)=取消（含遮罩点击与 Escape）。
  */
 export function ConfirmDialogHost() {
+  const { t } = useI18n();
   const confirm = useUiStore((s) => s.confirm);
   const resolveConfirm = useUiStore((s) => s.resolveConfirm);
 
@@ -37,13 +39,13 @@ export function ConfirmDialogHost() {
             className="rounded-md border border-slate-200 bg-white px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
             onClick={() => resolveConfirm(false)}
           >
-            {confirm.cancelText ?? '取消'}
+            {confirm.cancelText ?? t('excel.confirm.cancel')}
           </button>
           <button
             className="rounded-md bg-[#2b7fff] px-4 py-1.5 text-sm text-white hover:bg-[#1f6ff2]"
             onClick={() => resolveConfirm(true)}
           >
-            {confirm.confirmText ?? '确定'}
+            {confirm.confirmText ?? t('excel.confirm.ok')}
           </button>
         </div>
       </div>

@@ -185,7 +185,7 @@ describe('fileActions 文件动作', () => {
     base.id = 'doc-base';
     await getDefaultStorage().save(base);
     const reloadBefore = useEditorStore.getState().reloadToken;
-    mockImportXlsx.mockResolvedValueOnce(createEmptySnapshot('导入表'));
+    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [] });
 
     const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
     expect(useUiStore.getState().confirm?.title).toBe('导入 Excel');
@@ -230,7 +230,7 @@ describe('fileActions 文件动作', () => {
       ...memoryStorage(),
       updateContent: vi.fn(async () => { throw new Error('写库失败'); }),
     });
-    mockImportXlsx.mockResolvedValueOnce(createEmptySnapshot('导入表'));
+    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [] });
     const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
     useUiStore.getState().resolveConfirm(true);
     await action;
@@ -274,7 +274,7 @@ describe('fileActions 文件动作', () => {
   it('importXlsxMenuAction 选中文件后走导入动作', async () => {
     const file = new File(['x'], '菜单报表.xlsx');
     mockPickFile.mockResolvedValueOnce(file);
-    mockImportXlsx.mockResolvedValueOnce(createEmptySnapshot());
+    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot(), charts: [] });
 
     const action = importXlsxMenuAction();
     // 等 pickFile 的 Promise 落地、确认弹窗打开后再点确定

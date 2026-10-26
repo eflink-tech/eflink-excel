@@ -31,3 +31,38 @@
   grid-template-columns: 1fr 1fr;
   gap: 1rem 1.25rem;
 }
+
+.shortcuts-dialog__group + .shortcuts-dialog__group {
+  margin-top: 1rem;
+}
+
+.shortcuts-dialog__group-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2329;
+}
+
+.shortcuts-dialog__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #646a73;
+}
+
+.shortcuts-dialog__row--border {
+  border-top: 1px solid #f0f1f2;
+}
+
+.shortcuts-dialog__label {
+  min-width: 0;
+}
+
+.shortcuts-dialog__keys {
+  flex: none;
+  color: #8f959e;
+  font-family: inherit;
+}

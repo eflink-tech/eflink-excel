@@ -69,6 +69,8 @@ export interface MergeRange {
 export interface SnapshotSheet {
   id: string;
   name: string;
+  /** 1 表示隐藏 sheet（Excel 端 state=hidden/veryHidden 的映射；Univer IWorksheetData.hidden） */
+  hidden?: 0 | 1;
   rowCount: number;
   columnCount: number;
   cellData: Record<number, Record<number, SnapshotCell>>;

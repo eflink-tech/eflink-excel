@@ -1,6 +1,9 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@eflink-tech/office-kit';
+// 注册表格专属文案，保证组件脱离 I18nProvider 单独渲染时也有中文兜底
+import '../../i18n';
 
 interface ShortcutEntry {
   label: string;
@@ -12,49 +15,50 @@ interface ShortcutGroup {
   entries: ShortcutEntry[];
 }
 
-/** 左 9 条 / 右 9 条，按条目数均衡分列 */
-const COLUMNS: ShortcutGroup[][] = [
-  [
-    {
-      title: '文件',
-      entries: [{ label: '保存到本地数据库', keys: '⌘S' }],
-    },
-    {
-      title: '编辑',
-      entries: [
-        { label: '撤销', keys: '⌘Z' },
-        { label: '重做', keys: '⌘⇧Z / ⌘Y' },
-        { label: '复制', keys: '⌘C' },
-        { label: '剪切', keys: '⌘X' },
-        { label: '粘贴', keys: '⌘V' },
-        { label: '加粗', keys: '⌘B' },
-        { label: '斜体', keys: '⌘I' },
-        { label: '下划线', keys: '⌘U' },
-      ],
-    },
-  ],
-  [
-    {
-      title: '单元格',
-      entries: [
-        { label: '编辑单元格', keys: '双击 / Enter' },
-        { label: '结束编辑', keys: 'Enter / Tab' },
-        { label: '取消编辑', keys: 'Esc' },
-        { label: '单元格内换行', keys: 'Alt + Enter' },
-        { label: '删除并开始编辑', keys: 'Delete' },
-      ],
-    },
-    {
-      title: '导航与选区',
-      entries: [
-        { label: '全选', keys: '⌘A' },
-        { label: '移动选区', keys: '↑ ↓ ← →' },
-        { label: '扩展选区', keys: '⇧ + 方向键' },
-        { label: '选择下一行首/行尾', keys: 'Home / End' },
-      ],
-    },
-  ],
-];
+function buildColumns(t: (key: string) => string): ShortcutGroup[][] {
+  return [
+    [
+      {
+        title: t('excel.shortcuts.file'),
+        entries: [{ label: t('excel.shortcuts.saveLocal'), keys: '⌘S' }],
+      },
+      {
+        title: t('excel.shortcuts.edit'),
+        entries: [
+          { label: t('action.undo'), keys: '⌘Z' },
+          { label: t('action.redo'), keys: '⌘⇧Z / ⌘Y' },
+          { label: t('action.copy'), keys: '⌘C' },
+          { label: t('action.cut'), keys: '⌘X' },
+          { label: t('action.paste'), keys: '⌘V' },
+          { label: t('excel.toolbar.bold'), keys: '⌘B' },
+          { label: t('excel.toolbar.italic'), keys: '⌘I' },
+          { label: t('excel.toolbar.underline'), keys: '⌘U' },
+        ],
+      },
+    ],
+    [
+      {
+        title: t('excel.shortcuts.cell'),
+        entries: [
+          { label: t('excel.shortcuts.editCell'), keys: `${t('excel.shortcuts.doubleClick')} / Enter` },
+          { label: t('excel.shortcuts.finishEdit'), keys: 'Enter / Tab' },
+          { label: t('excel.shortcuts.cancelEdit'), keys: 'Esc' },
+          { label: t('excel.shortcuts.newline'), keys: 'Alt + Enter' },
+          { label: t('excel.shortcuts.deleteEdit'), keys: 'Delete' },
+        ],
+      },
+      {
+        title: t('excel.shortcuts.navigation'),
+        entries: [
+          { label: t('action.selectAll'), keys: '⌘A' },
+          { label: t('excel.shortcuts.moveSelection'), keys: '↑ ↓ ← →' },
+          { label: t('excel.shortcuts.extendSelection'), keys: `⇧ + ${t('excel.shortcuts.arrowKeys')}` },
+          { label: t('excel.shortcuts.rowStartEnd'), keys: 'Home / End' },
+        ],
+      },
+    ],
+  ];
+}
 
 function ShortcutGroupBlock({ group }: { group: ShortcutGroup }) {
   return (
@@ -77,6 +81,7 @@ function ShortcutGroupBlock({ group }: { group: ShortcutGroup }) {
 
 /** 快捷键总览弹窗（参照思维导图的快捷键弹窗样式） */
 export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -87,6 +92,8 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const columns = buildColumns(t);
 
   return createPortal(
     <div
@@ -102,11 +109,11 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-3.5">
           <h2 id="shortcuts-dialog-title" className="text-[16px] font-semibold text-slate-900">
-            快捷键
+            {t('excel.shortcuts.title')}
           </h2>
           <button
             type="button"
-            aria-label="关闭"
+            aria-label={t('action.close')}
             className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
             onClick={onClose}
           >
@@ -116,11 +123,11 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
 
         <div className="overflow-y-auto px-5 py-4">
           <p className="mb-4 text-center text-[12px] text-slate-400">
-            Mac 以 ⌘ 表示 Command，Windows 对应 Ctrl
+            {t('excel.shortcuts.hint')}
           </p>
 
           <div className="shortcuts-dialog__columns">
-            {COLUMNS.map((column, colIdx) => (
+            {columns.map((column, colIdx) => (
               <div key={colIdx} className="shortcuts-dialog__column">
                 {column.map((group) => (
                   <ShortcutGroupBlock key={group.title} group={group} />

@@ -4,20 +4,42 @@ import {
   LocaleType,
   mergeLocales,
 } from '@univerjs/presets';
+import type { OfficeLocale } from '@eflink-tech/office-kit';
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
 import PresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+import PresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import PresetSheetsCoreEsES from '@univerjs/preset-sheets-core/locales/es-ES';
+import PresetSheetsCorePtBR from '@univerjs/preset-sheets-core/locales/pt-BR';
 import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter';
 import PresetSheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN';
+import PresetSheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US';
+import PresetSheetsFilterEsES from '@univerjs/preset-sheets-filter/locales/es-ES';
+import PresetSheetsFilterPtBR from '@univerjs/preset-sheets-filter/locales/pt-BR';
 import { UniverSheetsSortPreset } from '@univerjs/preset-sheets-sort';
 import PresetSheetsSortZhCN from '@univerjs/preset-sheets-sort/locales/zh-CN';
+import PresetSheetsSortEnUS from '@univerjs/preset-sheets-sort/locales/en-US';
+import PresetSheetsSortEsES from '@univerjs/preset-sheets-sort/locales/es-ES';
+import PresetSheetsSortPtBR from '@univerjs/preset-sheets-sort/locales/pt-BR';
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing';
 import PresetSheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN';
+import PresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US';
+import PresetSheetsDrawingEsES from '@univerjs/preset-sheets-drawing/locales/es-ES';
+import PresetSheetsDrawingPtBR from '@univerjs/preset-sheets-drawing/locales/pt-BR';
 import { UniverSheetsHyperLinkPreset } from '@univerjs/preset-sheets-hyper-link';
 import PresetSheetsHyperLinkZhCN from '@univerjs/preset-sheets-hyper-link/locales/zh-CN';
+import PresetSheetsHyperLinkEnUS from '@univerjs/preset-sheets-hyper-link/locales/en-US';
+import PresetSheetsHyperLinkEsES from '@univerjs/preset-sheets-hyper-link/locales/es-ES';
+import PresetSheetsHyperLinkPtBR from '@univerjs/preset-sheets-hyper-link/locales/pt-BR';
 import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace';
 import PresetSheetsFindReplaceZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN';
+import PresetSheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US';
+import PresetSheetsFindReplaceEsES from '@univerjs/preset-sheets-find-replace/locales/es-ES';
+import PresetSheetsFindReplacePtBR from '@univerjs/preset-sheets-find-replace/locales/pt-BR';
 import { UniverSheetsThreadCommentPreset } from '@univerjs/preset-sheets-thread-comment';
 import PresetSheetsThreadCommentZhCN from '@univerjs/preset-sheets-thread-comment/locales/zh-CN';
+import PresetSheetsThreadCommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US';
+import PresetSheetsThreadCommentEsES from '@univerjs/preset-sheets-thread-comment/locales/es-ES';
+import PresetSheetsThreadCommentPtBR from '@univerjs/preset-sheets-thread-comment/locales/pt-BR';
 import '@univerjs/presets/lib/styles/preset-sheets-core.css';
 import '@univerjs/presets/lib/styles/preset-sheets-filter.css';
 import '@univerjs/presets/lib/styles/preset-sheets-sort.css';
@@ -31,6 +53,7 @@ import {
   getChartMeta,
   loadChartMetasForUnit,
   removeChartMeta,
+  requestLiveChartsRefresh,
   setChartMeta,
   defaultChartElements,
 } from './chartSettings';
@@ -52,14 +75,82 @@ const WeComZhCN = {
 };
 import type { WorkbookSnapshot } from '../../types/spreadsheet';
 
+/** 界面语言 → Univer 内置语言包 */
+const UNIVER_LOCALE_BY_OFFICE: Record<OfficeLocale, LocaleType> = {
+  'zh-CN': LocaleType.ZH_CN,
+  en: LocaleType.EN_US,
+  es: LocaleType.ES_ES,
+  'pt-BR': LocaleType.PT_BR,
+};
+
+function univerLocalesByOffice(locale: OfficeLocale) {
+  switch (locale) {
+    case 'en':
+      return mergeLocales(
+        PresetSheetsCoreEnUS,
+        PresetSheetsFilterEnUS,
+        PresetSheetsSortEnUS,
+        PresetSheetsDrawingEnUS,
+        PresetSheetsHyperLinkEnUS,
+        PresetSheetsFindReplaceEnUS,
+        PresetSheetsThreadCommentEnUS,
+      );
+    case 'es':
+      return mergeLocales(
+        PresetSheetsCoreEsES,
+        PresetSheetsFilterEsES,
+        PresetSheetsSortEsES,
+        PresetSheetsDrawingEsES,
+        PresetSheetsHyperLinkEsES,
+        PresetSheetsFindReplaceEsES,
+        PresetSheetsThreadCommentEsES,
+      );
+    case 'pt-BR':
+      return mergeLocales(
+        PresetSheetsCorePtBR,
+        PresetSheetsFilterPtBR,
+        PresetSheetsSortPtBR,
+        PresetSheetsDrawingPtBR,
+        PresetSheetsHyperLinkPtBR,
+        PresetSheetsFindReplacePtBR,
+        PresetSheetsThreadCommentPtBR,
+      );
+    default:
+      return mergeLocales(
+        PresetSheetsCoreZhCN,
+        PresetSheetsFilterZhCN,
+        PresetSheetsSortZhCN,
+        PresetSheetsDrawingZhCN,
+        PresetSheetsHyperLinkZhCN,
+        PresetSheetsFindReplaceZhCN,
+        PresetSheetsThreadCommentZhCN,
+        WeComZhCN,
+      );
+  }
+}
+
+/** 预注册四种语言包，切换语言时无需重建 Univer 实例 */
+const UNIVER_LOCALES: Record<string, ReturnType<typeof univerLocalesByOffice>> = {
+  [LocaleType.ZH_CN]: univerLocalesByOffice('zh-CN'),
+  [LocaleType.EN_US]: univerLocalesByOffice('en'),
+  [LocaleType.ES_ES]: univerLocalesByOffice('es'),
+  [LocaleType.PT_BR]: univerLocalesByOffice('pt-BR'),
+};
+
 type UniverApi = ReturnType<typeof createUniver>['univerAPI'];
 
 // Univer 实例的生命周期管理：一个页面同时只挂一个编辑器。
 // API 通过模块级引用暴露给工具栏/公式栏（commands.ts 读取）。
 let currentApi: UniverApi | null = null;
+let currentUniver: ReturnType<typeof createUniver>['univer'] | null = null;
 
 export function getUniverApi(): UniverApi | null {
   return currentApi;
+}
+
+/** 切换 Univer 内置界面语言（筛选面板、右键菜单等），不重建实例 */
+export function setUniverLocale(locale: OfficeLocale): void {
+  currentUniver?.setLocale(UNIVER_LOCALE_BY_OFFICE[locale]);
 }
 
 export interface UniverController {
@@ -76,22 +167,12 @@ export function mountUniver(
   container: HTMLElement,
   snapshot: WorkbookSnapshot,
   hooks: MountHooks,
+  locale: OfficeLocale = 'zh-CN',
 ): UniverController {
-  const { univerAPI } = createUniver({
-    locale: LocaleType.ZH_CN,
+  const { univer, univerAPI } = createUniver({
+    locale: UNIVER_LOCALE_BY_OFFICE[locale],
     // locales 必须按语言 ID 键控；mergeLocales 返回的是扁平语言包
-    locales: {
-      [LocaleType.ZH_CN]: mergeLocales(
-        PresetSheetsCoreZhCN,
-        PresetSheetsFilterZhCN,
-        PresetSheetsSortZhCN,
-        PresetSheetsDrawingZhCN,
-        PresetSheetsHyperLinkZhCN,
-        PresetSheetsFindReplaceZhCN,
-        PresetSheetsThreadCommentZhCN,
-        WeComZhCN,
-      ),
-    },
+    locales: UNIVER_LOCALES,
     theme: defaultTheme,
     presets: [
       UniverSheetsCorePreset({
@@ -109,6 +190,7 @@ export function mountUniver(
     ],
   });
   currentApi = univerAPI;
+  currentUniver = univer;
   // 开发模式暴露调试句柄（生产构建不注入）
   if (import.meta.env.DEV) {
     (window as unknown as { __univer: unknown }).__univer = univerAPI;
@@ -151,6 +233,13 @@ export function mountUniver(
   if (workbookUnitId) loadChartMetasForUnit(workbookUnitId);
 
   const stopWatch = univerAPI.onCommandExecuted(() => hooks.onChange());
+
+  // 数据联动：单元格赋值（编辑/粘贴/填充/清除）与行列增删后，按图表源引用重读并重渲染
+  // （setSource 走 drawing 命令，不在集合内，不会循环触发）
+  const DATA_MUTATION_RE = /^sheet\.command\.(set-range-values|insert-(row|col|multi-rows|multi-cols)|remove-(row|col|multi-rows|multi-cols))/;
+  const liveChartWatch = univerAPI.onCommandExecuted((command) => {
+    if (DATA_MUTATION_RE.test(command.id)) requestLiveChartsRefresh();
+  });
 
   // 图表设置：记录选中的图表图片，双击时打开右侧设置面板；图片删除时同步清理元数据
   let lastSelectedChartId: string | null = null;
@@ -224,6 +313,7 @@ export function mountUniver(
     },
       destroy() {
         stopWatch.dispose();
+        liveChartWatch.dispose();
         filterPanelWatch.dispose();
         selectedWatch.dispose();
         removedWatch.dispose();
@@ -231,6 +321,7 @@ export function mountUniver(
         window.removeEventListener('keydown', onFloatingDeleteKey, true);
         univerAPI.dispose();
         if (currentApi === univerAPI) currentApi = null;
+        if (currentUniver === univer) currentUniver = null;
       },
   };
 }

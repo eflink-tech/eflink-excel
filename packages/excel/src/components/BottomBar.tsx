@@ -1,35 +1,41 @@
 // 底部状态栏：文档名（点击改名）+ 保存状态。始终渲染（不随 branding 隐藏）——名字与保存状态是编辑器自身信息。
 import { useEffect, useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
+import { useI18n } from '@eflink-tech/office-kit';
 import { useEditorStore } from '../store/editorStore';
 import { useDocumentsStore } from '../store/documentsStore';
 import { useUiStore } from '../store/uiStore';
 
 /** 保存状态指示：有未保存改动时红点提示，云端保存成功后显示已保存（自 TitleBar 迁入） */
 function SaveStatus() {
+  const { t } = useI18n();
   const dirty = useEditorStore((s) => s.dirty);
   if (dirty) {
     return (
-      <span className="flex shrink-0 items-center gap-1 text-[#e02e2e]" title="有未保存的修改，按 ⌘S / Ctrl+S 保存">
+      <span
+        className="flex shrink-0 items-center gap-1 text-[#e02e2e]"
+        title={t('excel.status.unsavedTitle')}
+      >
         <span className="text-[10px] leading-none">●</span>
-        未保存
+        {t('excel.status.unsaved')}
       </span>
     );
   }
   return (
     <span className="flex shrink-0 items-center gap-1">
       <span className="text-[10px] leading-none">✓</span>
-      已保存
+      {t('excel.status.saved')}
     </span>
   );
 }
 
 export function BottomBar() {
+  const { t } = useI18n();
   const docId = useEditorStore((s) => s.docId);
   const editorTitle = useEditorStore((s) => s.title);
   // 文档名以 documentsStore 为准（renameDoc 后 refresh 生效）；独立打开编辑器等 docs 未加载的场景回退编辑器标题
   const docsTitle = useDocumentsStore((s) => s.docs.find((d) => d.id === docId)?.title);
-  const title = docsTitle ?? editorTitle ?? '未命名表格';
+  const title = docsTitle ?? editorTitle ?? t('excel.untitled');
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -62,8 +68,8 @@ export function BottomBar() {
       .renameDoc(docId, next)
       .then(() => useEditorStore.getState().setTitle(next))
       .catch((err) => {
-        console.error('重命名失败', err);
-        useUiStore.getState().showToast('重命名失败');
+        console.error('rename failed', err);
+        useUiStore.getState().showToast(t('excel.toast.renameFailed'));
       });
   };
 
@@ -94,7 +100,7 @@ export function BottomBar() {
           <button
             type="button"
             onClick={startEdit}
-            title="点击重命名"
+            title={t('excel.status.renameHint')}
             className="flex max-w-[200px] items-center gap-1 rounded px-1 py-0.5 text-[#333] transition-colors hover:bg-[#e8e8e8]"
           >
             <Pencil size={11} className="shrink-0 text-[#999]" />

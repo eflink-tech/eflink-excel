@@ -1,6 +1,7 @@
 // 分享弹窗：调用宿主注入的分享实现生成链接，展示并支持复制
 // 分享内容以点击"分享"时刻的文档快照为准
 import { useEffect, useRef, useState, type JSX } from 'react';
+import { useI18n } from '@eflink-tech/office-kit';
 import { Check, Copy, Loader2, RefreshCw, Share2, TriangleAlert } from 'lucide-react';
 import { getExcelShareHandler } from '../core/share/shareBridge';
 import type { ExcelShareDoc } from '../core/share/shareBridge';
@@ -38,6 +39,7 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Element | null {
+  const { t } = useI18n();
   const [state, setState] = useState<ShareState>({ phase: 'loading' });
   const [copied, setCopied] = useState(false);
   // 分享结果（链接 + 宿主业务文案）与复制态
@@ -48,6 +50,8 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
   docRef.current = doc;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const tRef = useRef(t);
+  tRef.current = t;
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
@@ -60,7 +64,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
     const handler = getExcelShareHandler();
     const target = docRef.current;
     if (!handler || !target) {
-      setState({ phase: 'error', message: '当前环境不支持分享' });
+      setState({ phase: 'error', message: tRef.current('excel.share.unsupported') });
       return;
     }
     void handler(target)
@@ -72,7 +76,10 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setState({ phase: 'error', message: err instanceof Error ? err.message : '分享失败，请稍后重试' });
+          setState({
+            phase: 'error',
+            message: err instanceof Error ? err.message : tRef.current('excel.share.failed'),
+          });
         }
       });
 
@@ -125,7 +132,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
           <div className="flex items-center gap-2">
             <Share2 size={16} className="text-[#5f6062]" />
             <h2 id="excel-share-dialog-title" className="text-base font-semibold text-[#26282b]">
-              分享表格
+              {t('excel.share.title')}
             </h2>
           </div>
         </div>
@@ -134,7 +141,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
           {state.phase === 'loading' && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-[#5f6062]">
               <Loader2 size={16} className="animate-spin" />
-              正在生成分享链接...
+              {t('excel.share.generating')}
             </div>
           )}
 
@@ -148,7 +155,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
                 className="inline-flex items-center gap-1.5 rounded-md border border-[#dadbdd] px-3 py-1.5 text-sm text-[#26282b] hover:bg-[#f5f6f7]"
               >
                 <RefreshCw size={14} />
-                重试
+                {t('excel.share.retry')}
               </button>
             </div>
           )}
@@ -161,7 +168,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
                   readOnly
                   value={result.url}
                   onFocus={(e) => e.currentTarget.select()}
-                  aria-label="分享链接"
+                  aria-label={t('excel.share.link')}
                   className="min-w-0 flex-1 rounded-md border border-[#dadbdd] bg-[#f5f6f7] px-3 py-2 text-sm text-[#26282b] focus:outline-none"
                 />
                 <button
@@ -172,7 +179,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
                   }`}
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />}
-                  {copied ? '已复制' : '复制'}
+                  {copied ? t('excel.share.copied') : t('excel.share.copy')}
                 </button>
               </div>
               {result.tips && result.tips.length > 0 && (
@@ -192,7 +199,7 @@ export function ShareDialog({ open, doc, onClose }: ShareDialogProps): JSX.Eleme
             onClick={onCloseRef.current}
             className="rounded-md bg-[#11765c] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#0d5f4a]"
           >
-            完成
+            {t('excel.share.done')}
           </button>
         </div>
       </div>

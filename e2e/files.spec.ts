@@ -17,7 +17,7 @@ test.describe('文件导入导出', () => {
     await contentInput(page).press('Enter');
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出表格(.efexcel)');
+    await menuClick(page, '文件', '导出数据(.efx.json)');
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.efexcel$/);
 
@@ -30,7 +30,7 @@ test.describe('文件导入导出', () => {
     await waitEditor(page);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出表格(.efexcel)');
+    await menuClick(page, '文件', '导出数据(.efx.json)');
     const download = await downloadPromise;
 
     const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
@@ -46,7 +46,7 @@ test.describe('文件导入导出', () => {
     await page.waitForTimeout(2000);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出表格(.efexcel)');
+    await menuClick(page, '文件', '导出数据(.efx.json)');
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.efexcel$/);
 

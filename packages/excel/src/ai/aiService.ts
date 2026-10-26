@@ -1,5 +1,6 @@
 // AI 服务：OpenAI 兼容接口（流式，浏览器直连，BYOK 模式与 eflink-pptx 一致）
 import OpenAI from 'openai'
+import { excelT } from '../i18n'
 import { AIError, isAbortError, type AISettings } from './types'
 
 export interface ChatMessage {
@@ -21,7 +22,7 @@ export interface SendMessageResult {
 export async function sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
   const { settings, messages, onContentChunk, signal } = params
   if (!settings.baseUrl || !settings.apiKey || !settings.model) {
-    throw new AIError('请先在 AI 设置中配置接口地址、API Key 和模型')
+    throw new AIError(excelT('excel.ai.notConfiguredError'))
   }
 
   const client = new OpenAI({
@@ -60,9 +61,9 @@ export function errorMessage(error: unknown): string {
   if (error instanceof AIError) return error.message
   if (error instanceof Error) {
     const anyErr = error as Error & { status?: number }
-    if (anyErr.status === 401) return 'API Key 无效（401）'
-    if (anyErr.status === 429) return '请求过于频繁或额度不足（429）'
-    return error.message || '请求失败'
+    if (anyErr.status === 401) return excelT('excel.ai.error.unauthorized')
+    if (anyErr.status === 429) return excelT('excel.ai.error.rateLimited')
+    return error.message || excelT('excel.ai.error.requestFailed')
   }
-  return '未知错误'
+  return excelT('excel.ai.error.unknown')
 }

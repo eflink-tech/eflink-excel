@@ -29,6 +29,7 @@ export function snapshotToWorkbook(snapshot: WorkbookSnapshot, wb: Workbook): vo
   const order = snapshot.sheetOrder?.filter((id) => snapshot.sheets[id]) ?? Object.keys(snapshot.sheets);
   for (const sheetId of order) {
     const ws = wb.addWorksheet(snapshot.sheets[sheetId].name);
+    if (snapshot.sheets[sheetId].hidden) ws.state = 'hidden';
     writeSheet(snapshot.sheets[sheetId], ws, styles);
   }
 }

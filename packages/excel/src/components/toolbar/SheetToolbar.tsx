@@ -1,14 +1,13 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { ChevronRight, PenLine, Sparkles } from 'lucide-react';
+import { ChevronRight, PenLine } from 'lucide-react';
+import { useI18n } from '@eflink-tech/office-kit';
 import * as cmd from '../../core/univer/commands';
 import type { BorderStyleKey, BorderTypeKey } from '../../core/univer/commands';
 import { getUniverApi } from '../../core/univer/controller';
-import { importFileAction } from '../../core/fileActions';
 import { useUiStore } from '../../store/uiStore';
 import { ColorPicker } from '../color';
 import { ChartPickerPanel } from './ChartPickerPanel';
-import { MenuDropdown } from './MenuDropdown';
 import { ToolbarAlignMenuItem, ToolbarDropdownPanel, ToolbarMenuDivider, ToolbarMenuItem } from './ToolbarMenuPanel';
 import { closeAllToolbarDropdowns } from './toolbarDropdown';
 import { UNIVER_READY_EVENT } from './FormulaBar';
@@ -33,7 +32,7 @@ interface SelState {
 const INITIAL_SEL: SelState = { bl: false, it: false, u: false, st: false, cl: null, bg: null, numfmt: '' };
 
 const FONT_GROUPS: string[][] = [
-  ['默认字体', '宋体', '黑体', '楷体', '仿宋', '华文行楷', '华文隶书'],
+  ['__default__', '宋体', '黑体', '楷体', '仿宋', '华文行楷', '华文隶书'],
   ['Arial', 'Tahoma', 'Verdana'],
 ];
 const FONT_SIZES = [10, 11, 12, 14, 16, 18, 20, 24];
@@ -50,44 +49,6 @@ interface NumFormatItem {
   sample?: string;
 }
 
-/** 「常规」面板：分组顺序与示例文字完全按 demo；pattern 走 Univer numfmt */
-const NUM_FORMAT_GROUPS: NumFormatItem[][] = [
-  [
-    { label: '常规', pattern: 'General' },
-    { label: '文本', pattern: '@' },
-  ],
-  [
-    { label: '数值', pattern: '#,##0.00', sample: '0.95' },
-    { label: '百分比', pattern: '0.00%', sample: '95.00%' },
-    { label: '分数', pattern: '# ?/?', sample: '1/2' },
-    { label: '科学计数', pattern: '0.00E+00', sample: '9.5E-01' },
-  ],
-  [
-    { label: '人民币', pattern: '"¥"#,##0.00', sample: '￥8.80' },
-    { label: '港币', pattern: '"HK$"#,##0.00', sample: 'HK$8.80' },
-    { label: '美元', pattern: '"$"#,##0.00', sample: '$8.80' },
-  ],
-  [
-    { label: '日期', pattern: 'yyyy-MM-dd', sample: '2025-01-01' },
-    { label: '年月', pattern: 'yyyy"年"M"月"', sample: '2025年1月' },
-    { label: '月日', pattern: 'M"月"d"日"', sample: '1月15日' },
-    { label: '时间', pattern: 'HH:mm', sample: '15:00' },
-    { label: '日期时间', pattern: 'yyyy-MM-dd HH:mm', sample: '2025-01-01 15:00' },
-  ],
-];
-const NUM_FORMATS = NUM_FORMAT_GROUPS.flat();
-
-const H_ALIGN_ITEMS: [value: 'left' | 'center' | 'right', label: string, icon: string][] = [
-  ['left', '左对齐', 'icon-paragraph-align-left'],
-  ['center', '居中对齐', 'icon-paragraph-align-center'],
-  ['right', '右对齐', 'myf-icon-paragraph-align-right'],
-];
-const V_ALIGN_ITEMS: [value: 'top' | 'middle' | 'bottom', label: string, icon: string][] = [
-  ['top', '顶端对齐', 'myf-icon-paragraph-top'],
-  ['middle', '居中对齐', 'myf-icon-paragraph-middle'],
-  ['bottom', '底端对齐', 'myf-icon-paragraph-bottom'],
-];
-
 type PanelId =
   | 'insert' | 'convention' | 'fontFamily' | 'fontSize'
   | 'fontColor' | 'fillColor' | 'border'
@@ -97,9 +58,8 @@ type PanelId =
 const MORE_RESERVE = 44;
 
 export function SheetToolbar() {
+  const { t, locale } = useI18n();
   const showToast = useUiStore((s) => s.showToast);
-  const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
-  const toggleAIPanel = useUiStore((s) => s.toggleAIPanel);
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [chartPickerSource, setChartPickerSource] = useState<'insert' | 'chart' | null>(null);
@@ -107,12 +67,49 @@ export function SheetToolbar() {
   const [sel, setSel] = useState<SelState>(INITIAL_SEL);
   const [borderStyle, setBorderStyle] = useState<BorderStyleKey>('thin');
   const [borderColor, setBorderColor] = useState('#000000');
-  const importInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLUListElement>(null);
   const insertBtnRef = useRef<HTMLAnchorElement>(null);
+
+  // 「常规」面板：分组顺序与示例文字按 demo；pattern 走 Univer numfmt（年月/月日按语言换格式）
+  const isZh = locale === 'zh-CN';
+  const numFormatGroups: NumFormatItem[][] = [
+    [
+      { label: t('excel.numfmt.general'), pattern: 'General' },
+      { label: t('excel.numfmt.text'), pattern: '@' },
+    ],
+    [
+      { label: t('excel.numfmt.number'), pattern: '#,##0.00', sample: '0.95' },
+      { label: t('excel.numfmt.percent'), pattern: '0.00%', sample: '95.00%' },
+      { label: t('excel.numfmt.fraction'), pattern: '# ?/?', sample: '1/2' },
+      { label: t('excel.numfmt.scientific'), pattern: '0.00E+00', sample: '9.5E-01' },
+    ],
+    [
+      { label: t('excel.numfmt.rmb'), pattern: '"¥"#,##0.00', sample: t('excel.numfmt.sample.rmb') },
+      { label: t('excel.numfmt.hkd'), pattern: '"HK$"#,##0.00', sample: 'HK$8.80' },
+      { label: t('excel.numfmt.usd'), pattern: '"$"#,##0.00', sample: '$8.80' },
+    ],
+    [
+      { label: t('excel.numfmt.date'), pattern: 'yyyy-MM-dd', sample: '2025-01-01' },
+      { label: t('excel.numfmt.yearMonth'), pattern: isZh ? 'yyyy"年"M"月"' : 'yyyy-MM', sample: t('excel.numfmt.sample.yearMonth') },
+      { label: t('excel.numfmt.monthDay'), pattern: isZh ? 'M"月"d"日"' : 'MM-dd', sample: t('excel.numfmt.sample.monthDay') },
+      { label: t('excel.numfmt.time'), pattern: 'HH:mm', sample: '15:00' },
+      { label: t('excel.numfmt.dateTime'), pattern: 'yyyy-MM-dd HH:mm', sample: '2025-01-01 15:00' },
+    ],
+  ];
+  const numFormats = numFormatGroups.flat();
+  const hAlignItems: [value: 'left' | 'center' | 'right', label: string, icon: string][] = [
+    ['left', t('excel.toolbar.alignLeft'), 'icon-paragraph-align-left'],
+    ['center', t('excel.toolbar.alignCenter'), 'icon-paragraph-align-center'],
+    ['right', t('excel.toolbar.alignRight'), 'myf-icon-paragraph-align-right'],
+  ];
+  const vAlignItems: [value: 'top' | 'middle' | 'bottom', label: string, icon: string][] = [
+    ['top', t('excel.toolbar.alignTop'), 'myf-icon-paragraph-top'],
+    ['middle', t('excel.toolbar.alignMiddle'), 'myf-icon-paragraph-middle'],
+    ['bottom', t('excel.toolbar.alignBottom'), 'myf-icon-paragraph-bottom'],
+  ];
 
   // 订阅选区变化：同步当前样式（字体/字号/加粗/颜色/对齐/数字格式）到按钮状态
   const subscribeDisposable = useRef<{ dispose(): void } | null>(null);
@@ -217,12 +214,12 @@ export function SheetToolbar() {
     refreshSoon();
     setOpenPanel(null);
   };
-  const dev = () => showToast('功能开发中');
+  const dev = () => showToast(t('excel.toolbar.developing'));
 
   const runComment = (fn: () => void) => () => {
     const range = getActiveRange();
     if (!range) {
-      showToast('请先选择单元格');
+      showToast(t('excel.toolbar.selectCellFirst'));
       return;
     }
     fn();
@@ -234,9 +231,9 @@ export function SheetToolbar() {
     void cmd
       .insertChart(typeId)
       .then((ok) => {
-        if (!ok) showToast('插入图表失败');
+        if (!ok) showToast(t('excel.toolbar.insertChartFailed'));
       })
-      .catch(() => showToast('插入图表失败'));
+      .catch(() => showToast(t('excel.toolbar.insertChartFailed')));
   };
 
   const openChartPicker = (source: 'insert' | 'chart') => {
@@ -244,12 +241,6 @@ export function SheetToolbar() {
     setOpenPanel(null);
     setMoreOpen(false);
     setChartPickerSource(source);
-  };
-
-  const closeToolbarPanels = () => {
-    setOpenPanel(null);
-    setMoreOpen(false);
-    setChartPickerSource(null);
   };
 
   // 插入图片：模式写入 input 的 data-mode，选中文件后按该模式插入
@@ -268,23 +259,26 @@ export function SheetToolbar() {
       const pick = mode === 'cell' ? cmd.insertCellImage(file) : cmd.insertFloatingImage(file);
       void pick
         .then((ok) => {
-          if (!ok) showToast('插入图片失败');
+          if (!ok) showToast(t('excel.toolbar.insertImageFailed'));
         })
-        .catch(() => showToast('插入图片失败'));
+        .catch(() => showToast(t('excel.toolbar.insertImageFailed')));
     }
     input.value = '';
   };
 
   // 构建：当前样式派生值
-  const hCur = (sel.ht && H_ALIGN_ITEMS.some(([v]) => v === sel.ht) ? sel.ht : 'left') as 'left' | 'center' | 'right';
-  const vCur = (sel.vt && V_ALIGN_ITEMS.some(([v]) => v === sel.vt) ? sel.vt : 'top') as 'top' | 'middle' | 'bottom';
-  const hIcon = H_ALIGN_ITEMS.find(([v]) => v === hCur)?.[2] ?? 'icon-paragraph-align-left';
-  const vIcon = V_ALIGN_ITEMS.find(([v]) => v === vCur)?.[2] ?? 'myf-icon-paragraph-top';
-  const fontLabel = sel.ff || '默认字体';
+  const hCur = (sel.ht && hAlignItems.some(([v]) => v === sel.ht) ? sel.ht : 'left') as 'left' | 'center' | 'right';
+  const vCur = (sel.vt && vAlignItems.some(([v]) => v === sel.vt) ? sel.vt : 'top') as 'top' | 'middle' | 'bottom';
+  const hIcon = hAlignItems.find(([v]) => v === hCur)?.[2] ?? 'icon-paragraph-align-left';
+  const vIcon = vAlignItems.find(([v]) => v === vCur)?.[2] ?? 'myf-icon-paragraph-top';
+  const fontLabel = sel.ff || t('excel.toolbar.defaultFont');
   const fontSizeLabel = sel.fs != null ? String(sel.fs) : '12';
   const numfmtLabel =
-    NUM_FORMATS.find((f) => f.pattern === sel.numfmt || (f.label === '常规' && (sel.numfmt === '' || sel.numfmt === 'General')))
-      ?.label ?? '常规';
+    numFormats.find(
+      (f) =>
+        f.pattern === sel.numfmt ||
+        (f.pattern === 'General' && (sel.numfmt === '' || sel.numfmt === 'General')),
+    )?.label ?? t('excel.toolbar.general');
 
   // 构建工具项。measure=true 时用于隐藏测量行：不渲染面板内容（绝对定位面板不影响测宽），
   // 避免同一份面板 DOM 出现两次。
@@ -304,55 +298,14 @@ export function SheetToolbar() {
         </li>,
       );
 
-    if (!measure) {
-      items.push(
-        <li key="menu">
-          <MenuDropdown
-            variant="sheet"
-            importInputRef={importInputRef}
-            onOpen={closeToolbarPanels}
-            trigger={
-              <a
-                role="button"
-                tabIndex={0}
-                className="myf-tool-panel"
-                aria-label="菜单"
-                title="菜单"
-              >
-                <span className="myf-icon myf-icon-file-menu" />
-                <span className="myf-icon-text">菜单</span>
-                <div className="myf-icon myf-icon-arrow-down" />
-              </a>
-            }
-          />
-        </li>,
-      );
-    } else {
-      items.push(
-        <li key="menu">
-          <a
-            role="button"
-            tabIndex={-1}
-            className="myf-tool-panel"
-            aria-hidden="true"
-          >
-            <span className="myf-icon myf-icon-file-menu" />
-            <span className="myf-icon-text">菜单</span>
-            <div className="myf-icon myf-icon-arrow-down" />
-          </a>
-        </li>,
-      );
-    }
-    pushSplit('sp-menu');
-
     items.push(
       <li key="undo">
-        <a role="button" tabIndex={0} title="撤销" aria-label="撤销" onClick={run(cmd.undo)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.undo')} aria-label={t('excel.toolbar.undo')} onClick={run(cmd.undo)}>
           <span className="myf-icon myf-icon-undo" />
         </a>
       </li>,
       <li key="redo">
-        <a role="button" tabIndex={0} title="重做" aria-label="重做" onClick={run(cmd.redo)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.redo')} aria-label={t('excel.toolbar.redo')} onClick={run(cmd.redo)}>
           <span className="myf-icon myf-icon-redo" />
         </a>
       </li>,
@@ -360,12 +313,12 @@ export function SheetToolbar() {
     pushSplit('sp1');
     items.push(
       <li key="formatPainter">
-        <a role="button" tabIndex={0} title="格式刷" aria-label="格式刷" onClick={run(cmd.formatPainter)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.formatPainter')} aria-label={t('excel.toolbar.formatPainter')} onClick={run(cmd.formatPainter)}>
           <span className="myf-icon myf-icon-match-prop" />
         </a>
       </li>,
       <li key="clearFormat">
-        <a role="button" tabIndex={0} title="清除格式" aria-label="清除格式" onClick={run(cmd.clearFormatOnly)}>
+        <a role="button" tabIndex={0} title={t('action.clearFormat')} aria-label={t('action.clearFormat')} onClick={run(cmd.clearFormatOnly)}>
           <span className="myf-icon myf-icon-clear-format" />
         </a>
       </li>,
@@ -379,30 +332,30 @@ export function SheetToolbar() {
           ref={insertBtnRef}
           role="button"
           tabIndex={0}
-          title="插入"
-          aria-label="插入"
+          title={t('excel.toolbar.insert')}
+          aria-label={t('excel.toolbar.insert')}
           className={`myf-tool-panel${openPanel === 'insert' || chartPickerSource === 'insert' ? ' active' : ''}`}
           onClick={toggle('insert')}
         >
           <span className="myf-icon myf-icon-add" />
-          <span className="myf-icon-text">插入</span>
+          <span className="myf-icon-text">{t('excel.toolbar.insert')}</span>
           <div className="myf-icon myf-icon-arrow-down" />
         </a>
         {open('insert') && (
           <ToolbarDropdownPanel style={{ width: 220 }}>
-            <ToolbarMenuItem iconClass="icon-add-img-for-cell" label="单元格图片" onClick={openImagePicker('cell')} />
-            <ToolbarMenuItem iconClass="icon-add-img-for-fix" label="浮动图片" onClick={openImagePicker('float')} />
-            <ToolbarMenuItem iconClass="myf-icon-add-chart" label="图表" onClick={() => openChartPicker('insert')} />
-            <ToolbarMenuItem iconClass="icon-add-link" label="链接" onClick={run(cmd.insertHyperLink)} />
+            <ToolbarMenuItem iconClass="icon-add-img-for-cell" label={t('excel.toolbar.cellImage')} onClick={openImagePicker('cell')} />
+            <ToolbarMenuItem iconClass="icon-add-img-for-fix" label={t('excel.toolbar.floatingImage')} onClick={openImagePicker('float')} />
+            <ToolbarMenuItem iconClass="myf-icon-add-chart" label={t('excel.toolbar.chart')} onClick={() => openChartPicker('insert')} />
+            <ToolbarMenuItem iconClass="icon-add-link" label={t('excel.toolbar.link')} onClick={run(cmd.insertHyperLink)} />
             <ToolbarMenuDivider />
-            <ToolbarMenuItem iconClass="myf-icon-insert-top-row" label="在上方插入行" onClick={run(cmd.insertRowAbove)} />
-            <ToolbarMenuItem iconClass="myf-icon-insert-bottom-row" label="在下方插入行" onClick={run(cmd.insertRowBelow)} />
-            <ToolbarMenuItem iconClass="myf-icon-insert-left-col" label="在左侧插入列" onClick={run(cmd.insertColLeft)} />
-            <ToolbarMenuItem iconClass="myf-icon-insert-right-col" label="在右侧插入列" onClick={run(cmd.insertColRight)} />
+            <ToolbarMenuItem iconClass="myf-icon-insert-top-row" label={t('excel.toolbar.insertRowAbove')} onClick={run(cmd.insertRowAbove)} />
+            <ToolbarMenuItem iconClass="myf-icon-insert-bottom-row" label={t('excel.toolbar.insertRowBelow')} onClick={run(cmd.insertRowBelow)} />
+            <ToolbarMenuItem iconClass="myf-icon-insert-left-col" label={t('excel.toolbar.insertColLeft')} onClick={run(cmd.insertColLeft)} />
+            <ToolbarMenuItem iconClass="myf-icon-insert-right-col" label={t('excel.toolbar.insertColRight')} onClick={run(cmd.insertColRight)} />
             <ToolbarMenuDivider />
-            <ToolbarMenuItem iconClass="icon-insert-doc-link-ent" label="文档" onClick={dev} />
-            <ToolbarMenuItem iconClass="icon-insert-file-link" label="文件" onClick={dev} />
-            <ToolbarMenuItem iconClass="icon-add-todo" label="代办" onClick={dev} />
+            <ToolbarMenuItem iconClass="icon-insert-doc-link-ent" label={t('excel.toolbar.document')} onClick={dev} />
+            <ToolbarMenuItem iconClass="icon-insert-file-link" label={t('excel.toolbar.file')} onClick={dev} />
+            <ToolbarMenuItem iconClass="icon-add-todo" label={t('excel.toolbar.todo')} onClick={dev} />
           </ToolbarDropdownPanel>
         )}
         {chartPicker('insert')}
@@ -416,8 +369,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="常规"
-          aria-label="常规"
+          title={t('excel.toolbar.numberFormat')}
+          aria-label={t('excel.toolbar.numberFormat')}
           className={`myf-tool-panel${openPanel === 'convention' ? ' active' : ''}`}
           onClick={toggle('convention')}
         >
@@ -426,7 +379,7 @@ export function SheetToolbar() {
         </a>
         {open('convention') && (
           <ToolbarDropdownPanel style={{ width: 220 }}>
-            {NUM_FORMAT_GROUPS.map((group, gi) => (
+            {numFormatGroups.map((group, gi) => (
               <Fragment key={gi}>
                 {gi > 0 && <ToolbarMenuDivider />}
                 {group.map((f) => (
@@ -435,7 +388,7 @@ export function SheetToolbar() {
               </Fragment>
             ))}
             <ToolbarMenuDivider />
-            <ToolbarMenuItem label="更多格式" onClick={dev} />
+            <ToolbarMenuItem label={t('excel.toolbar.moreFormats')} onClick={dev} />
           </ToolbarDropdownPanel>
         )}
       </li>,
@@ -444,13 +397,13 @@ export function SheetToolbar() {
     // 小数位数（.0 上下箭头）
     items.push(
       <li key="decimal">
-        <div className="myf-arrows-container" title="小数位数">
+        <div className="myf-arrows-container" title={t('excel.toolbar.decimals')}>
           <span className="myf-icon-text">.0</span>
           <div className="myf-right-icons">
-            <a role="button" tabIndex={0} className="myf-arrow-icon" title="增加小数位数" onClick={run(cmd.addDecimal)}>
+            <a role="button" tabIndex={0} className="myf-arrow-icon" title={t('excel.toolbar.increaseDecimals')} onClick={run(cmd.addDecimal)}>
               <span className="myf-icon myf-icons-arrow-up" />
             </a>
-            <a role="button" tabIndex={0} className="myf-arrow-icon" title="减少小数位数" onClick={run(cmd.subtractDecimal)}>
+            <a role="button" tabIndex={0} className="myf-arrow-icon" title={t('excel.toolbar.decreaseDecimals')} onClick={run(cmd.subtractDecimal)}>
               <span className="myf-icon myf-icons-arrow-down" />
             </a>
           </div>
@@ -465,8 +418,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="字体"
-          aria-label="字体"
+          title={t('excel.toolbar.fontFamily')}
+          aria-label={t('excel.toolbar.fontFamily')}
           className={`myf-tool-panel${openPanel === 'fontFamily' ? ' active' : ''}`}
           onClick={toggle('fontFamily')}
         >
@@ -479,13 +432,13 @@ export function SheetToolbar() {
               <Fragment key={gi}>
                 {gi > 0 && <ToolbarMenuDivider />}
                 {group.map((f) => {
-                  const selected = f === '默认字体' ? !sel.ff : sel.ff === f;
+                  const selected = f === '__default__' ? !sel.ff : sel.ff === f;
                   return (
                     <ToolbarMenuItem
                       key={f}
                       iconClass={selected ? 'myf-icon-selected' : undefined}
-                      label={f}
-                      onClick={run(() => cmd.setFontFamily(f === '默认字体' ? 'Arial' : f))}
+                      label={f === '__default__' ? t('excel.toolbar.defaultFont') : f}
+                      onClick={run(() => cmd.setFontFamily(f === '__default__' ? 'Arial' : f))}
                     />
                   );
                 })}
@@ -498,8 +451,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="字号"
-          aria-label="字号"
+          title={t('excel.toolbar.fontSize')}
+          aria-label={t('excel.toolbar.fontSize')}
           className={`myf-tool-panel${openPanel === 'fontSize' ? ' active' : ''}`}
           onClick={toggle('fontSize')}
         >
@@ -520,22 +473,22 @@ export function SheetToolbar() {
         )}
       </li>,
       <li key="bold">
-        <a role="button" tabIndex={0} title="加粗" aria-label="加粗" className={sel.bl ? 'active' : ''} onClick={run(cmd.toggleBold)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.bold')} aria-label={t('excel.toolbar.bold')} className={sel.bl ? 'active' : ''} onClick={run(cmd.toggleBold)}>
           <span className="myf-icon myf-icon-bold" />
         </a>
       </li>,
       <li key="italic">
-        <a role="button" tabIndex={0} title="倾斜" aria-label="倾斜" className={sel.it ? 'active' : ''} onClick={run(cmd.toggleItalic)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.italic')} aria-label={t('excel.toolbar.italic')} className={sel.it ? 'active' : ''} onClick={run(cmd.toggleItalic)}>
           <span className="myf-icon myf-icon-italic" />
         </a>
       </li>,
       <li key="underline">
-        <a role="button" tabIndex={0} title="下划线" aria-label="下划线" className={sel.u ? 'active' : ''} onClick={run(cmd.toggleUnderline)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.underline')} aria-label={t('excel.toolbar.underline')} className={sel.u ? 'active' : ''} onClick={run(cmd.toggleUnderline)}>
           <span className="myf-icon myf-icon-underline" />
         </a>
       </li>,
       <li key="strike">
-        <a role="button" tabIndex={0} title="删除线" aria-label="删除线" className={sel.st ? 'active' : ''} onClick={run(cmd.toggleStrikeThrough)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.strikethrough')} aria-label={t('excel.toolbar.strikethrough')} className={sel.st ? 'active' : ''} onClick={run(cmd.toggleStrikeThrough)}>
           <span className="myf-icon myf-icon-delete" />
         </a>
       </li>,
@@ -545,12 +498,12 @@ export function SheetToolbar() {
     items.push(
       <li className="right-icon" key="fontColor">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} className="arrows-left" title="字体颜色" onClick={run(() => cmd.setFontColor(sel.cl ?? '#000000'))}>
+          <a role="button" tabIndex={0} className="arrows-left" title={t('excel.toolbar.fontColor')} onClick={run(() => cmd.setFontColor(sel.cl ?? '#000000'))}>
             <div className="myf-icon myf-icon-fontcolor" />
             {/* 未选色时底线显示白色（空色状态），选色后跟随所选颜色 */}
             <div className="myf-icon-bottom-color" style={{ backgroundColor: sel.cl ?? '#ffffff' }} />
           </a>
-          <a role="button" tabIndex={0} className="myf-pr-2" title="选择字体颜色" onClick={toggle('fontColor')}>
+          <a role="button" tabIndex={0} className="myf-pr-2" title={t('excel.toolbar.chooseFontColor')} onClick={toggle('fontColor')}>
             <div className="myf-icon myf-icon-arrow-down" />
           </a>
         </div>
@@ -578,11 +531,11 @@ export function SheetToolbar() {
       </li>,
       <li className="right-icon" key="fillColor">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} className="arrows-left" title="填充颜色" onClick={run(() => cmd.setBackgroundColor(sel.bg ?? '#ffffff'))}>
+          <a role="button" tabIndex={0} className="arrows-left" title={t('excel.toolbar.fillColor')} onClick={run(() => cmd.setBackgroundColor(sel.bg ?? '#ffffff'))}>
             <div className="myf-icon myf-icon-fill-color" />
             <div className="myf-icon-bottom-color" style={{ backgroundColor: sel.bg ?? '#ffffff' }} />
           </a>
-          <a role="button" tabIndex={0} className="myf-pr-2" title="选择填充颜色" onClick={toggle('fillColor')}>
+          <a role="button" tabIndex={0} className="myf-pr-2" title={t('excel.toolbar.chooseFillColor')} onClick={toggle('fillColor')}>
             <div className="myf-icon myf-icon-arrow-down" />
           </a>
         </div>
@@ -609,10 +562,10 @@ export function SheetToolbar() {
       </li>,
       <li className="right-icon" key="border">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="边框" onClick={run(() => cmd.applyBorder('all', borderStyle, borderColor))}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.border')} onClick={run(() => cmd.applyBorder('all', borderStyle, borderColor))}>
             <span className="myf-icon myf-icon-cell-border-all" />
           </a>
-          <a role="button" tabIndex={0} className="myf-pr-2" title="边框样式" onClick={toggle('border')}>
+          <a role="button" tabIndex={0} className="myf-pr-2" title={t('excel.toolbar.borderStyle')} onClick={toggle('border')}>
             <div className="myf-icon myf-icon-arrow-down" />
           </a>
         </div>
@@ -620,13 +573,13 @@ export function SheetToolbar() {
           <div className="myf-x-panel myf-x-visible" style={{ width: 232 }}>
             <div className="myf-border-grid">
               {BORDER_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" title={preset.title} onClick={() => cmd.applyBorder(preset.key, borderStyle, borderColor)}>
+                <button key={preset.key} type="button" title={t(preset.titleKey)} onClick={() => cmd.applyBorder(preset.key, borderStyle, borderColor)}>
                   <BorderGlyph edges={preset.edges} diag={preset.diag} />
                 </button>
               ))}
             </div>
             <div className="x-split" />
-            <BorderSub label="边框颜色" icon={<PenLine size={13} />}>
+            <BorderSub label={t('excel.toolbar.borderColor')} icon={<PenLine size={13} />}>
               <div className="myf-palette" style={{ gridTemplateColumns: 'repeat(5, 20px)' }}>
                 {BORDER_COLORS.map((c) => (
                   <button
@@ -639,7 +592,7 @@ export function SheetToolbar() {
                 ))}
               </div>
             </BorderSub>
-            <BorderSub label="边框样式" icon={<DashLineGlyph />}>
+            <BorderSub label={t('excel.toolbar.borderStyle')} icon={<DashLineGlyph />}>
               {BORDER_STYLES.map((s) => (
                 <button
                   key={s.key}
@@ -647,7 +600,7 @@ export function SheetToolbar() {
                   className={`myf-border-style-row${borderStyle === s.key ? ' on' : ''}`}
                   onClick={() => setBorderStyle(s.key)}
                 >
-                  <span>{s.label}</span>
+                  <span>{t(s.labelKey)}</span>
                   <svg width="34" height="8" viewBox="0 0 34 8">
                     <path d="M1 4 H33" stroke={borderStyle === s.key ? '#1d4ed8' : '#475569'} strokeWidth={s.width} strokeDasharray={s.dasharray} />
                   </svg>
@@ -655,7 +608,7 @@ export function SheetToolbar() {
               ))}
             </BorderSub>
             <button type="button" className="myf-x-plain" onClick={dev}>
-              更多边框设置
+              {t('excel.toolbar.moreBorders')}
             </button>
           </div>
         )}
@@ -667,14 +620,14 @@ export function SheetToolbar() {
     items.push(
       <li className="right-icon" key="hAlign">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="水平对齐" onClick={run(() => cmd.setHorizontalAlign(hCur))}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.horizontalAlign')} onClick={run(() => cmd.setHorizontalAlign(hCur))}>
             <span className={`myf-icon ${hIcon}`} />
           </a>
           <a
             role="button"
             tabIndex={0}
             className={`myf-tool-panel myf-pr-2${openPanel === 'hAlign' ? ' active' : ''}`}
-            title="对齐方式"
+            title={t('excel.toolbar.alignment')}
             onClick={toggle('hAlign')}
           >
             <div className="myf-icon myf-icon-arrow-down" />
@@ -682,7 +635,7 @@ export function SheetToolbar() {
         </div>
         {open('hAlign') && (
           <ToolbarDropdownPanel style={{ width: 180 }}>
-            {H_ALIGN_ITEMS.map(([v, label, icon]) => (
+            {hAlignItems.map(([v, label, icon]) => (
               <ToolbarAlignMenuItem
                 key={v}
                 label={label}
@@ -696,14 +649,14 @@ export function SheetToolbar() {
       </li>,
       <li className="right-icon" key="vAlign">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="垂直对齐" onClick={run(() => cmd.setVerticalAlign(vCur))}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.verticalAlign')} onClick={run(() => cmd.setVerticalAlign(vCur))}>
             <span className={`myf-icon ${vIcon}`} />
           </a>
           <a
             role="button"
             tabIndex={0}
             className={`myf-tool-panel myf-pr-2${openPanel === 'vAlign' ? ' active' : ''}`}
-            title="对齐方式"
+            title={t('excel.toolbar.alignment')}
             onClick={toggle('vAlign')}
           >
             <div className="myf-icon myf-icon-arrow-down" />
@@ -711,7 +664,7 @@ export function SheetToolbar() {
         </div>
         {open('vAlign') && (
           <ToolbarDropdownPanel style={{ width: 180 }}>
-            {V_ALIGN_ITEMS.map(([v, label, icon]) => (
+            {vAlignItems.map(([v, label, icon]) => (
               <ToolbarAlignMenuItem
                 key={v}
                 label={label}
@@ -724,7 +677,7 @@ export function SheetToolbar() {
         )}
       </li>,
       <li key="merge">
-        <a role="button" tabIndex={0} title="合并单元格" aria-label="合并单元格" onClick={run(cmd.toggleMergeCells)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.merge')} aria-label={t('excel.toolbar.merge')} onClick={run(cmd.toggleMergeCells)}>
           <span className="myf-icon myf-icon-merge-cells" />
         </a>
       </li>,
@@ -732,8 +685,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="冻结"
-          aria-label="冻结"
+          title={t('excel.toolbar.freeze')}
+          aria-label={t('excel.toolbar.freeze')}
           className={`myf-tool-panel${openPanel === 'freeze' ? ' active' : ''}`}
           onClick={toggle('freeze')}
         >
@@ -742,10 +695,10 @@ export function SheetToolbar() {
         </a>
         {open('freeze') && (
           <ToolbarDropdownPanel style={{ width: 160 }}>
-            <ToolbarMenuItem iconClass="myf-icon-freeze" label="冻结首行" onClick={run(cmd.freezeFirstRow)} />
-            <ToolbarMenuItem iconClass="myf-icon-freeze" label="冻结首列" onClick={run(cmd.freezeFirstColumn)} />
-            <ToolbarMenuItem iconClass="myf-icon-freeze" label="冻结至当前单元格" onClick={run(cmd.freezeToActiveCell)} />
-            <ToolbarMenuItem iconClass="myf-icon-freeze" label="取消冻结" onClick={run(cmd.cancelFreeze)} />
+            <ToolbarMenuItem iconClass="myf-icon-freeze" label={t('excel.view.freezeFirstRow')} onClick={run(cmd.freezeFirstRow)} />
+            <ToolbarMenuItem iconClass="myf-icon-freeze" label={t('excel.view.freezeFirstColumn')} onClick={run(cmd.freezeFirstColumn)} />
+            <ToolbarMenuItem iconClass="myf-icon-freeze" label={t('excel.view.freezeToCell')} onClick={run(cmd.freezeToActiveCell)} />
+            <ToolbarMenuItem iconClass="myf-icon-freeze" label={t('excel.view.unfreeze')} onClick={run(cmd.cancelFreeze)} />
           </ToolbarDropdownPanel>
         )}
       </li>,
@@ -756,14 +709,14 @@ export function SheetToolbar() {
     items.push(
       <li className="right-icon" key="sum">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="自动计算选框区域内的和" onClick={run(() => cmd.applyQuickStat('SUM'))}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.sum')} onClick={run(() => cmd.applyQuickStat('SUM'))}>
             <span className="myf-icon myf-icon-add-function" />
           </a>
           <a
             role="button"
             tabIndex={0}
             className={`myf-tool-panel myf-pr-2${openPanel === 'sum' ? ' active' : ''}`}
-            title="统计"
+            title={t('excel.toolbar.stats')}
             onClick={toggle('sum')}
           >
             <div className="myf-icon myf-icon-arrow-down" />
@@ -771,11 +724,11 @@ export function SheetToolbar() {
         </div>
         {open('sum') && (
           <ToolbarDropdownPanel style={{ width: 140 }}>
-            <ToolbarMenuItem label="求和" onClick={run(() => cmd.applyQuickStat('SUM'))} />
-            <ToolbarMenuItem label="平均值" onClick={run(() => cmd.applyQuickStat('AVERAGE'))} />
-            <ToolbarMenuItem label="计数" onClick={run(() => cmd.applyQuickStat('COUNT'))} />
-            <ToolbarMenuItem label="最大值" onClick={run(() => cmd.applyQuickStat('MAX'))} />
-            <ToolbarMenuItem label="最小值" onClick={run(() => cmd.applyQuickStat('MIN'))} />
+            <ToolbarMenuItem label={t('excel.stats.sum')} onClick={run(() => cmd.applyQuickStat('SUM'))} />
+            <ToolbarMenuItem label={t('excel.stats.average')} onClick={run(() => cmd.applyQuickStat('AVERAGE'))} />
+            <ToolbarMenuItem label={t('excel.stats.count')} onClick={run(() => cmd.applyQuickStat('COUNT'))} />
+            <ToolbarMenuItem label={t('excel.stats.max')} onClick={run(() => cmd.applyQuickStat('MAX'))} />
+            <ToolbarMenuItem label={t('excel.stats.min')} onClick={run(() => cmd.applyQuickStat('MIN'))} />
           </ToolbarDropdownPanel>
         )}
       </li>,
@@ -783,8 +736,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="图表"
-          aria-label="图表"
+          title={t('excel.toolbar.chart')}
+          aria-label={t('excel.toolbar.chart')}
           className={`myf-tool-panel${chartPickerSource === 'chart' ? ' active' : ''}`}
           onClick={() => openChartPicker('chart')}
         >
@@ -795,10 +748,10 @@ export function SheetToolbar() {
       </li>,
       <li className="right-icon" key="filter">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="筛选" onClick={run(cmd.toggleFilter)}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.filter')} onClick={run(cmd.toggleFilter)}>
             <span className="myf-icon myf-icon-filter" />
           </a>
-          <a role="button" tabIndex={0} className="myf-pr-2" title="筛选" onClick={run(cmd.toggleFilter)}>
+          <a role="button" tabIndex={0} className="myf-pr-2" title={t('excel.toolbar.filter')} onClick={run(cmd.toggleFilter)}>
             <div className="myf-icon myf-icon-arrow-down" />
           </a>
         </div>
@@ -807,8 +760,8 @@ export function SheetToolbar() {
         <a
           role="button"
           tabIndex={0}
-          title="排序"
-          aria-label="排序"
+          title={t('excel.toolbar.sort')}
+          aria-label={t('excel.toolbar.sort')}
           className={`myf-tool-panel${openPanel === 'sort' ? ' active' : ''}`}
           onClick={toggle('sort')}
         >
@@ -817,28 +770,28 @@ export function SheetToolbar() {
         </a>
         {open('sort') && (
           <ToolbarDropdownPanel style={{ width: 120 }}>
-            <ToolbarMenuItem iconClass="myf-icon-sort" label="升序" onClick={run(cmd.sortAscending)} />
-            <ToolbarMenuItem iconClass="myf-icon-sort" label="降序" onClick={run(cmd.sortDescending)} />
-            <ToolbarMenuItem iconClass="myf-icon-sort" label="自定义排序" onClick={run(cmd.sortCustom)} />
+            <ToolbarMenuItem iconClass="myf-icon-sort" label={t('excel.sort.ascending')} onClick={run(cmd.sortAscending)} />
+            <ToolbarMenuItem iconClass="myf-icon-sort" label={t('excel.sort.descending')} onClick={run(cmd.sortDescending)} />
+            <ToolbarMenuItem iconClass="myf-icon-sort" label={t('excel.sort.custom')} onClick={run(cmd.sortCustom)} />
           </ToolbarDropdownPanel>
         )}
       </li>,
       <li key="mention">
-        <a role="button" tabIndex={0} title="@人" aria-label="@人" onClick={dev}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.mention')} aria-label={t('excel.toolbar.mention')} onClick={dev}>
           <span className="myf-icon myf-icon-mention-ent" />
         </a>
       </li>,
       <li className="right-icon" key="comment">
         <div className="myf-arrows-container">
-          <a role="button" tabIndex={0} title="添加评论" aria-label="添加评论" onClick={runComment(cmd.addComment)}>
+          <a role="button" tabIndex={0} title={t('excel.toolbar.addComment')} aria-label={t('excel.toolbar.addComment')} onClick={runComment(cmd.addComment)}>
             <span className="myf-icon myf-icon-comment-ent" />
           </a>
           <a
             role="button"
             tabIndex={0}
             className={`myf-tool-panel myf-pr-2${openPanel === 'comment' ? ' active' : ''}`}
-            title="评论"
-            aria-label="评论菜单"
+            title={t('excel.toolbar.comment')}
+            aria-label={t('excel.toolbar.commentMenu')}
             onClick={toggle('comment')}
           >
             <div className="myf-icon myf-icon-arrow-down" />
@@ -846,29 +799,14 @@ export function SheetToolbar() {
         </div>
         {open('comment') && (
           <ToolbarDropdownPanel style={{ width: 140 }}>
-            <ToolbarMenuItem iconClass="myf-icon-comment-ent" label="添加评论" onClick={runComment(cmd.addComment)} />
-            <ToolbarMenuItem iconClass="myf-icon-comment-ent" label="评论管理" onClick={run(cmd.toggleCommentPanel)} />
+            <ToolbarMenuItem iconClass="myf-icon-comment-ent" label={t('excel.toolbar.addComment')} onClick={runComment(cmd.addComment)} />
+            <ToolbarMenuItem iconClass="myf-icon-comment-ent" label={t('excel.toolbar.manageComments')} onClick={run(cmd.toggleCommentPanel)} />
           </ToolbarDropdownPanel>
         )}
       </li>,
       <li key="findReplace">
-        <a role="button" tabIndex={0} title="查找替换" aria-label="查找替换" onClick={run(cmd.openFindReplace)}>
+        <a role="button" tabIndex={0} title={t('excel.toolbar.findReplace')} aria-label={t('excel.toolbar.findReplace')} onClick={run(cmd.openFindReplace)}>
           <span className="myf-icon myf-icon-find-replace" />
-        </a>
-      </li>,
-      // AI 助手开关（measure 行为宽度测量的隐藏副本，不带 testid 避免 e2e 重复命中）
-      <li className="right-icon" key="aiAssistant">
-        <a
-          role="button"
-          tabIndex={0}
-          title="AI 助手"
-          aria-label="AI 助手"
-          className={aiPanelOpen ? 'active' : undefined}
-          style={aiPanelOpen ? { color: '#107c41' } : undefined}
-          onClick={toggleAIPanel}
-          data-testid={measure ? undefined : 'ai-toggle'}
-        >
-          <Sparkles size={15} />
         </a>
       </li>,
     );
@@ -882,24 +820,13 @@ export function SheetToolbar() {
 
   return (
     <div ref={rootRef} className="relative z-30 min-w-0 flex-1 bg-white">
-      <input
-        ref={importInputRef}
-        type="file"
-        accept=".efx.json,.efexcel,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void importFileAction(file);
-          e.target.value = '';
-        }}
-      />
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={onImagePicked} />
       <div ref={wrapRef} className="myf-sheet-tools">
         <ul className="myf-toolbar">
           {liveItems.slice(0, overflowed ? cut : liveItems.length)}
           {overflowed && (
             <li className="myf-more-button">
-              <a role="button" tabIndex={0} title="更多" aria-label="更多" className={moreOpen ? 'active' : ''} onClick={() => { closeAllToolbarDropdowns(); setMoreOpen((v) => !v); setOpenPanel(null); setChartPickerSource(null); }}>
+              <a role="button" tabIndex={0} title={t('excel.toolbar.more')} aria-label={t('excel.toolbar.more')} className={moreOpen ? 'active' : ''} onClick={() => { closeAllToolbarDropdowns(); setMoreOpen((v) => !v); setOpenPanel(null); setChartPickerSource(null); }}>
                 <span className="myf-icon myf-icon-more" />
               </a>
             </li>
@@ -944,25 +871,25 @@ function BorderSub({ label, icon, children }: { label: string; icon: ReactNode; 
 
 const BORDER_COLORS = ['#000000', '#595959', '#e33e33', '#e6821e', '#d8b100', '#41a62a', '#1e7ee6', '#7c31d6', '#9c1f5f', '#21a366'];
 
-const BORDER_STYLES: { key: BorderStyleKey; label: string; width: number; dasharray?: string }[] = [
-  { key: 'thin', label: '细实线', width: 1 },
-  { key: 'medium', label: '中粗实线', width: 2.5 },
-  { key: 'dashed', label: '虚线', width: 1.5, dasharray: '4 3' },
-  { key: 'dotted', label: '点线', width: 1.5, dasharray: '1.5 2.5' },
-  { key: 'double', label: '双实线', width: 3, dasharray: '3 1.5 0.8 1.5' },
+const BORDER_STYLES: { key: BorderStyleKey; labelKey: string; width: number; dasharray?: string }[] = [
+  { key: 'thin', labelKey: 'excel.border.style.thin', width: 1 },
+  { key: 'medium', labelKey: 'excel.border.style.medium', width: 2.5 },
+  { key: 'dashed', labelKey: 'excel.border.style.dashed', width: 1.5, dasharray: '4 3' },
+  { key: 'dotted', labelKey: 'excel.border.style.dotted', width: 1.5, dasharray: '1.5 2.5' },
+  { key: 'double', labelKey: 'excel.border.style.double', width: 3, dasharray: '3 1.5 0.8 1.5' },
 ];
 
-const BORDER_PRESETS: { key: BorderTypeKey; title: string; edges: string[]; diag?: 'tlbr' | 'bltr' }[] = [
-  { key: 'horizontal', title: '上下框线', edges: ['t', 'b', 'h'] },
-  { key: 'all', title: '所有框线', edges: ['t', 'b', 'l', 'r', 'h', 'v'] },
-  { key: 'outside', title: '外侧框线', edges: ['t', 'b', 'l', 'r'] },
-  { key: 'none', title: '无框线', edges: [] },
-  { key: 'tlbr', title: '斜下框线', edges: [], diag: 'tlbr' },
-  { key: 'left', title: '左框线', edges: ['l'] },
-  { key: 'top', title: '上框线', edges: ['t'] },
-  { key: 'right', title: '右框线', edges: ['r'] },
-  { key: 'bottom', title: '下框线', edges: ['b'] },
-  { key: 'bltr', title: '斜上框线', edges: [], diag: 'bltr' },
+const BORDER_PRESETS: { key: BorderTypeKey; titleKey: string; edges: string[]; diag?: 'tlbr' | 'bltr' }[] = [
+  { key: 'horizontal', titleKey: 'excel.border.preset.horizontal', edges: ['t', 'b', 'h'] },
+  { key: 'all', titleKey: 'excel.border.preset.all', edges: ['t', 'b', 'l', 'r', 'h', 'v'] },
+  { key: 'outside', titleKey: 'excel.border.preset.outside', edges: ['t', 'b', 'l', 'r'] },
+  { key: 'none', titleKey: 'excel.border.preset.none', edges: [] },
+  { key: 'tlbr', titleKey: 'excel.border.preset.tlbr', edges: [], diag: 'tlbr' },
+  { key: 'left', titleKey: 'excel.border.preset.left', edges: ['l'] },
+  { key: 'top', titleKey: 'excel.border.preset.top', edges: ['t'] },
+  { key: 'right', titleKey: 'excel.border.preset.right', edges: ['r'] },
+  { key: 'bottom', titleKey: 'excel.border.preset.bottom', edges: ['b'] },
+  { key: 'bltr', titleKey: 'excel.border.preset.bltr', edges: [], diag: 'bltr' },
 ];
 
 /** 预设框线小图标：浅灰底格 + 深色高亮线 */

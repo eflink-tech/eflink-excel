@@ -20,6 +20,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
     "@playwright/test": "^1.62.1",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1"
   }
 }

@@ -390,6 +390,9 @@ export async function insertChart(typeId: string): Promise<boolean> {
     paletteIndex: 0,
     title: '',
     rangeRef: range.getA1Notation(),
+    sheetName: ws.getSheetName(),
+    // 数据联动指纹：编辑 rangeRef 区域后按值比对决定是否重渲染
+    dataSignature: JSON.stringify(matrix),
   });
   return true;
 }

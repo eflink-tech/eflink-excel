@@ -1,20 +1,22 @@
 // 图表选择面板：锚定在工具栏按钮下方，样式与其他下拉菜单一致
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as echarts from 'echarts';
-import { CHART_GROUPS, SAMPLE_CHART_MATRIX, buildChartOption, type ChartTypeSpec } from '../../core/univer/chartOptions';
+import { useI18n } from '@eflink-tech/office-kit';
+import { CHART_GROUPS, buildChartOption, type ChartTypeSpec } from '../../core/univer/chartOptions';
+import { CHART_GROUP_KEYS, CHART_TYPE_KEYS } from '../../i18n';
 
 const THUMB_W = 88;
 const THUMB_H = 58;
 
 /** 单个类型缩略图：用示例数据渲染 mini 图表 */
-function Thumb({ typeId }: { typeId: string }) {
+function Thumb({ typeId, matrix }: { typeId: string; matrix: unknown[][] }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!ref.current) return;
     const chart = echarts.init(ref.current, null, { width: THUMB_W, height: THUMB_H });
-    chart.setOption(buildChartOption(SAMPLE_CHART_MATRIX, typeId, true));
+    chart.setOption(buildChartOption(matrix, typeId, true));
     return () => chart.dispose();
-  }, [typeId]);
+  }, [typeId, matrix]);
   return <div ref={ref} className="myf-chart-picker__thumb" />;
 }
 
@@ -24,10 +26,26 @@ export interface ChartPickerPanelProps {
 }
 
 export function ChartPickerPanel({ onPick, onClose }: ChartPickerPanelProps) {
+  const { t, locale } = useI18n();
   const [activeGroup, setActiveGroup] = useState(CHART_GROUPS[0]!.group);
   const [alignRight, setAlignRight] = useState(false);
   const groupRefs = useRef(new Map<string, HTMLDivElement>());
   const panelRef = useRef<HTMLDivElement>(null);
+  // 缩略图示例数据随语言切换（月份/系列名本地化）；依赖 locale 避免每帧重建
+  const sampleMatrix = useMemo<unknown[][]>(
+    () => [
+      [
+        t('excel.chart.sample.month'),
+        t('excel.chart.sample.sales'),
+        t('excel.chart.sample.profit'),
+      ],
+      [t('excel.chart.sample.month1'), 120, 90],
+      [t('excel.chart.sample.month2'), 210, 150],
+      [t('excel.chart.sample.month3'), 170, 160],
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale],
+  );
 
   useLayoutEffect(() => {
     const panel = panelRef.current;
@@ -50,18 +68,21 @@ export function ChartPickerPanel({ onPick, onClose }: ChartPickerPanelProps) {
     groupRefs.current.get(group)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const renderThumb = (spec: ChartTypeSpec) => (
-    <button
-      key={spec.id}
-      type="button"
-      title={spec.label}
-      onClick={() => onPick(spec.id)}
-      className="myf-chart-picker__item"
-    >
-      <Thumb typeId={spec.id} />
-      <span className="myf-chart-picker__item-label">{spec.label}</span>
-    </button>
-  );
+  const renderThumb = (spec: ChartTypeSpec) => {
+    const label = t(CHART_TYPE_KEYS[spec.id] ?? spec.id);
+    return (
+      <button
+        key={spec.id}
+        type="button"
+        title={label}
+        onClick={() => onPick(spec.id)}
+        className="myf-chart-picker__item"
+      >
+        <Thumb typeId={spec.id} matrix={sampleMatrix} />
+        <span className="myf-chart-picker__item-label">{label}</span>
+      </button>
+    );
+  };
 
   return (
     <div
@@ -79,7 +100,7 @@ export function ChartPickerPanel({ onPick, onClose }: ChartPickerPanelProps) {
             }}
             className="myf-chart-picker__group"
           >
-            <div className="myf-chart-picker__group-title">{group}</div>
+            <div className="myf-chart-picker__group-title">{t(CHART_GROUP_KEYS[group] ?? group)}</div>
             <div className="myf-chart-picker__grid">{types.map(renderThumb)}</div>
           </div>
         ))}
@@ -92,7 +113,7 @@ export function ChartPickerPanel({ onPick, onClose }: ChartPickerPanelProps) {
             onClick={() => jumpTo(group)}
             className={`myf-chart-picker__nav-item${activeGroup === group ? ' myf-chart-picker__nav-item--active' : ''}`}
           >
-            {group}
+            {t(CHART_GROUP_KEYS[group] ?? group)}
           </button>
         ))}
       </div>

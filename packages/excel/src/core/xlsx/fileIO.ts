@@ -3,9 +3,17 @@ import * as ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
+import { extractCharts, type ImportedChart } from './chartImport';
+import { buildChartOption, DEFAULT_CHART_ELEMENTS, renderChartFrameToDataUrl } from '../univer/chartOptions';
 import type { WorkbookSnapshot } from '../../types/spreadsheet';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+export interface ImportXlsxResult {
+  snapshot: WorkbookSnapshot;
+  /** 渲染成图片的待插入图表（编辑器挂载后落位，见 univer/importedCharts.ts） */
+  charts: ImportedChart[];
+}
 
 export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Promise<void> {
   const wb = new ExcelJS.Workbook();
@@ -14,10 +22,30 @@ export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Pro
   downloadBlob(new Blob([buffer], { type: XLSX_MIME }), `${title}.xlsx`);
 }
 
-export async function importXlsx(file: File): Promise<WorkbookSnapshot> {
+export async function importXlsx(file: File): Promise<ImportXlsxResult> {
+  const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(await file.arrayBuffer());
-  return workbookToSnapshot(wb, trimExt(file.name));
+  await wb.xlsx.load(buffer);
+  const snapshot = workbookToSnapshot(wb, trimExt(file.name));
+  return { snapshot, charts: await renderImportedCharts(await extractCharts(buffer).catch(() => [])) };
+}
+
+/** 解析出的图表渲染为 PNG dataUrl（单张失败跳过，不影响其余与单元格导入） */
+async function renderImportedCharts(charts: ImportedChart[]): Promise<ImportedChart[]> {
+  const rendered: ImportedChart[] = [];
+  for (const chart of charts) {
+    try {
+      const option = buildChartOption([], chart.typeId, false, {
+        elements: { ...DEFAULT_CHART_ELEMENTS, chartTitle: Boolean(chart.title) },
+        title: chart.title,
+      }, chart.explicit);
+      chart.dataUrl = await renderChartFrameToDataUrl(option);
+      rendered.push(chart);
+    } catch (err) {
+      console.warn('[chartImport] 图表渲染失败，已跳过', chart.sheetName, chart.rangeRef, err);
+    }
+  }
+  return rendered;
 }
 
 /** 截取编辑器可视区域为 PNG */

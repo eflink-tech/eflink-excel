@@ -85,6 +85,23 @@ export interface ChartElements {
   axisTitle: boolean; // 轴标题
 }
 
+/**
+ * 显式图表数据：xlsx 导入时由 chart XML 缓存直接供给，绕过 matrix 的
+ * 「首行系列名/首列类别名」启发式（数值类别轴、多系列散点等场景启发式必错）。
+ */
+export interface ExplicitChartData {
+  /** 类别轴标签 */
+  categories?: string[];
+  /** 数值系列（类别类图表） */
+  series?: { name: string; data: number[] }[];
+  /** 散点系列（多系列可选） */
+  scatterSeries?: { name: string; data: [number, number][] }[];
+  /** 饼图数据 */
+  pieData?: { name: string; value: number }[];
+  /** 柱+折线组合（帕累托图）：柱系列走主轴、折线系列走次轴 */
+  combo?: { bars: { name: string; data: number[] }[]; lines: { name: string; data: number[] }[] };
+}
+
 export const DEFAULT_CHART_ELEMENTS: ChartElements = {
   legend: true,
   gridLine: true,
@@ -241,15 +258,17 @@ function extractScatterData(matrix: unknown[][]): { series: { name: string; data
 /**
  * 构建图表 ECharts 配置。
  * @param matrix 选区（或示例）二维数据
- * @param typeId CHART_GROUPS 中注册的类型 id
+ * @param typeId CHART_GROUPS 中注册的类型 id；导入方向另有 'combo-bar-line'（柱+折线组合，需配 explicit）
  * @param mini 缩略图模式：压缩边距、隐藏图例、缩小字号
  * @param meta 图表设置面板的元信息（元素开关 / 配色 / 标题）
+ * @param explicit 显式数据（xlsx 图表导入）：提供时跳过 matrix 启发式提取
  */
 export function buildChartOption(
   matrix: unknown[][],
   typeId: string,
   mini = false,
   meta?: { elements?: Partial<ChartElements>; paletteIndex?: number; title?: string },
+  explicit?: ExplicitChartData,
 ): EChartsOption {
   const el: ChartElements = { ...DEFAULT_CHART_ELEMENTS, ...meta?.elements };
   const palette = CHART_PALETTES[Math.min(meta?.paletteIndex ?? 0, CHART_PALETTES.length - 1)];
@@ -280,9 +299,36 @@ export function buildChartOption(
     ? { title: { text: meta?.title || '图表标题', left: 'center', top: 6, textStyle: { fontSize: mini ? 9 : 14, color: '#1f2329' } } }
     : {};
 
+  // 类别数据：显式供给（导入）优先，缺省走 matrix 启发式
+  const categorySource = explicit?.categories && explicit.series ? { categories: explicit.categories, series: explicit.series } : extractCategoryData(matrix);
+
+  // 柱 + 折线组合图（帕累托）：柱系列主轴，折线系列次轴；折线值域落在 (0,1] 视为累计占比，次轴按百分比刻度
+  if (typeId === 'combo-bar-line' && explicit?.combo) {
+    const { bars, lines } = explicit.combo;
+    const lineValues = lines.flatMap((l) => l.data);
+    const percentLines = lineValues.length > 0 && lineValues.every((v) => v >= 0 && v <= 1.000001);
+    const secondaryAxis = {
+      ...valueAxis(),
+      splitLine: { show: false },
+      ...(percentLines ? { max: 1, axisLabel: { ...valueAxis().axisLabel, formatter: (v: number) => `${Math.round(v * 100)}%` } } : {}),
+    };
+    return {
+      ...base,
+      ...titleOption,
+      grid,
+      legend: { show: !mini && el.legend, top: mini ? undefined : 8, textStyle, data: [...bars, ...lines].map((s) => s.name) },
+      xAxis: { ...categoryAxis(explicit.categories ?? []), axisLine: { show: el.axis }, axisTick: { show: el.axis } },
+      yAxis: [valueAxis(), secondaryAxis],
+      series: [
+        ...bars.map((s) => ({ type: 'bar' as const, name: s.name, data: s.data, barMaxWidth: mini ? 8 : 48 })),
+        ...lines.map((s) => ({ type: 'line' as const, name: s.name, data: s.data, yAxisIndex: 1, symbol: 'circle', symbolSize: mini ? 3 : 6 })),
+      ],
+    };
+  }
+
   // 雷达图：指标取类别，每列一个多边形
   if (typeId === 'radar') {
-    const { categories, series } = extractCategoryData(matrix);
+    const { categories, series } = categorySource;
     const maxByRow = Math.max(...series.flatMap((s) => s.data), 1);
     return {
       ...base,
@@ -305,7 +351,7 @@ export function buildChartOption(
 
   // 饼图 / 圆环图
   if (typeId === 'pie' || typeId === 'pie-doughnut') {
-    const data = extractPieData(matrix);
+    const data = explicit?.pieData ?? extractPieData(matrix);
     return {
       ...base,
       ...titleOption,
@@ -324,7 +370,7 @@ export function buildChartOption(
 
   // 散点图
   if (typeId === 'scatter') {
-    const { series } = extractScatterData(matrix);
+    const series = explicit?.scatterSeries ?? extractScatterData(matrix).series;
     return {
       ...base,
       ...titleOption,
@@ -337,7 +383,7 @@ export function buildChartOption(
   }
 
   // 其余：柱状 / 折线 / 条形 / 面积（按 variant 变体处理）
-  const { categories, series } = extractCategoryData(matrix);
+  const { categories, series } = categorySource;
   const stacked = typeId === 'bar-stack' || typeId === 'line-stack' || typeId === 'area-stack' || typeId === 'bar-horizontal-stack';
   const percent = typeId === 'bar-percent';
   const horizontal = typeId === 'bar-horizontal' || typeId === 'bar-horizontal-stack';

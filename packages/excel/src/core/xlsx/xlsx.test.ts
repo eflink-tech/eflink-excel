@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
 import type { CellStyle, WorkbookSnapshot } from '../../types/spreadsheet';
@@ -445,5 +446,67 @@ describe('xlsx 导出方向：扩展样式', () => {
         { text: '\nBC' },
       ],
     });
+  });
+});
+
+describe('xlsx 导入：共享公式与隐藏 sheet', () => {
+  /** 生成 B 列为共享公式组的 xlsx（B1 主单元格 B1:B3，B2/B3 仅引用 si） */
+  async function sharedFormulaFile(): Promise<File> {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('数据');
+    ws.getCell('A1').value = 1;
+    ws.getCell('A2').value = 2;
+    ws.getCell('A3').value = 3;
+    ws.getCell('B1').value = { formula: 'A1*10', result: 10 };
+    ws.getCell('B2').value = { formula: 'A2*10', result: 20 };
+    ws.getCell('B3').value = { formula: 'A3*10', result: 30 };
+    const hidden = wb.addWorksheet('后台页');
+    hidden.getCell('A1').value = 'x';
+    hidden.state = 'hidden';
+    const buffer = await wb.xlsx.writeBuffer();
+
+    // exceljs 导出侧不写共享公式：手动把 B 列改写为 OOXML 共享形式（与 WPS/Excel 生产文件同构）
+    const zip = await JSZip.loadAsync(buffer);
+    const sheetPath = (Object.keys(zip.files).find((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n) && n.includes('sheet1')) ?? 'xl/worksheets/sheet1.xml');
+    const xml = await zip.file(sheetPath)!.async('string');
+    const rewritten = xml
+      .replace(/<c r="B1"[^>]*>.*?<\/c>/, '<c r="B1"><f t="shared" ref="B1:B3" si="0">A1*10</f><v>10</v></c>')
+      .replace(/<c r="B2"[^>]*>.*?<\/c>/, '<c r="B2"><f t="shared" si="0"/><v>20</v></c>')
+      .replace(/<c r="B3"[^>]*>.*?<\/c>/, '<c r="B3"><f t="shared" si="0"/><v>30</v></c>');
+    if (rewritten === xml) throw new Error('共享公式改写未命中（exceljs 输出格式变化？）');
+    zip.file(sheetPath, rewritten);
+    const out = await zip.generateAsync({ type: 'arraybuffer' });
+    return new File([out], '共享公式.xlsx');
+  }
+
+  it('共享公式单元格恢复各自公式与缓存值（不再漏成空白）', async () => {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await (await sharedFormulaFile()).arrayBuffer());
+    const snap = workbookToSnapshot(wb, '共享公式');
+    const sheet = snap.sheets['sheet-01'];
+    expect(sheet.cellData[0]?.[1]).toMatchObject({ f: '=A1*10', v: 10 });
+    expect(sheet.cellData[1]?.[1]).toMatchObject({ f: '=A2*10', v: 20 });
+    expect(sheet.cellData[2]?.[1]).toMatchObject({ f: '=A3*10', v: 30 });
+  });
+
+  it('隐藏 sheet 导入为 hidden 且导出方向回写 state', async () => {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await (await sharedFormulaFile()).arrayBuffer());
+    const snap = workbookToSnapshot(wb, '共享公式');
+    expect(snap.sheets['sheet-01'].hidden).toBeUndefined();
+    expect(snap.sheets['sheet-02']!.hidden).toBe(1);
+
+    const wb2 = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb2);
+    expect(wb2.worksheets.map((ws) => ws.name)).toEqual(['数据', '后台页']);
+    expect(wb2.getWorksheet('后台页')!.state).toBe('hidden');
+  });
+
+  it('超链接单元格导入显示文本而非对象', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('链接');
+    ws.getCell('A1').value = { text: '官网', hyperlink: 'https://example.com' };
+    const snap = workbookToSnapshot(wb, '链接');
+    expect(snap.sheets['sheet-01'].cellData[0]?.[0]?.v).toBe('官网');
   });
 });

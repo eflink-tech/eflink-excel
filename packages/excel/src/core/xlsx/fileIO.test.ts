@@ -77,7 +77,7 @@ describe('fileIO 浏览器侧文件 IO', () => {
     const buffer = await wb.xlsx.writeBuffer();
 
     const file = new File([buffer as ArrayBuffer], '年度报表.xlsx', { type: XLSX_MIME });
-    const snapshot = await importXlsx(file);
+    const { snapshot } = await importXlsx(file);
 
     expect(snapshot.name).toBe('年度报表');
     const sheet = Object.values(snapshot.sheets)[0];

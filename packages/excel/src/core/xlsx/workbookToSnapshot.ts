@@ -1,5 +1,5 @@
 // exceljs Workbook -> Univer snapshot：导入方向的纯映射（不涉及文件读取）
-import type { Cell, CellErrorValue, CellFormulaValue, CellRichTextValue, Workbook, Worksheet } from 'exceljs';
+import type { Cell, CellErrorValue, CellFormulaValue, CellHyperlinkValue, CellRichTextValue, CellSharedFormulaValue, Workbook, Worksheet } from 'exceljs';
 import type { BorderStyle, CellStyle, MergeRange, SheetRichTextRun, SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 import { newId } from '../../types/spreadsheet';
 
@@ -70,6 +70,8 @@ function readSheet(ws: Worksheet, id: string): SnapshotSheet {
   return {
     id,
     name: ws.name,
+    // veryHidden 与 hidden 同为不可见，导入后均按隐藏处理
+    hidden: ws.state === 'hidden' || ws.state === 'veryHidden' ? 1 : undefined,
     rowCount: Math.max(ws.rowCount + 5, 50),
     columnCount: Math.max(ws.columnCount + 3, 20),
     cellData,
@@ -120,10 +122,11 @@ function decodeRef(ref: string): { row: number; col: number } {
 function readCell(cell: Cell): SnapshotCell {
   const uc: SnapshotCell = {};
   const val = cell.value;
-  if (val != null && typeof val === 'object' && 'formula' in (val as CellFormulaValue)) {
-    uc.f = '=' + (val as CellFormulaValue).formula;
-    const result = (val as CellFormulaValue).result;
-    if (result != null) uc.v = result as string | number | boolean;
+  if (val != null && typeof val === 'object' && ('formula' in val || 'sharedFormula' in val)) {
+    // 普通公式 value 带 formula 文本；共享公式 value 只有 { sharedFormula, result }（formula 为
+    // undefined），须读 cell.formula getter——exceljs 已按行列位移把相对引用平移成本单元格的公式
+    uc.f = '=' + (cell.formula || (val as CellFormulaValue).formula);
+    applyCachedResult(uc, (val as CellFormulaValue | CellSharedFormulaValue).result);
   } else if (val != null && typeof val === 'object' && 'richText' in (val as CellRichTextValue)) {
     // exceljs 类型缺陷：Cell 继承的 Address 把 row/col 误声明为 string，运行时实为 number
     applyRichText(uc, val as CellRichTextValue, Number(cell.row), Number(cell.col));
@@ -131,6 +134,10 @@ function readCell(cell: Cell): SnapshotCell {
     uc.v = formatDate(val);
   } else if (val != null && typeof val === 'object' && 'error' in (val as CellErrorValue)) {
     uc.v = String((val as CellErrorValue).error);
+  } else if (val != null && typeof val === 'object' && 'hyperlink' in (val as CellHyperlinkValue)) {
+    // 超链接对象：显示文本（缺省退化为 URL 本身），不能把对象塞进 v
+    const link = val as CellHyperlinkValue;
+    uc.v = typeof link.text === 'string' ? link.text : link.hyperlink;
   } else if (val != null) {
     uc.v = val as string | number | boolean;
   }
@@ -138,6 +145,12 @@ function readCell(cell: Cell): SnapshotCell {
   const st = readStyle(cell);
   if (st) uc.s = st;
   return uc;
+}
+
+/** 公式缓存结果 → v：仅收原始值；Date/富文本/错误对象等无对应展示形态的不写，避免对象漏进 v 渲染成空白 */
+function applyCachedResult(uc: SnapshotCell, result: unknown): void {
+  if (result instanceof Date) uc.v = formatDate(result);
+  else if (typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean') uc.v = result;
 }
 
 function readStyle(cell: Cell): CellStyle | undefined {

@@ -2,6 +2,7 @@
 // 交互模式与 eflink-pptx / eflink-word 的 AIChatPanel 保持一致
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, History, Settings, Sparkles, Table2, Trash2, Wand2, X } from 'lucide-react'
+import { useI18n } from '@eflink-tech/office-kit'
 import { useUiStore } from '../../store/uiStore'
 import { aiDb, aiSettingsStore, BUILTIN_TEMPLATES } from '../../ai/db'
 import { errorMessage, sendMessage, type ChatMessage } from '../../ai/aiService'
@@ -18,7 +19,17 @@ interface SimpleMessage {
 
 const ACCENT = '#107c41'
 
+/** 内置提示词模板 id → 文案 key（模板内容里的 {data} 由当前表格数据替换） */
+const TEMPLATE_KEYS: Record<string, { name: string; content: string }> = {
+  'tpl-analyze': { name: 'excel.ai.tpl.analyze.name', content: 'excel.ai.tpl.analyze.content' },
+  'tpl-formula': { name: 'excel.ai.tpl.formula.name', content: 'excel.ai.tpl.formula.content' },
+  'tpl-clean': { name: 'excel.ai.tpl.clean.name', content: 'excel.ai.tpl.clean.content' },
+}
+
 export function AIChatPanel() {
+  const { t, locale } = useI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const toggleAIPanel = useUiStore((s) => s.toggleAIPanel)
   const showToast = useUiStore((s) => s.showToast)
   const [view, setView] = useState<PanelView>('chat')
@@ -55,7 +66,7 @@ export function AIChatPanel() {
     const now = Date.now()
     void aiDb.conversations.put({
       id,
-      title: messages[0]?.content.replace(/\n/g, ' ').slice(0, 24) || '新对话',
+      title: messages[0]?.content.replace(/\n/g, ' ').slice(0, 24) || tRef.current('excel.ai.newChat'),
       messages: messages.map((m) => ({ ...m, time: now })),
       createdAt: now,
       updatedAt: now,
@@ -84,10 +95,7 @@ export function AIChatPanel() {
   }
 
   const buildSystemPrompt = (): string => {
-    return [
-      '你是易飞表格的 AI 助手，回答简洁专业，用中文。',
-      describeContext(getSheetContext()),
-    ].join('\n')
+    return [t('excel.ai.systemPrompt'), describeContext(getSheetContext())].join('\n')
   }
 
   const doSend = async (userText: string, onText?: (text: string) => string) => {
@@ -139,18 +147,21 @@ export function AIChatPanel() {
       }
       setBusy(true)
       setPendingTable(null)
-      const label = `生成表格：${topic.trim()}（${rowCount} 行）`
+      const label = t('excel.ai.generatedLabel', { topic: topic.trim(), rows: rowCount })
       const next: SimpleMessage[] = [...messages, { role: 'user', content: label }]
       setMessages(next)
       try {
         const { content } = await sendMessage({
           settings: s,
           messages: [
-            { role: 'system', content: '你是专业的数据表格设计师，只输出 JSON。' },
+            { role: 'system', content: t('excel.ai.tableSystemPrompt') },
             { role: 'user', content: buildTablePrompt(topic.trim(), rowCount, requirements.trim()) },
           ],
           onContentChunk: (_c, full) => {
-            setMessages([...next, { role: 'assistant', content: `正在生成…（${full.length} 字）` }])
+            setMessages([
+              ...next,
+              { role: 'assistant', content: t('excel.ai.generatingChars', { count: full.length }) },
+            ])
           },
         })
         const table = parseAITable(content)
@@ -159,7 +170,12 @@ export function AIChatPanel() {
           ...next,
           {
             role: 'assistant',
-            content: `已生成表格「${table.name ?? topic.trim()}」：${table.columns.length} 列 × ${table.rows.length} 行。\n列：${table.columns.join(' | ')}`,
+            content: t('excel.ai.generatedTable', {
+              name: table.name ?? topic.trim(),
+              cols: table.columns.length,
+              rows: table.rows.length,
+              columns: table.columns.join(' | '),
+            }),
           },
         ])
       } catch (error) {
@@ -176,25 +192,25 @@ export function AIChatPanel() {
       const count = writeAITable(pendingTable)
       setPendingTable(null)
       setGenView(false)
-      showToast(`已写入 ${count} 个单元格`)
-      setMessages((prev) => [...prev, { role: 'assistant', content: `已从活动单元格写入表格（共 ${count} 个单元格）。可撤销（Ctrl+Z）回退。` }])
+      showToast(t('excel.ai.writeSuccess', { count }))
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('excel.ai.writeSuccessMessage', { count }) }])
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '写入失败')
-      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${error instanceof Error ? error.message : '写入失败'}` }])
+      showToast(error instanceof Error ? error.message : t('excel.ai.writeFailed'))
+      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${error instanceof Error ? error.message : t('excel.ai.writeFailed')}` }])
     }
   }
 
   /** 选区/已用区域快捷操作：把表格数据发给 AI 分析 */
   const runTemplate = (templateId: string) => {
-    const tpl = BUILTIN_TEMPLATES.find((t) => t.id === templateId)
-    if (!tpl) return
+    const keys = TEMPLATE_KEYS[templateId]
+    if (!keys) return
     const ctx = getSheetContext()
     const data = ctx.selectionData ?? ctx.usedData
     if (!data) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: '⚠️ 当前表格为空，没有可分析的数据' }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${t('excel.ai.emptyTable')}` }])
       return
     }
-    void doSend(data, (d) => tpl.content.replace('{data}', d))
+    void doSend(data, (d) => t(keys.content, { data: d }))
   }
 
   return (
@@ -203,13 +219,13 @@ export function AIChatPanel() {
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-slate-100 px-3">
         <span className="flex items-center gap-1 text-sm font-medium text-slate-800">
           <Sparkles size={15} style={{ color: ACCENT }} />
-          AI 助手
+          {t('excel.ai.title')}
         </span>
         <div className="flex items-center gap-0.5">
           <button
             type="button"
             className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-            title="会话历史"
+            title={t('excel.ai.history')}
             onClick={() => { loadHistory(); setView(view === 'history' ? 'chat' : 'history') }}
           >
             <History size={15} />
@@ -217,7 +233,7 @@ export function AIChatPanel() {
           <button
             type="button"
             className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-            title="AI 设置"
+            title={t('excel.ai.settings')}
             onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
           >
             <Settings size={15} />
@@ -225,7 +241,7 @@ export function AIChatPanel() {
           <button
             type="button"
             className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-            title="新对话"
+            title={t('excel.ai.newChat')}
             onClick={() => { setMessages([]); setPendingTable(null); setConvId(null); setView('chat') }}
           >
             <Trash2 size={15} />
@@ -233,7 +249,7 @@ export function AIChatPanel() {
           <button
             type="button"
             className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-            title="收起"
+            title={t('excel.ai.collapse')}
             onClick={toggleAIPanel}
           >
             <X size={15} />
@@ -249,9 +265,9 @@ export function AIChatPanel() {
             onClick={() => setView('chat')}
           >
             <ChevronLeft size={14} />
-            返回对话
+            {t('excel.ai.backToChat')}
           </button>
-          {historyList.length === 0 && <div className="py-6 text-center text-xs text-slate-400">暂无历史会话</div>}
+          {historyList.length === 0 && <div className="py-6 text-center text-xs text-slate-400">{t('excel.ai.noHistory')}</div>}
           <div className="space-y-1.5">
             {historyList.map((conv) => (
               <div key={conv.id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
@@ -263,12 +279,12 @@ export function AIChatPanel() {
                   {conv.title}
                 </button>
                 <span className="shrink-0 text-[10px] text-slate-400">
-                  {new Date(conv.updatedAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(conv.updatedAt).toLocaleString(locale, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <button
                   type="button"
                   className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
-                  title="删除"
+                  title={t('excel.ai.delete')}
                   onClick={() => deleteConversation(conv.id)}
                 >
                   🗑
@@ -280,12 +296,12 @@ export function AIChatPanel() {
       ) : view === 'settings' ? (
         <div className="flex-1 overflow-y-auto p-3">
           <div className="mb-3 text-xs leading-relaxed text-slate-500">
-            配置任意 OpenAI 兼容接口（如通义千问、DeepSeek、Kimi）。密钥仅保存在本地浏览器（IndexedDB），不会上传。
+            {t('excel.ai.settingsIntro')}
           </div>
           {([
-            ['baseUrl', '接口地址', 'https://dashscope.aliyuncs.com/compatible-mode/v1'],
+            ['baseUrl', t('excel.ai.endpoint'), 'https://dashscope.aliyuncs.com/compatible-mode/v1'],
             ['apiKey', 'API Key', 'sk-…'],
-            ['model', '模型', 'qwen-plus'],
+            ['model', t('excel.ai.model'), 'qwen-plus'],
           ] as const).map(([key, label, placeholder]) => (
             <div key={key} className="mb-2">
               <div className="mb-1 text-xs text-slate-500">{label}</div>
@@ -309,7 +325,7 @@ export function AIChatPanel() {
             style={{ backgroundColor: ACCENT }}
             onClick={saveSettings}
           >
-            保存设置
+            {t('excel.ai.saveSettings')}
           </button>
         </div>
       ) : (
@@ -325,23 +341,23 @@ export function AIChatPanel() {
                 data-testid="ai-gen-toggle"
               >
                 <Wand2 size={14} />
-                AI 生成表格
+                {t('excel.ai.generateTableButton')}
               </button>
             ) : (
               <div className="rounded-md bg-slate-50 p-2">
                 <div className="mb-1.5 flex items-center justify-between text-xs text-slate-500">
-                  <span>生成表格</span>
-                  <button type="button" className="text-slate-400 hover:text-slate-600" onClick={() => setGenView(false)}>收起</button>
+                  <span>{t('excel.ai.generateTable')}</span>
+                  <button type="button" className="text-slate-400 hover:text-slate-600" onClick={() => setGenView(false)}>{t('excel.ai.collapse')}</button>
                 </div>
                 <input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="输入主题，如：季度销售明细"
+                  placeholder={t('excel.ai.topicPlaceholder')}
                   className="mb-1.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#107c41]"
                   data-testid="ai-gen-topic"
                 />
                 <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">
-                  行数
+                  {t('excel.ai.rows')}
                   <input
                     type="number"
                     min={3}
@@ -354,7 +370,7 @@ export function AIChatPanel() {
                 <textarea
                   value={requirements}
                   onChange={(e) => setRequirements(e.target.value)}
-                  placeholder="补充要求（可选）：列、口径、格式…"
+                  placeholder={t('excel.ai.requirementsPlaceholder')}
                   rows={2}
                   className="mb-1.5 w-full resize-none rounded border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#107c41]"
                 />
@@ -366,7 +382,7 @@ export function AIChatPanel() {
                   onClick={generateTable}
                   data-testid="ai-gen-table"
                 >
-                  {busy ? '生成中…' : '生成'}
+                  {busy ? t('excel.ai.generating') : t('excel.ai.generate')}
                 </button>
                 {pendingTable && (
                   <button
@@ -377,7 +393,7 @@ export function AIChatPanel() {
                     data-testid="ai-insert-table"
                   >
                     <Table2 size={13} />
-                    写入到活动单元格
+                    {t('excel.ai.writeToCell')}
                   </button>
                 )}
               </div>
@@ -388,12 +404,12 @@ export function AIChatPanel() {
           <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-3" data-testid="ai-messages">
             {!configured && (
               <div className="rounded-md bg-[#e7f4ec] p-2 text-xs text-slate-700">
-                尚未配置 AI 接口，点击右上角 ⚙️ 进行设置。
+                {t('excel.ai.notConfigured')}
               </div>
             )}
             {configured && messages.length === 0 && (
               <div className="rounded-md bg-slate-50 p-2.5 text-xs leading-relaxed text-slate-500">
-                AI 可以看到当前表格内容（选区优先）。你可以让我分析数据、建议公式，或用「AI 生成表格」直接造数据。
+                {t('excel.ai.intro')}
               </div>
             )}
             {messages.map((m, i) => (
@@ -411,15 +427,15 @@ export function AIChatPanel() {
 
           {/* 选区快捷操作 */}
           <div className="flex shrink-0 flex-wrap gap-1 border-t border-slate-100 px-2 pt-2">
-            {BUILTIN_TEMPLATES.map((t) => (
+            {BUILTIN_TEMPLATES.map((tpl) => (
               <button
-                key={t.id}
+                key={tpl.id}
                 type="button"
                 className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500 hover:border-[#107c41] hover:text-[#107c41] disabled:opacity-50"
                 disabled={busy}
-                onClick={() => runTemplate(t.id)}
+                onClick={() => runTemplate(tpl.id)}
               >
-                {t.name}
+                {TEMPLATE_KEYS[tpl.id] ? t(TEMPLATE_KEYS[tpl.id]!.name) : tpl.name}
               </button>
             ))}
           </div>
@@ -436,7 +452,7 @@ export function AIChatPanel() {
                 }
               }}
               rows={2}
-              placeholder="输入消息，Enter 发送"
+              placeholder={t('excel.ai.inputPlaceholder')}
               className="flex-1 resize-none rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#107c41]"
               data-testid="ai-input"
             />
@@ -446,7 +462,7 @@ export function AIChatPanel() {
                 className="rounded-md bg-slate-200 px-3 py-2 text-xs text-slate-600"
                 onClick={() => abortRef.current?.abort()}
               >
-                停止
+                {t('excel.ai.stop')}
               </button>
             ) : (
               <button
@@ -456,7 +472,7 @@ export function AIChatPanel() {
                 disabled={!input.trim()}
                 onClick={() => input.trim() && void doSend(input.trim())}
               >
-                发送
+                {t('excel.ai.send')}
               </button>
             )}
           </div>

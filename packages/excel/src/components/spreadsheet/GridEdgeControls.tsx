@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CirclePlus } from 'lucide-react';
+import { useI18n } from '@eflink-tech/office-kit';
 import * as cmd from '../../core/univer/commands';
 import { getUniverApi } from '../../core/univer/controller';
 import { UNIVER_READY_EVENT } from '../toolbar/FormulaBar';
@@ -20,6 +21,7 @@ const MAIN_CANVAS_SELECTOR = 'canvas[id^="univer-sheet-main-canvas"]';
  * 同时把超出网格内容的画布区域覆盖为参考稿的空白底色（不越过主画布边界，避免盖住底部工作表栏）。
  */
 export function GridEdgeControls() {
+  const { t } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef({ x: 0, y: 0 });
   const disposeRef = useRef<{ dispose(): void } | null>(null);
@@ -161,8 +163,8 @@ export function GridEdgeControls() {
       )}
       <button
         type="button"
-        title="在右侧添加列"
-        aria-label="在右侧添加列"
+        title={t('excel.grid.addColumnRight')}
+        aria-label={t('excel.grid.addColumnRight')}
         className={`${btnClass} ${right.visible ? '' : 'hidden'}`}
         style={{ left: right.left, top: (COL_HEADER_HEIGHT - BTN_SIZE) / 2, width: BTN_SIZE, height: BTN_SIZE, background: BEYOND_COLOR }}
         onClick={() => cmd.addColumnRight()}
@@ -171,8 +173,8 @@ export function GridEdgeControls() {
       </button>
       <button
         type="button"
-        title="在底部添加行"
-        aria-label="在底部添加行"
+        title={t('excel.grid.addRowBottom')}
+        aria-label={t('excel.grid.addRowBottom')}
         className={`${btnClass} ${bottom.visible ? '' : 'hidden'}`}
         style={{ left: (ROW_HEADER_WIDTH - BTN_SIZE) / 2, top: bottom.top, width: BTN_SIZE, height: BTN_SIZE, background: BEYOND_COLOR }}
         onClick={() => cmd.addRowBottom()}

@@ -1,14 +1,27 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { Share2, MessageCircle } from 'lucide-react';
+import { Keyboard, MessageCircle, Save, Share2, Sparkles } from 'lucide-react';
+import { I18nProvider, OfficeHeader, useI18n, type OfficeLocale, type OfficeMenu } from '@eflink-tech/office-kit';
 import { saveNow, currentSnapshot } from '../core/saveService';
 import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
 import { readDraft, clearDraft } from '../storage/draft';
 import { getExcelShareHandler } from '../core/share/shareBridge';
+import { getEditorBackHref } from '../core/chrome';
+import {
+  exportEfexcelAction,
+  exportPngAction,
+  exportXlsxAction,
+  importFileAction,
+  importXlsxMenuAction,
+  newDocAction,
+  saveAction,
+} from '../core/fileActions';
+import * as cmd from '../core/univer/commands';
+import { EXCEL_MESSAGES, setExcelLocale } from '../i18n';
 import { ConfirmDialogHost } from './ConfirmDialog';
 import { ShareDialog } from './ShareDialog';
 import { FormulaBar } from './toolbar/FormulaBar';
 import { SheetToolbar } from './toolbar/SheetToolbar';
-import { TitleBar } from './TitleBar';
+import { ShortcutsDialog } from './toolbar/ShortcutsDialog';
 import { BottomBar } from './BottomBar';
 import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
@@ -32,6 +45,8 @@ export interface SheetEditorBrand {
 export interface SheetEditorProps {
   /** 要打开的文档 id，快照经 storage 加载 */
   docId: string;
+  /** 界面语言；缺省 zh-CN */
+  locale?: OfficeLocale | string;
   /** 文档存储实现；传入后注册为全局默认。缺省用内置 IndexedDB（库名 eflink-excel） */
   storage?: StorageAdapter;
   /** 品牌区（logo + 产品名）；不传或传 false 隐藏 */
@@ -46,8 +61,18 @@ export interface SheetEditorProps {
   onDocError?: (err: unknown) => void;
 }
 
-export function SheetEditor({
+/** 外层只负责语言上下文；内层使用 useI18n 取文案 */
+export function SheetEditor(props: SheetEditorProps) {
+  return (
+    <I18nProvider locale={props.locale} messages={EXCEL_MESSAGES}>
+      <SheetEditorInner {...props} />
+    </I18nProvider>
+  );
+}
+
+function SheetEditorInner({
   docId,
+  locale,
   storage,
   branding = false,
   showToolbar = true,
@@ -55,15 +80,25 @@ export function SheetEditor({
   onDocLoaded,
   onDocError,
 }: SheetEditorProps) {
+  const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [snapshot, setSnapshot] = useState<WorkbookSnapshot | null>(null);
   const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
+  const toggleAIPanel = useUiStore((s) => s.toggleAIPanel);
   // 导入替换等场景触发文档重载（docId 不变，仅此计数变化）
   const reloadToken = useEditorStore((s) => s.reloadToken);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
   const onErrorRef = useRef(onDocError);
   onErrorRef.current = onDocError;
+
+  useEffect(() => {
+    setExcelLocale(locale);
+  }, [locale]);
 
   useEffect(() => {
     if (storage) setDefaultStorage(storage);
@@ -76,7 +111,7 @@ export function SheetEditor({
       .then((doc) => {
         if (disposed) return;
         if (!doc) {
-          onErrorRef.current?.(new Error(`文档不存在: ${docId}`));
+          onErrorRef.current?.(new Error(tRef.current('excel.doc.notFound', { id: docId })));
           return;
         }
         useEditorStore.getState().openDoc({ id: doc.id, title: doc.title });
@@ -114,13 +149,13 @@ export function SheetEditor({
         e.preventDefault();
         saveNow().catch((err) => {
           console.error('保存失败', err);
-          useUiStore.getState().showToast('保存失败');
+          useUiStore.getState().showToast(t('excel.toast.saveFailed'));
         });
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [t]);
 
   // 宿主 bridge：查询脏状态 / 触发云端保存 / 丢弃本地草稿（卸载时移除）
   useEffect(() => {
@@ -138,6 +173,7 @@ export function SheetEditor({
   const [shareOpen, setShareOpen] = useState(false);
   const [shareDoc, setShareDoc] = useState<ExcelShareDoc | null>(null);
   const closeShare = useRef(() => setShareOpen(false)).current;
+  const canShare = getExcelShareHandler() !== null;
   // 分享前先落库最新快照，再捕获当前文档
   const openShare = async () => {
     await saveNow();
@@ -148,47 +184,134 @@ export function SheetEditor({
     setShareOpen(true);
   };
 
+  const menus: OfficeMenu[] = [
+    {
+      key: 'file',
+      label: t('shell.menu.file'),
+      items: [
+        [
+          { key: 'new', label: t('excel.file.new'), onSelect: () => void newDocAction() },
+          { key: 'save', label: t('action.save'), icon: <Save size={16} />, shortcut: 'Ctrl S', onSelect: () => void saveAction() },
+        ],
+        [
+          { key: 'importJson', label: t('excel.file.importJson'), onSelect: () => importInputRef.current?.click() },
+          { key: 'importXlsx', label: t('excel.file.importXlsx'), onSelect: () => void importXlsxMenuAction() },
+        ],
+        [
+          { key: 'exportJson', label: t('excel.file.exportJson'), onSelect: () => void exportEfexcelAction() },
+          { key: 'exportXlsx', label: t('excel.file.exportXlsx'), onSelect: () => void exportXlsxAction() },
+          { key: 'exportPng', label: t('excel.file.exportPng'), onSelect: () => void exportPngAction() },
+        ],
+      ],
+    },
+    {
+      key: 'edit',
+      label: t('shell.menu.edit'),
+      items: [
+        [
+          { key: 'undo', label: t('action.undo'), shortcut: 'Ctrl Z', onSelect: cmd.undo },
+          { key: 'redo', label: t('action.redo'), shortcut: 'Ctrl Y', onSelect: cmd.redo },
+        ],
+        [
+          { key: 'clearContent', label: t('excel.edit.clearContent'), onSelect: cmd.clearContentOnly },
+          { key: 'clearFormat', label: t('action.clearFormat'), onSelect: cmd.clearFormatOnly },
+        ],
+      ],
+    },
+    {
+      key: 'view',
+      label: t('shell.menu.view'),
+      items: [
+        [
+          { key: 'freezeFirstRow', label: t('excel.view.freezeFirstRow'), onSelect: cmd.freezeFirstRow },
+          { key: 'freezeFirstColumn', label: t('excel.view.freezeFirstColumn'), onSelect: cmd.freezeFirstColumn },
+          { key: 'freezeToCell', label: t('excel.view.freezeToCell'), onSelect: cmd.freezeToActiveCell },
+          { key: 'unfreeze', label: t('excel.view.unfreeze'), onSelect: cmd.cancelFreeze },
+        ],
+      ],
+    },
+    {
+      key: 'help',
+      label: t('shell.menu.help'),
+      items: [
+        [
+          { key: 'shortcuts', label: t('action.shortcuts'), icon: <Keyboard size={16} />, onSelect: () => setShortcutsOpen(true) },
+          { key: 'feedback', label: t('shell.feedback'), icon: <MessageCircle size={16} />, onSelect: () => window.open('/contact', '_blank') },
+        ],
+      ],
+    },
+  ];
+
   if (!snapshot) {
-    return <div className="flex h-full items-center justify-center text-sm text-slate-400">加载中…</div>;
+    return (
+      <div className="flex h-full flex-col">
+        <OfficeHeader
+          brand={branding ? { logo: branding.logo, name: branding.name } : false}
+          backHref={getEditorBackHref()}
+        />
+        <div className="flex flex-1 items-center justify-center text-sm text-slate-400">{t('excel.loading')}</div>
+      </div>
+    );
   }
 
-  const hasTopRow = Boolean(branding) || showToolbar;
   return (
     <div className="flex h-full flex-col bg-white">
-      {/* 顶行：品牌区与工具栏同行，行尾分享入口 */}
-      {hasTopRow && (
-        <div className="flex shrink-0 items-stretch border-b border-[#dadbdd] bg-white">
-          {branding ? <TitleBar logo={branding.logo} name={branding.name} /> : null}
-          {showToolbar ? <SheetToolbar /> : null}
-          {/* 分享入口仅在宿主注入分享实现后出现（纯组件独立运行时不显示） */}
-          {getExcelShareHandler() !== null && (
-            <div className="flex items-center px-2">
+      {/* 顶栏：返回 + 品牌 + 横向菜单 + 分享/AI */}
+      <OfficeHeader
+        brand={branding ? { logo: branding.logo, name: branding.name } : false}
+        backHref={getEditorBackHref()}
+        menus={menus}
+        actions={
+          <>
+            {canShare && (
               <button
                 type="button"
                 onClick={() => void openShare()}
-                title="生成分享链接"
-                className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-[#5f6062] transition-colors hover:bg-[#f2f3f4] hover:text-[#26282b]"
+                title={t('shell.share')}
+                aria-label={t('shell.share')}
+                className="flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[#5f6062] transition-colors hover:bg-[#f2f3f4] hover:text-[#26282b]"
               >
                 <Share2 size={14} />
-                分享
+                {t('shell.share')}
               </button>
-              <button
-                type="button"
-                onClick={() => window.open('/contact', '_blank')}
-                title="问题反馈"
-                className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-[#5f6062] transition-colors hover:bg-[#f2f3f4] hover:text-[#26282b]"
-              >
-                <MessageCircle size={14} />
-                反馈
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              onClick={toggleAIPanel}
+              title={t('excel.toolbar.ai')}
+              aria-label={t('excel.toolbar.ai')}
+              data-testid="ai-toggle"
+              className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs transition-colors ${
+                aiPanelOpen ? 'bg-[#e7f4ec] text-[#107c41]' : 'text-[#5f6062] hover:bg-[#f2f3f4] hover:text-[#26282b]'
+              }`}
+            >
+              <Sparkles size={14} />
+              {t('excel.toolbar.ai')}
+            </button>
+          </>
+        }
+      />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".efx.json,.efexcel,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void importFileAction(file);
+          e.target.value = '';
+        }}
+      />
+      {/* 第二行：表格工具栏 */}
+      {showToolbar && (
+        <div className="relative z-30 flex shrink-0 items-stretch border-b border-[#dadbdd] bg-white">
+          <SheetToolbar />
         </div>
       )}
       {showFormulaBar ? <FormulaBar /> : null}
       <div className="relative flex flex-1">
         <div className="relative min-w-0 flex-1">
-          <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">编辑器加载中…</div>}>
+          <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">{t('excel.editor.loading')}</div>}>
             <UniverContainer snapshot={snapshot} />
           </Suspense>
           {/* 网格边缘追加行列（参考稿同款 ⊕）：紧挨最后一列右侧 / 最后一行下方，随滚动缩放跟随 */}
@@ -204,6 +327,7 @@ export function SheetEditor({
       {/* 确认弹窗宿主（新建文档等二次确认经 useUiStore.requestConfirm 发起） */}
       <ConfirmDialogHost />
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }
