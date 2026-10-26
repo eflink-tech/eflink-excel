@@ -1,4 +1,6 @@
 /** @eflink-tech/excel 对外导出面：组件 + headless API + 存储适配器 */
+// 顶栏/菜单栏样式来自 office-kit：库构建会外部化该依赖，必须在此显式引入才会打进 dist/styles.css
+import '@eflink-tech/office-kit/styles.css';
 import './styles.css';
 import { migrateLegacyLocalStorage } from './storage/legacy';
 
