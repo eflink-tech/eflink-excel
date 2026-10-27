@@ -56,15 +56,11 @@ export async function waitEditor(page: Page): Promise<void> {
   await clickCellA1(page);
 }
 
-/** ☰ 主菜单 → 一级分组 → 二级动作（hover 展开二级面板后点击） */
+/** 顶栏主菜单 → 一级分组 → 动作。office-kit 菜单按钮显式 role="menuitem"（不能用 getByRole('button')），点击展开下拉后点击动作项 */
 export async function menuClick(page: Page, group: string, leaf?: string): Promise<void> {
-  await page.getByRole('button', { name: '菜单' }).click();
-  const groupBtn = page.getByRole('button', { name: group, exact: true });
+  await page.getByRole('menuitem', { name: group }).click();
   if (leaf) {
-    await groupBtn.hover();
-    await page.getByRole('button', { name: leaf, exact: true }).click();
-  } else {
-    await groupBtn.click();
+    await page.getByRole('menuitem', { name: leaf, exact: true }).click();
   }
 }
 

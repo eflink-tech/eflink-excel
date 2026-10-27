@@ -18,10 +18,20 @@ function getStorage(): Storage | null {
 export function migrateLocalStorageKey(oldKey: string, newKey: string): void {
   const storage = getStorage();
   if (!storage) return;
-  const value = storage.getItem(oldKey);
+  let value: string | null;
+  try {
+    value = storage.getItem(oldKey);
+  } catch {
+    return;
+  }
   if (value === null) return;
-  if (storage.getItem(newKey) === null) storage.setItem(newKey, value);
-  storage.removeItem(oldKey);
+  try {
+    if (storage.getItem(newKey) === null) storage.setItem(newKey, value);
+    storage.removeItem(oldKey);
+  } catch {
+    // 配额超限等写失败：保留旧键下次重试。迁移在宿主模块顶层执行，
+    // 这里若抛出会让整个编辑器包加载失败（白屏且每次复现），必须吞掉。
+  }
 }
 
 /** 前缀批量改名，用于 `eflink:draft:word:<id>` 这类按文档 id 展开的键。 */
@@ -94,4 +104,25 @@ function exists(name: string): Promise<boolean> {
     ?.();
   if (!list) return Promise.resolve(true);
   return list.then((all) => all.some((item) => item.name === name)).catch(() => true);
+}
+
+/**
+ * 旧库一次性导入标记。空表判据（新库为空才回填）单独使用时，
+ * 用户删光文档会让旧数据在下一次启动"复活"；回填成功后写标记，
+ * 之后再无论新库是否为空都不回填。按表/按库各用一个 key。
+ */
+export function isLegacyImportDone(key: string): boolean {
+  try {
+    return globalThis.localStorage?.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markLegacyImportDone(key: string): void {
+  try {
+    globalThis.localStorage?.setItem(key, '1');
+  } catch {
+    // localStorage 不可用（隐私模式）：退化为仅空表判据
+  }
 }

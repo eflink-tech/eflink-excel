@@ -53,7 +53,7 @@ async function importFixture(page: import('@playwright/test').Page): Promise<voi
   const fixture = await buildFixtureXlsx();
   await menuClick(page, '文件');
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: '导入 Excel(.xlsx)' }).click();
+  await page.getByRole('menuitem', { name: '导入 Excel (.xlsx)' }).click();
   const chooser = await fileChooserPromise;
   await chooser.setFiles({ name: '导入夹具.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fixture });
   const confirm = page.getByRole('button', { name: '确定' });
@@ -65,7 +65,7 @@ async function importFixture(page: import('@playwright/test').Page): Promise<voi
 /** 导出 efexcel 并解析 payload（导出动作内部先 saveNow，必为最新快照） */
 async function exportPayload(page: import('@playwright/test').Page): Promise<{ snapshot: Record<string, unknown> }> {
   const downloadPromise = page.waitForEvent('download', { timeout: 20000 });
-  await menuClick(page, '文件', '导出数据(.efx.json)');
+  await menuClick(page, '文件', '导出数据 (.efx.json)');
   const download = await downloadPromise;
   return JSON.parse((await import('node:fs')).readFileSync(await download.path(), 'utf8')) as never;
 }

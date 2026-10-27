@@ -12,14 +12,14 @@ test.describe('主菜单功能', () => {
   test('快捷键弹窗：打开、Escape 关闭、按钮关闭', async ({ page }) => {
     await waitEditor(page);
 
-    await menuClick(page, '快捷键');
+    await menuClick(page, '帮助', '快捷键');
     await expect(page.getByRole('heading', { name: '快捷键' })).toBeVisible();
     await expect(page.getByText('保存到本地数据库')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: '快捷键' })).toBeHidden();
 
-    await menuClick(page, '快捷键');
+    await menuClick(page, '帮助', '快捷键');
     await expect(page.getByRole('heading', { name: '快捷键' })).toBeVisible();
     await page.getByRole('button', { name: '关闭' }).click();
     await expect(page.getByRole('heading', { name: '快捷键' })).toBeHidden();
@@ -61,13 +61,13 @@ test.describe('主菜单功能', () => {
   test('冻结首行 / 冻结首列 / 取消冻结动作可执行且画布正常', async ({ page }) => {
     await waitEditor(page);
 
-    await menuClick(page, '查看', '冻结首行');
+    await menuClick(page, '视图', '冻结首行');
     await expect(page.locator('#univer-container canvas:visible').first()).toBeVisible();
 
-    await menuClick(page, '查看', '冻结首列');
+    await menuClick(page, '视图', '冻结首列');
     await expect(page.locator('#univer-container canvas:visible').first()).toBeVisible();
 
-    await menuClick(page, '查看', '取消冻结');
+    await menuClick(page, '视图', '取消冻结');
     await expect(page.locator('#univer-container canvas:visible').first()).toBeVisible();
     // 冻结操作不影响单元格选择与内容编辑
     await clickCellA1(page);
@@ -105,7 +105,7 @@ test.describe('主菜单功能', () => {
 
     await typeIntoFormulaBar(page, '0.95');
     await clickCellA1(page);
-    await page.getByRole('button', { name: '常规' }).click();
+    await page.getByRole('button', { name: '数字格式' }).click();
     await page.getByText('百分比').click();
     await page.keyboard.press('Escape');
 
@@ -119,7 +119,8 @@ test.describe('主菜单功能', () => {
 });
 
 test.describe('网格边缘追加行列', () => {
-  test.use({ viewport: { width: 1900, height: 2600 } });
+  // 高度需容纳 100 行全部进入画布（内容末缘不超出可视区，⊕ 才会显示）
+  test.use({ viewport: { width: 1900, height: 3200 } });
 
   test('底部 ⊕ 添加一行后可导航到新增行', async ({ page }) => {
     await waitEditor(page);

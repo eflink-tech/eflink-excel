@@ -3,9 +3,12 @@ import {
   LAST_DOC_KEY,
   SheetEditor,
   ToastHost,
+  builtinEditorBrand,
   getDefaultStorage,
+  resolveEditorBrandId,
   useDocumentsStore,
   useEditorStore,
+  type EditorBrandId,
   type OfficeLocale,
 } from '@eflink-tech/excel';
 
@@ -16,6 +19,11 @@ const LOCALES: { value: OfficeLocale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'es', label: 'Español' },
   { value: 'pt-BR', label: 'Português' },
+];
+
+const BRANDS: { value: EditorBrandId; label: string }[] = [
+  { value: 'doculuma', label: 'DocuLuma' },
+  { value: 'eflink', label: 'Eflink' },
 ];
 
 const LOADING_TEXT: Record<OfficeLocale, string> = {
@@ -35,6 +43,11 @@ const UNTITLED_NAME: Record<OfficeLocale, string> = {
 function readLocale(): OfficeLocale {
   const value = new URLSearchParams(window.location.search).get('locale');
   return LOCALES.find((item) => item.value === value)?.value ?? 'zh-CN';
+}
+
+/** ?brand=eflink 直达指定品牌，便于逐品牌验收 */
+function readBrand(): EditorBrandId {
+  return resolveEditorBrandId(new URLSearchParams(window.location.search).get('brand'));
 }
 
 function LanguageSwitcher({
@@ -81,6 +94,11 @@ async function openOrCreateEditor(locale: OfficeLocale) {
 export default function App() {
   const docId = useEditorStore((s) => s.docId);
   const [locale, setLocale] = useState<OfficeLocale>(readLocale);
+  const [brand, setBrand] = useState<EditorBrandId>(readBrand);
+
+  useEffect(() => {
+    document.title = builtinEditorBrand(brand).name;
+  }, [brand]);
 
   useEffect(() => {
     void openOrCreateEditor(readLocale()).catch((err) => console.error('启动编辑器失败', err));
@@ -93,6 +111,13 @@ export default function App() {
     setLocale(next);
   };
 
+  const handleBrandChange = (next: EditorBrandId) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('brand', next);
+    window.history.replaceState(null, '', url);
+    setBrand(next);
+  };
+
   return (
     <>
       {docId ? (
@@ -100,7 +125,7 @@ export default function App() {
           key={docId}
           docId={docId}
           locale={locale}
-          branding={{ logo: '/logo.png', name: 'DocuLuma Sheets' }}
+          branding={brand}
           onDocLoaded={(doc) => localStorage.setItem(LAST_DOC_KEY, doc.id)}
         />
       ) : (
@@ -108,6 +133,18 @@ export default function App() {
           {LOADING_TEXT[locale]}
         </div>
       )}
+      <select
+        value={brand}
+        aria-label="Brand"
+        onChange={(e) => handleBrandChange(e.target.value as EditorBrandId)}
+        className="fixed bottom-3 right-3 z-[100000] rounded-md border border-black/10 bg-white px-2 py-1 text-xs text-[#1f2329] shadow-md outline-none"
+      >
+        {BRANDS.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
       <LanguageSwitcher locale={locale} onChange={handleLocaleChange} />
       <ToastHost />
     </>

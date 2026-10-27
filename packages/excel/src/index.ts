@@ -1,5 +1,5 @@
 /** @eflink-tech/excel 对外导出面：组件 + headless API + 存储适配器 */
-// 顶栏/菜单栏样式来自 office-kit：库构建会外部化该依赖，必须在此显式引入才会打进 dist/styles.css
+// 顶栏/菜单栏样式来自 office-kit：宿主只引入 dist/styles.css，必须在此显式引入才会打进产物
 import '@eflink-tech/office-kit/styles.css';
 import './styles.css';
 import { migrateLegacyLocalStorage } from './storage/legacy';
@@ -10,6 +10,10 @@ migrateLegacyLocalStorage();
 // 组件
 export { SheetEditor } from './components/SheetEditor';
 export type { SheetEditorProps, SheetEditorBrand } from './components/SheetEditor';
+
+// 品牌切换：'doculuma' | 'eflink' 内置品牌，或传对象自定义
+export { builtinEditorBrand, resolveEditorBrandId, EDITOR_BRAND_IDS } from './brand';
+export type { EditorBrandId } from './brand';
 export { ToastHost } from './components/ToastHost';
 export { ConfirmDialogHost } from './components/ConfirmDialog';
 export type { ConfirmOptions } from './store/uiStore';

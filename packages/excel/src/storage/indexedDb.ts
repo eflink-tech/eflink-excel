@@ -1,5 +1,5 @@
 import Dexie from 'dexie';
-import { readLegacyIndexedDb } from '@eflink-tech/office-kit';
+import { isLegacyImportDone, markLegacyImportDone, readLegacyIndexedDb } from '@eflink-tech/office-kit';
 import type { DocumentMeta, SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
 import { EXCEL_DB_NAME } from './keys';
 import type { StorageAdapter } from './types';
@@ -58,11 +58,22 @@ export function ensureLegacyImport(db: SheetDB, dbName: string): Promise<void> {
 async function importLegacyDocuments(db: SheetDB, dbName: string): Promise<void> {
   // 宿主显式沿用旧库名时无需搬运（数据本就在目标库）
   if (dbName === LEGACY_DB_NAME) return;
-  if ((await db.documents.count()) > 0) return;
+  // 一次性标记防「删光复活」：空表判据单独使用时，用户删光文档后每次启动都会回填旧数据
+  const markerKey = `doculuma:excel:legacy-imported:${dbName}:documents`;
+  if (isLegacyImportDone(markerKey)) return;
+  if ((await db.documents.count()) > 0) {
+    // 新库已有数据：以新库为准，落标记使「跳过」也成为一次性语义
+    markLegacyImportDone(markerKey);
+    return;
+  }
   const legacy = await readLegacyIndexedDb(LEGACY_DB_NAME, [LEGACY_DOCUMENTS_STORE]);
   const rows = legacy?.[LEGACY_DOCUMENTS_STORE] as SheetDocument[] | undefined;
-  if (!rows?.length) return;
+  if (!rows?.length) {
+    markLegacyImportDone(markerKey);
+    return;
+  }
   await db.documents.bulkPut(rows);
+  markLegacyImportDone(markerKey);
 }
 
 /** 内置 IndexedDB 存储（Dexie）。dbName 缺省为 doculuma-excel，旧 eflink-excel 数据会自动搬运。 */

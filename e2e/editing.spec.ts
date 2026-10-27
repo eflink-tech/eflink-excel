@@ -52,15 +52,18 @@ test.describe('单元格编辑与公式', () => {
     await expect(nameBox(page)).toHaveValue('A1:B2');
   });
 
-  test('自动保存：防抖落库后刷新页面内容恢复', async ({ page }) => {
+  test('自动保存：防抖 1.5s 写本地草稿（崩溃恢复兜底，不落云端）', async ({ page }) => {
     await waitEditor(page);
 
     await typeIntoFormulaBar(page, '持久化测试');
-    // 防抖 1500ms + 落库余量
+    // 防抖 1500ms + 落草稿余量
     await page.waitForTimeout(2500);
-    await page.reload();
-    await waitEditor(page);
-    await expect(contentInput(page)).toHaveValue('持久化测试');
+    // 草稿语义：仅写 localStorage 草稿键（云端落库走 Ctrl+S，见下一用例）；
+    // 云端加载成功时不读草稿，故刷新恢复断言由「手动保存落库」用例承担
+    const docId = await page.evaluate(() => localStorage.getItem('doculuma:excel:last-doc'));
+    const draft = await page.evaluate((id) => localStorage.getItem(`doculuma:draft:excel:${id}`), docId);
+    expect(draft).toBeTruthy();
+    expect(draft).toContain('持久化测试');
   });
 
   test('Ctrl/Cmd+S 手动保存立即落库（刷新后内容仍在）', async ({ page }) => {

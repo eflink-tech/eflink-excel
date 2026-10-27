@@ -3,7 +3,12 @@
 // insertQueuedImportCharts 消费：按锚点插浮动图片、按 twoCellAnchor 区间量尺寸、登记设置面板元数据。
 import { getUniverApi } from './controller';
 import { setChartMeta, defaultChartElements } from './chartSettings';
-import { takeImportedCharts, type ImportedChart } from '../xlsx/chartImport';
+import {
+  peekImportedChart,
+  shiftImportedChart,
+  unshiftImportedChart,
+  type ImportedChart,
+} from '../xlsx/chartImport';
 
 // facade 类型从 API 推导，避免依赖各包类型导出路径
 type UniverApi = NonNullable<ReturnType<typeof getUniverApi>>;
@@ -49,20 +54,35 @@ function metaMatrix(chart: ImportedChart): unknown[][] {
 
 /** 消费导入队列：把渲染好的图表逐张落位。任何一张失败只告警，不影响其余 */
 export function insertQueuedImportCharts(): void {
-  const charts = takeImportedCharts();
-  if (!charts.length) return;
-  void (async () => {
-    const api = getUniverApi();
-    const wb = api?.getActiveWorkbook();
-    if (!wb) return;
-    for (const chart of charts) {
-      try {
-        await insertOne(wb, chart);
-      } catch (err) {
-        console.warn('[chartImport] 图表落位失败，已跳过', chart.sheetName, chart.rangeRef, err);
+  const api = getUniverApi();
+  const wb = api?.getActiveWorkbook();
+  if (!api || !wb) return; // 实例未就绪：图表留在队列，等可用挂载再消费，不静默丢失
+  void consumeQueue(api, wb);
+}
+
+/**
+ * 逐张消费队列，每张落位前校验实例仍是当前挂载的 Univer 实例。
+ * React StrictMode 下 effect 双执行（挂载→销毁→再挂载），旧实例的消费者在
+ * 下一轮循环检测到换代即退出，未落位的图表留在队列由新挂载的消费者接手——
+ * 旧的「一次性取空队列」写法在 dev 下会让图表被销毁的旧实例吞掉。
+ */
+async function consumeQueue(api: UniverApi, wb: WorkbookLike): Promise<void> {
+  for (;;) {
+    if (getUniverApi() !== api) return;
+    const chart = peekImportedChart();
+    if (!chart) return;
+    shiftImportedChart();
+    try {
+      await insertOne(wb, chart);
+    } catch (err) {
+      if (getUniverApi() !== api) {
+        // 落位中途实例被销毁：塞回队首交给新挂载重试
+        unshiftImportedChart(chart);
+        return;
       }
+      console.warn('[chartImport] 图表落位失败，已跳过', chart.sheetName, chart.rangeRef, err);
     }
-  })();
+  }
 }
 
 async function insertOne(wb: WorkbookLike, chart: ImportedChart): Promise<void> {

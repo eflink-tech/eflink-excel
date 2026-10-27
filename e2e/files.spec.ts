@@ -17,9 +17,10 @@ test.describe('文件导入导出', () => {
     await contentInput(page).press('Enter');
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出数据(.efx.json)');
+    await menuClick(page, '文件', '导出数据 (.efx.json)');
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.efexcel$/);
+    // 9-18 起备份后缀为 .efx.json（efexcel 格式的 JSON 序列化）
+    expect(download.suggestedFilename()).toMatch(/\.efx\.json$/);
 
     const sheet = firstSheetOf(fs.readFileSync(await download.path(), 'utf8'));
     expect(sheet.cellData[0]?.[0]?.v).toBe('备份内容');
@@ -30,7 +31,7 @@ test.describe('文件导入导出', () => {
     await waitEditor(page);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出数据(.efx.json)');
+    await menuClick(page, '文件', '导出数据 (.efx.json)');
     const download = await downloadPromise;
 
     const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
@@ -46,9 +47,9 @@ test.describe('文件导入导出', () => {
     await page.waitForTimeout(2000);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
-    await menuClick(page, '文件', '导出数据(.efx.json)');
+    await menuClick(page, '文件', '导出数据 (.efx.json)');
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.efexcel$/);
+    expect(download.suggestedFilename()).toMatch(/\.efx\.json$/);
 
     const sheet = firstSheetOf(fs.readFileSync(await download.path(), 'utf8'));
     const cell = sheet.cellData[0]?.[0];

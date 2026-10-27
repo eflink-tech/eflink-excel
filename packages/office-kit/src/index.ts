@@ -21,4 +21,10 @@ export type { OfficeMenu, OfficeMenuItem } from './menu/types';
 export { OfficeHeader } from './header/OfficeHeader';
 export type { OfficeHeaderBrand, OfficeHeaderProps } from './header/OfficeHeader';
 
-export { migrateLocalStorageKey, migrateLocalStoragePrefix, readLegacyIndexedDb } from './storage/migrate';
+export {
+  migrateLocalStorageKey,
+  migrateLocalStoragePrefix,
+  readLegacyIndexedDb,
+  isLegacyImportDone,
+  markLegacyImportDone,
+} from './storage/migrate';

@@ -32,6 +32,8 @@ import { useUiStore } from '../store/uiStore';
 import type { SheetDocument, WorkbookSnapshot } from '../types/spreadsheet';
 import type { ExcelShareDoc } from '../core/share/shareBridge';
 import type { StorageAdapter } from '../storage/types';
+import { builtinEditorBrand, type EditorBrandId } from '../brand';
+import type { OfficeHeaderBrand } from '@eflink-tech/office-kit';
 
 // Univer 体积较大，编辑器进入时才加载
 const UniverContainer = lazy(() => import('./spreadsheet/UniverContainer').then((m) => ({ default: m.UniverContainer })));
@@ -49,8 +51,8 @@ export interface SheetEditorProps {
   locale?: OfficeLocale | string;
   /** 文档存储实现；传入后注册为全局默认。缺省用内置 IndexedDB（库名 doculuma-excel） */
   storage?: StorageAdapter;
-  /** 品牌区（logo + 产品名）；不传或传 false 隐藏 */
-  branding?: SheetEditorBrand | false;
+  /** 品牌区：'doculuma' | 'eflink' 选内置品牌，传对象完全自定义，false 隐藏（默认） */
+  branding?: SheetEditorBrand | false | EditorBrandId;
   /** 是否显示工具栏（默认显示） */
   showToolbar?: boolean;
   /** 是否显示公式栏（默认显示） */
@@ -59,6 +61,15 @@ export interface SheetEditorProps {
   onDocLoaded?: (doc: SheetDocument) => void;
   /** 文档加载失败/不存在回调 */
   onDocError?: (err: unknown) => void;
+}
+
+/** 品牌参数归一：字符串选内置品牌，对象原样使用，false 隐藏 */
+function resolveBranding(
+  branding: SheetEditorBrand | false | EditorBrandId,
+): OfficeHeaderBrand | false {
+  if (branding === false) return false;
+  if (branding === 'eflink' || branding === 'doculuma') return builtinEditorBrand(branding);
+  return branding;
 }
 
 /** 外层只负责语言上下文；内层使用 useI18n 取文案 */
@@ -99,6 +110,8 @@ function SheetEditorInner({
   useEffect(() => {
     setExcelLocale(locale);
   }, [locale]);
+
+  const resolvedBranding = resolveBranding(branding);
 
   useEffect(() => {
     if (storage) setDefaultStorage(storage);
@@ -157,15 +170,19 @@ function SheetEditorInner({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [t]);
 
-  // 宿主 bridge：查询脏状态 / 触发云端保存 / 丢弃本地草稿（卸载时移除）
+  // 宿主 bridge：查询脏状态 / 触发云端保存 / 丢弃本地草稿（卸载时移除）。
+  // __eflinkEditorBridge 是旧宿主的过渡期别名（同一对象），确认宿主全部改用新名后移除。
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).__doculumaEditorBridge = {
+    const bridgeRoot = window as unknown as Record<string, unknown>;
+    bridgeRoot.__doculumaEditorBridge = {
       isDirty: () => useEditorStore.getState().dirty,
       save: () => saveNow(),
       discard: () => clearDraft(docId),
     };
+    bridgeRoot.__eflinkEditorBridge = bridgeRoot.__doculumaEditorBridge;
     return () => {
-      delete (window as unknown as Record<string, unknown>).__doculumaEditorBridge;
+      delete bridgeRoot.__doculumaEditorBridge;
+      delete bridgeRoot.__eflinkEditorBridge;
     };
   }, [docId]);
 
@@ -246,7 +263,7 @@ function SheetEditorInner({
     return (
       <div className="flex h-full flex-col">
         <OfficeHeader
-          brand={branding ? { logo: branding.logo, name: branding.name } : false}
+          brand={resolvedBranding}
           backHref={getEditorBackHref()}
         />
         <div className="flex flex-1 items-center justify-center text-sm text-slate-400">{t('excel.loading')}</div>
@@ -258,7 +275,7 @@ function SheetEditorInner({
     <div className="flex h-full flex-col bg-white">
       {/* 顶栏：返回 + 品牌 + 横向菜单 + 分享/AI */}
       <OfficeHeader
-        brand={branding ? { logo: branding.logo, name: branding.name } : false}
+        brand={resolvedBranding}
         backHref={getEditorBackHref()}
         menus={menus}
         actions={

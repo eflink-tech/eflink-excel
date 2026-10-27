@@ -1,6 +1,6 @@
 // AI 数据持久化（Dexie）：设置 / 会话历史 / 内置提示词模板
 import Dexie, { type Table } from 'dexie'
-import { readLegacyIndexedDb } from '@eflink-tech/office-kit'
+import { isLegacyImportDone, markLegacyImportDone, readLegacyIndexedDb } from '@eflink-tech/office-kit'
 import { EXCEL_AI_DB_NAME } from '../storage/keys'
 import type { AISettings, Conversation, Template } from './types'
 
@@ -43,15 +43,25 @@ export function ensureLegacyImport(): Promise<void> {
 async function importLegacyAiData(): Promise<void> {
   const legacy = await readLegacyIndexedDb(LEGACY_AI_DB_NAME, LEGACY_AI_STORES)
   if (!legacy) return
-  if (legacy.conversations?.length && (await aiDb.conversations.count()) === 0) {
-    await aiDb.conversations.bulkPut(legacy.conversations as Conversation[])
+  // 每表独立一次性标记（防「删光复活」）；bulkPut 单事务，失败不落标记，下个会话重试
+  await importLegacyTable('conversations', aiDb.conversations, legacy.conversations as Conversation[])
+  await importLegacyTable('settings', aiDb.settings, legacy.settings as (AISettings & { key: string })[])
+  await importLegacyTable('templates', aiDb.templates, legacy.templates as Template[])
+}
+
+async function importLegacyTable<T>(scope: string, table: Table<T, string>, rows: T[]): Promise<void> {
+  const markerKey = `doculuma:excel:legacy-ai-imported:${scope}`
+  if (isLegacyImportDone(markerKey)) return
+  if (!rows?.length) {
+    markLegacyImportDone(markerKey)
+    return
   }
-  if (legacy.settings?.length && (await aiDb.settings.count()) === 0) {
-    await aiDb.settings.bulkPut(legacy.settings as (AISettings & { key: string })[])
+  if ((await table.count()) > 0) {
+    markLegacyImportDone(markerKey)
+    return
   }
-  if (legacy.templates?.length && (await aiDb.templates.count()) === 0) {
-    await aiDb.templates.bulkPut(legacy.templates as Template[])
-  }
+  await table.bulkPut(rows)
+  markLegacyImportDone(markerKey)
 }
 
 const SETTINGS_KEY = 'main'

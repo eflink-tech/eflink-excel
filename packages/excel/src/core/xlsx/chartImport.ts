@@ -423,3 +423,18 @@ export function takeImportedCharts(): ImportedChart[] {
   pendingCharts = [];
   return charts;
 }
+
+/** 窥视队首（不移除）；配合 shiftImportedChart 逐张消费，实例换代时剩余图表整体留在队列 */
+export function peekImportedChart(): ImportedChart | null {
+  return pendingCharts[0] ?? null;
+}
+
+/** 取走队首一张 */
+export function shiftImportedChart(): ImportedChart | null {
+  return pendingCharts.shift() ?? null;
+}
+
+/** 塞回队首：落位中途实例被销毁时退回，等下一次挂载的消费者接手 */
+export function unshiftImportedChart(chart: ImportedChart): void {
+  pendingCharts.unshift(chart);
+}
