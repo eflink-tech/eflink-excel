@@ -89,7 +89,7 @@ export function SheetToolbar() {
     [
       { label: t('excel.numfmt.date'), pattern: 'yyyy-MM-dd', sample: '2025-01-01' },
       { label: t('excel.numfmt.yearMonth'), pattern: isZh ? 'yyyy"年"M"月"' : 'yyyy-MM', sample: t('excel.numfmt.sample.yearMonth') },
-      { label: t('excel.numfmt.monthDay'), pattern: isZh ? 'M"月"d"日"' : 'MM-dd', sample: t('excel.numfmt.sample.monthDay') },
+      { label: t('excel.numfmt.monthDay'), pattern: isZh ? 'M"月"d"日"' : locale === 'en' ? 'MM-dd' : 'dd-MM', sample: t('excel.numfmt.sample.monthDay') },
       { label: t('excel.numfmt.time'), pattern: 'HH:mm', sample: '15:00' },
       { label: t('excel.numfmt.dateTime'), pattern: 'yyyy-MM-dd HH:mm', sample: '2025-01-01 15:00' },
     ],
