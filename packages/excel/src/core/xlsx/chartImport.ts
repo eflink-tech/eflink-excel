@@ -3,8 +3,9 @@
 // 渲染成图片与插入编辑器分别在 chartOptions / univer/importedCharts 完成；
 // 本模块保持纯逻辑（不依赖 DOM/Univer），供 node 环境单测。
 import JSZip from 'jszip';
-import { SaxesParser } from 'saxes';
 import type { ExplicitChartData } from '../univer/chartOptions';
+import { findFirst, findAll, findText, findVal, parseXml, type XNode } from './xmlLite';
+import { dirname, listSheets, readRels, relsPathOf, resolvePath } from './zipNav';
 
 /** EMU（Office 角度单位）→ px */
 const EMU_TO_PX = 1 / 9525;
@@ -46,71 +47,6 @@ export interface ImportedChart {
   /** 各系列源数据引用：编辑单元格后按此重读并自动重渲染 */
   liveRefs?: LiveChartRefs;
   dataUrl?: string;
-}
-
-// ---------- 轻量 XML DOM（node 环境无 DOMParser，用 saxes 建树；仅取 localName，命名空间前缀不参与匹配） ----------
-
-interface XNode {
-  name: string;
-  attrs: Record<string, string>;
-  children: XNode[];
-  text: string;
-}
-
-function parseXml(xml: string): XNode | null {
-  const parser = new SaxesParser({ fragment: false });
-  let root: XNode | null = null;
-  let failed = false;
-  const stack: XNode[] = [];
-  parser.on('error', () => {
-    failed = true;
-  });
-  parser.on('opentag', (node) => {
-    const el: XNode = { name: node.name.includes(':') ? node.name.split(':').pop()! : node.name, attrs: {}, children: [], text: '' };
-    for (const [k, v] of Object.entries(node.attributes)) {
-      el.attrs[k.includes(':') ? k.split(':').pop()! : k] = String(v);
-    }
-    const parent = stack[stack.length - 1];
-    if (parent) parent.children.push(el);
-    else if (!root) root = el;
-    stack.push(el);
-  });
-  parser.on('text', (t) => {
-    const top = stack[stack.length - 1];
-    if (top) top.text += t;
-  });
-  parser.on('closetag', () => {
-    stack.pop();
-  });
-  parser.write(xml).close();
-  return failed ? null : root;
-}
-
-function findFirst(node: XNode | null, name: string): XNode | null {
-  if (!node) return null;
-  if (node.name === name) return node;
-  for (const child of node.children) {
-    const hit = findFirst(child, name);
-    if (hit) return hit;
-  }
-  return null;
-}
-
-function findAll(node: XNode | null, name: string, out: XNode[] = []): XNode[] {
-  if (!node) return out;
-  if (node.name === name) out.push(node);
-  for (const child of node.children) findAll(child, name, out);
-  return out;
-}
-
-/** 取首个后代指定标签的文本 */
-function findText(node: XNode | null, name: string): string | undefined {
-  return findFirst(node, name)?.text.trim() || undefined;
-}
-
-/** 取首个后代指定标签的 val 属性（OOXML 枚举值惯用属性而非元素文本，如 <c:grouping val="clustered"/>） */
-function findVal(node: XNode | null, name: string): string | undefined {
-  return findFirst(node, name)?.attrs.val || undefined;
 }
 
 // ---------- chart XML → 类型 + 数据 ----------
@@ -309,40 +245,10 @@ function toSeries(s: RawSer): { name: string; data: number[] } {
 
 // ---------- 关系链遍历：workbook → sheet → drawing → chart ----------
 
-function dirname(path: string): string {
-  const i = path.lastIndexOf('/');
-  return i === -1 ? '' : path.slice(0, i);
-}
-
-/** rels 里的相对路径 → zip 内绝对路径（以 / 开头的包绝对路径也归一化） */
-function resolvePath(fromDir: string, target: string): string {
-  if (target.startsWith('/')) return target.slice(1);
-  const parts = (fromDir ? fromDir.split('/') : []).concat(target.split('/'));
-  const out: string[] = [];
-  for (const p of parts) {
-    if (!p || p === '.') continue;
-    if (p === '..') out.pop();
-    else out.push(p);
-  }
-  return out.join('/');
-}
-
-/** 解析 *_rels/*.rels 内容为 Id → Target 映射（Relationship 属性名首字母大写） */
-async function readRels(zip: JSZip, relsPath: string): Promise<Record<string, string>> {
-  const file = zip.file(relsPath);
-  if (!file) return {};
-  const root = parseXml(await file.async('string'));
-  const map: Record<string, string> = {};
-  for (const rel of findAll(root, 'Relationship')) {
-    map[rel.attrs.Id ?? rel.attrs.id ?? ''] = rel.attrs.Target ?? rel.attrs.target ?? '';
-  }
-  return map;
-}
-
 /** drawingN.xml：图表锚点 + 对应 chart xml 路径（非图表锚点忽略） */
 async function readDrawingAnchors(zip: JSZip, drawingPath: string): Promise<{ anchor: ChartAnchor; chartPath: string }[]> {
   const root = parseXml(await zip.file(drawingPath)!.async('string'));
-  const rels = await readRels(zip, `${dirname(drawingPath)}/_rels/${drawingPath.split('/').pop()}.rels`);
+  const rels = await readRels(zip, relsPathOf(drawingPath));
   /** xdr:from / xdr:to 单元格锚 → 行列号（0 基）与 EMU 偏移换算的像素 */
   const readCell = (el: XNode | null) => ({
     col: Number(findText(el, 'col') ?? 0),
@@ -383,14 +289,7 @@ export async function extractCharts(buffer: ArrayBuffer): Promise<ImportedChart[
   const zip = await JSZip.loadAsync(buffer);
   const out: ImportedChart[] = [];
 
-  const workbookXml = parseXml((await zip.file('xl/workbook.xml')?.async('string')) ?? '');
-  const workbookRels = await readRels(zip, 'xl/_rels/workbook.xml.rels');
-  for (const sheetEl of workbookXml ? findAll(workbookXml, 'sheet') : []) {
-    const sheetName = sheetEl.attrs.name ?? '';
-    // 转义的工作表名（含空格等）在 rels target 上不体现，直接用即可
-    const sheetPath = resolvePath('xl', workbookRels[sheetEl.attrs.id ?? ''] ?? '');
-    if (!sheetPath || !zip.file(sheetPath)) continue;
-    const sheetRelsPath = `${dirname(sheetPath)}/_rels/${sheetPath.split('/').pop()}.rels`;
+  for (const { sheetName, sheetPath, sheetRelsPath } of await listSheets(zip)) {
     const sheetRels = await readRels(zip, sheetRelsPath);
     const drawingTarget = Object.values(sheetRels).find((t) => /drawings\/drawing\d+\.xml$/.test(t));
     if (!drawingTarget) continue;

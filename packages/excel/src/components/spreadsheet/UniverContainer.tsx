@@ -3,6 +3,7 @@ import { useI18n } from '@eflink-tech/office-kit';
 import { bindEditor, notifyChanged, unbindEditor } from '../../core/saveService';
 import { getUniverApi, mountUniver, setUniverLocale } from '../../core/univer/controller';
 import { insertQueuedImportCharts } from '../../core/univer/importedCharts';
+import { insertQueuedImportAnnotations } from '../../core/univer/importedAnnotations';
 import { UNIVER_READY_EVENT } from '../toolbar/FormulaBar';
 import { useEditorStore } from '../../store/editorStore';
 import type { WorkbookSnapshot } from '../../types/spreadsheet';
@@ -25,6 +26,8 @@ export function UniverContainer({ snapshot }: { snapshot: WorkbookSnapshot }) {
     window.dispatchEvent(new Event(UNIVER_READY_EVENT));
     // xlsx 导入的图表在此落位（需 Univer 挂载后才能插浮动图片）
     insertQueuedImportCharts();
+    // xlsx 导入的超链接/批注在此经 facade 写入单元格（无稳定的 resources 序列化器）
+    insertQueuedImportAnnotations();
     return () => {
       unbindEditor();
       ctrl.destroy();

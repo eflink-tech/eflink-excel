@@ -45,16 +45,26 @@ function writeSheet(sheet: SnapshotSheet, ws: Worksheet, styles: Record<string, 
   for (const m of sheet.mergeData ?? []) {
     ws.mergeCells(m.startRow + 1, m.startColumn + 1, m.endRow + 1, m.endColumn + 1);
   }
+  // 视图：冻结 + 网格线开关 + RTL 合并成一个 sheetView（exceljs 只认 views[0]）
+  const view: Record<string, unknown> = {};
   const freeze = sheet.freeze;
   if (freeze && (freeze.startRow || freeze.startColumn)) {
     // Univer freeze（startRow/startColumn=冻结行列数）→ exceljs 冻结视图（ySplit/xSplit 同语义）
-    ws.views = [{
-      state: 'frozen',
-      xSplit: freeze.startColumn,
-      ySplit: freeze.startRow,
-      topLeftCell: encodeRef(freeze.startRow, freeze.startColumn),
-    }] as never;
+    view.state = 'frozen';
+    view.xSplit = freeze.startColumn;
+    view.ySplit = freeze.startRow;
+    view.topLeftCell = encodeRef(freeze.startRow, freeze.startColumn);
   }
+  if (sheet.showGridlines === 0) view.showGridLines = false;
+  if (sheet.rightToLeft === 1) view.rightToLeft = true;
+  if (Object.keys(view).length) {
+    view.state ??= 'normal';
+    ws.views = [view as never];
+  }
+  // 表属性：标签色 + 默认行列尺寸（行高 px→pt、列宽 px→字符）
+  if (sheet.tabColor) ws.properties.tabColor = { argb: toArgb(sheet.tabColor) };
+  if (sheet.defaultRowHeight) ws.properties.defaultRowHeight = sheet.defaultRowHeight * PX_TO_PT;
+  if (sheet.defaultColumnWidth) ws.properties.defaultColWidth = sheet.defaultColumnWidth / PX_TO_CHAR;
   for (const [r, rd] of Object.entries(sheet.rowData ?? {})) {
     const row = ws.getRow(Number(r) + 1);
     if (rd.hd) row.hidden = true;
@@ -116,7 +126,7 @@ function applyStyle(target: Cell, st: CellStyle | undefined): void {
   if (!st) return;
   if (st.n?.pattern) target.numFmt = st.n.pattern;
   // 仅当存在字体相关字段时才赋 font，避免 bg/对齐/边框样式产出冗余 styles.xml 条目
-  if (st.bl != null || st.it != null || st.fs != null || st.ff || st.cl || st.ul || st.st) {
+  if (st.bl != null || st.it != null || st.fs != null || st.ff || st.cl || st.ul || st.st || st.va != null) {
     target.font = {
       bold: st.bl === 1,
       italic: st.it === 1,
@@ -125,6 +135,8 @@ function applyStyle(target: Cell, st: CellStyle | undefined): void {
       ...(st.cl ? { color: { argb: toArgb(st.cl.rgb) } } : {}),
       ...(st.ul?.s ? { underline: true } : {}),
       ...(st.st?.s ? { strike: true } : {}),
+      ...(st.va === 2 ? { vertAlign: 'subscript' as const } : {}),
+      ...(st.va === 3 ? { vertAlign: 'superscript' as const } : {}),
     };
   }
   if (st.bg) {
@@ -134,6 +146,10 @@ function applyStyle(target: Cell, st: CellStyle | undefined): void {
   if (st.ht && H_ALIGN_NAMES[st.ht]) alignment.horizontal = H_ALIGN_NAMES[st.ht];
   if (st.vt && V_ALIGN_NAMES[st.vt]) alignment.vertical = V_ALIGN_NAMES[st.vt];
   if (st.tb === WRAP_STRATEGY_WRAP) alignment.wrapText = true;
+  if (st.tr) {
+    // Univer 带符号角度 → OOXML textRotation（竖直堆叠=‘vertical’；顺时针负角折回 91–180）
+    alignment.textRotation = st.tr.v === 1 ? 'vertical' : st.tr.a >= 0 ? st.tr.a : st.tr.a + 180;
+  }
   if (Object.keys(alignment).length) target.alignment = alignment as never;
   const bd = st.bd;
   if (bd) {

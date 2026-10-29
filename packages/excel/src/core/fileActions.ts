@@ -3,6 +3,7 @@ import { currentSnapshot, saveNow } from './saveService';
 import { exportEfexcel, importEfexcel } from './efexcel';
 import { exportPng, exportXlsx, importXlsx, trimExt } from './xlsx/fileIO';
 import { queueImportedCharts } from './xlsx/chartImport';
+import { queueImportedAnnotations } from './xlsx/annotationImport';
 import { pickFile } from './filePicker';
 import { getDefaultStorage } from '../storage/registry';
 import { clearDraft } from '../storage/draft';
@@ -111,7 +112,7 @@ export async function importXlsxAction(file: File): Promise<void> {
   }
   try {
     // 先解析：失败在落盘前抛出，当前文档不受影响（图表已渲染成图片随结果一并返回）
-    const { snapshot, charts } = await importXlsx(file);
+    const { snapshot, charts, annotations } = await importXlsx(file);
     try {
       await getDefaultStorage().updateContent(confirmedDocId, trimExt(file.name), snapshot);
     } catch (err) {
@@ -119,8 +120,9 @@ export async function importXlsxAction(file: File): Promise<void> {
       useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
       return;
     }
-    // 图表入队：编辑器重载挂载 Univer 后落位为浮动图片（队列在 chartImport，避免此处引入 Univer 依赖）
+    // 图表/批注/超链接入队：编辑器重载挂载 Univer 后落位（队列在各解析模块，避免此处引入 Univer 依赖）
     queueImportedCharts(charts);
+    queueImportedAnnotations(annotations);
     clearDraft(confirmedDocId); // 防重载读到旧草稿
     void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
     useEditorStore.getState().bumpReload();

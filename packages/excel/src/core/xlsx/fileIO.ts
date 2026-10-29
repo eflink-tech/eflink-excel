@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
 import { extractCharts, type ImportedChart } from './chartImport';
+import { extractAnnotations, type ImportedAnnotations } from './annotationImport';
 import { buildChartOption, DEFAULT_CHART_ELEMENTS, renderChartFrameToDataUrl } from '../univer/chartOptions';
 import type { WorkbookSnapshot } from '../../types/spreadsheet';
 
@@ -13,6 +14,8 @@ export interface ImportXlsxResult {
   snapshot: WorkbookSnapshot;
   /** 渲染成图片的待插入图表（编辑器挂载后落位，见 univer/importedCharts.ts） */
   charts: ImportedChart[];
+  /** 待落位的超链接/批注（编辑器挂载后经 facade 写入，见 univer/importedAnnotations.ts） */
+  annotations: ImportedAnnotations;
 }
 
 export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Promise<void> {
@@ -27,7 +30,11 @@ export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
   const snapshot = workbookToSnapshot(wb, trimExt(file.name));
-  return { snapshot, charts: await renderImportedCharts(await extractCharts(buffer).catch(() => [])) };
+  const [charts, annotations] = await Promise.all([
+    renderImportedCharts(await extractCharts(buffer).catch(() => [])),
+    extractAnnotations(buffer).catch(() => ({ links: [], comments: [] })),
+  ]);
+  return { snapshot, charts, annotations };
 }
 
 /** 解析出的图表渲染为 PNG dataUrl（单张失败跳过，不影响其余与单元格导入） */

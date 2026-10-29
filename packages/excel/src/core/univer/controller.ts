@@ -148,6 +148,12 @@ export function getUniverApi(): UniverApi | null {
   return currentApi;
 }
 
+/** 暴露底层 DI 容器：导入批注需向 UserManagerService 注册原作者（facade 未开放 addUser） */
+export function getUniverInjector(): unknown {
+  const univer = currentUniver as unknown as { __getInjector?: () => unknown } | null;
+  return univer?.__getInjector?.() ?? null;
+}
+
 /** 切换 Univer 内置界面语言（筛选面板、右键菜单等），不重建实例 */
 export function setUniverLocale(locale: OfficeLocale): void {
   currentUniver?.setLocale(UNIVER_LOCALE_BY_OFFICE[locale]);

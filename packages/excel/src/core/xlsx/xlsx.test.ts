@@ -510,3 +510,201 @@ describe('xlsx 导入：共享公式与隐藏 sheet', () => {
     expect(snap.sheets['sheet-01'].cellData[0]?.[0]?.v).toBe('官网');
   });
 });
+
+describe('xlsx 导入：主题色/索引色解析', () => {
+  function importCell(mutate: (cell: ExcelJS.Cell) => void): CellStyle | undefined {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('色板');
+    const cell = ws.getCell('A1');
+    cell.value = '彩色';
+    mutate(cell);
+    const snap = workbookToSnapshot(wb, '色板');
+    return snap.sheets['sheet-01'].cellData[0]?.[0]?.s as CellStyle | undefined;
+  }
+
+  it('字体色 theme+tint 解析为标准主题对应色（无内嵌 theme 时回退标准板）', () => {
+    const st = importCell((cell) => {
+      cell.font = { color: { theme: 4, tint: 0.4 } } as unknown as ExcelJS.Font;
+    });
+    expect(st?.cl?.rgb).toBe('#95b3d7'); // accent1 4F81BD +0.4
+  });
+
+  it('字体色 indexed 查索引色板', () => {
+    const st = importCell((cell) => {
+      cell.font = { color: { indexed: 10 } } as unknown as ExcelJS.Font;
+    });
+    expect(st?.cl?.rgb).toBe('#ff0000'); // 索引 10
+  });
+
+  it('填充色 theme 引用解析（fgColor 走统一解析）', () => {
+    const st = importCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { theme: 3 } } as unknown as ExcelJS.Fill;
+    });
+    expect(st?.bg?.rgb).toBe('#1f497d'); // 主题索引 3 = 1F497D
+  });
+
+  it('边框色 theme 引用解析', () => {
+    const st = importCell((cell) => {
+      cell.border = { top: { style: 'thin', color: { theme: 4, tint: -0.25 } } } as unknown as Partial<ExcelJS.Borders>;
+    });
+    expect(st?.bd?.t?.cl.rgb).toBe('#376092'); // accent1 4F81BD -0.25
+  });
+
+  it('argb 硬编码色仍按原样归一化', () => {
+    const st = importCell((cell) => {
+      cell.font = { color: { argb: 'FFFF0000' } } as unknown as ExcelJS.Font;
+    });
+    expect(st?.cl?.rgb).toBe('#ff0000');
+  });
+});
+
+describe('xlsx 导入：文本旋转与上下标', () => {
+  it('数值角度/竖直文本导入为 tr（0–90 上仰、91–180 折算负角）', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('旋转');
+    ws.getCell('A1').value = '上仰45';
+    ws.getCell('A1').alignment = { textRotation: 45 } as unknown as ExcelJS.Alignment;
+    ws.getCell('A2').value = '竖直';
+    ws.getCell('A2').alignment = { textRotation: 'vertical' } as unknown as ExcelJS.Alignment;
+    ws.getCell('A3').value = '下俯45';
+    ws.getCell('A3').alignment = { textRotation: 135 } as unknown as ExcelJS.Alignment;
+    const snap = workbookToSnapshot(wb, '旋转');
+    const sheet = snap.sheets['sheet-01'];
+    expect((sheet.cellData[0]![0]!.s as CellStyle).tr).toEqual({ a: 45 });
+    expect((sheet.cellData[1]![0]!.s as CellStyle).tr).toEqual({ a: 0, v: 1 });
+    expect((sheet.cellData[2]![0]!.s as CellStyle).tr).toEqual({ a: -45 });
+  });
+
+  it('文本旋转回路无损（tr → OOXML textRotation → tr）', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('旋转');
+    ws.getCell('A1').value = 'a';
+    ws.getCell('A1').alignment = { textRotation: 45 } as unknown as ExcelJS.Alignment;
+    ws.getCell('A2').value = 'b';
+    ws.getCell('A2').alignment = { textRotation: 135 } as unknown as ExcelJS.Alignment;
+    ws.getCell('A3').value = 'c';
+    ws.getCell('A3').alignment = { textRotation: 'vertical' } as unknown as ExcelJS.Alignment;
+    const snap = workbookToSnapshot(wb, '旋转');
+    const out = roundTrip(snap);
+    const sheet = Object.values(out.sheets)[0];
+    expect((sheet.cellData[0]![0]!.s as CellStyle).tr).toEqual({ a: 45 });
+    expect((sheet.cellData[1]![0]!.s as CellStyle).tr).toEqual({ a: -45 });
+    expect((sheet.cellData[2]![0]!.s as CellStyle).tr).toEqual({ a: 0, v: 1 });
+  });
+
+  it('上标/下标导入为 va 并回路写回 vertAlign', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('上下标');
+    ws.getCell('A1').value = 'x2';
+    ws.getCell('A1').font = { vertAlign: 'superscript' } as unknown as ExcelJS.Font;
+    ws.getCell('A2').value = 'H2O';
+    ws.getCell('A2').font = { vertAlign: 'subscript' } as unknown as ExcelJS.Font;
+    const snap = workbookToSnapshot(wb, '上下标');
+    expect((snap.sheets['sheet-01'].cellData[0]![0]!.s as CellStyle).va).toBe(3);
+    expect((snap.sheets['sheet-01'].cellData[1]![0]!.s as CellStyle).va).toBe(2);
+    const wb2 = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb2);
+    expect(wb2.worksheets[0].getCell('A1').font.vertAlign).toBe('superscript');
+    expect(wb2.worksheets[0].getCell('A2').font.vertAlign).toBe('subscript');
+  });
+});
+
+describe('xlsx 导入：日期时间按 UTC 读取', () => {
+  it('无时间部分仅日期；含时间补 HH:MM(:SS)，不受本地时区偏移', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('日期');
+    ws.getCell('A1').value = new Date(Date.UTC(2024, 0, 15));
+    ws.getCell('A2').value = new Date(Date.UTC(2024, 0, 15, 9, 30));
+    ws.getCell('A3').value = new Date(Date.UTC(2024, 0, 15, 9, 30, 45));
+    const snap = workbookToSnapshot(wb, '日期');
+    const sheet = snap.sheets['sheet-01'];
+    expect(sheet.cellData[0]?.[0]?.v).toBe('2024-01-15');
+    expect(sheet.cellData[1]?.[0]?.v).toBe('2024-01-15 09:30');
+    expect(sheet.cellData[2]?.[0]?.v).toBe('2024-01-15 09:30:45');
+  });
+});
+
+describe('xlsx 导入：表属性（标签色/网格线/RTL/默认尺寸）', () => {
+  function buildSheet(): ExcelJS.Workbook {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('属性');
+    ws.getCell('A1').value = 'x';
+    (ws.properties as { tabColor: unknown }).tabColor = { argb: 'FFFF0000' };
+    (ws.properties as { defaultRowHeight: unknown }).defaultRowHeight = 20; // pt
+    (ws.properties as { defaultColWidth: unknown }).defaultColWidth = 12; // 字符
+    ws.views = [{ state: 'normal', showGridLines: false, rightToLeft: true }] as never;
+    return wb;
+  }
+
+  it('导入：tabColor/showGridlines/rightToLeft/默认行列尺寸', () => {
+    const snap = workbookToSnapshot(buildSheet(), '属性');
+    const sheet = snap.sheets['sheet-01'];
+    expect(sheet.tabColor).toBe('#ff0000');
+    expect(sheet.showGridlines).toBe(0);
+    expect(sheet.rightToLeft).toBe(1);
+    expect(sheet.defaultRowHeight).toBe(27); // 20pt → 27px
+    expect(sheet.defaultColumnWidth).toBe(120); // 12字符 → 120px
+  });
+
+  it('回路：表属性写回 exceljs（views 合并冻结/网格线/RTL）', () => {
+    const snap = workbookToSnapshot(buildSheet(), '属性');
+    const wb2 = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, wb2);
+    const ws2 = wb2.worksheets[0];
+    expect((ws2.properties.tabColor as { argb?: string }).argb).toBe('FFFF0000');
+    expect(ws2.views?.[0]).toMatchObject({ showGridLines: false, rightToLeft: true });
+    expect(ws2.properties.defaultRowHeight).toBeCloseTo(20, 0);
+    expect(ws2.properties.defaultColWidth).toBeCloseTo(12, 0);
+  });
+
+  it('缺省网格线（未显式关闭）不产出 showGridlines', () => {
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('默认');
+    const snap = workbookToSnapshot(wb, '默认');
+    expect(snap.sheets['sheet-01'].showGridlines).toBeUndefined();
+  });
+});
+
+describe('xlsx 导入：自动筛选与定义名称写入 resources', () => {
+  it('autoFilter → SHEET_FILTER_PLUGIN 资源（IRange）', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Filter');
+    ws.getCell('A1').value = 'name';
+    ws.getCell('A2').value = 'x';
+    ws.autoFilter = 'A1:B10';
+    const snap = workbookToSnapshot(wb, 'Filter');
+    const res = snap.resources?.find((r) => r.name === 'SHEET_FILTER_PLUGIN');
+    expect(res).toBeDefined();
+    const filters = JSON.parse(res!.data);
+    expect(filters['sheet-01'].ref).toEqual({ startRow: 0, startColumn: 0, endRow: 9, endColumn: 1 });
+    expect(filters['sheet-01'].filterColumns).toEqual([]);
+  });
+
+  it('definedNames → SHEET_DEFINED_NAME_PLUGIN 资源（按 id 键控）', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Data');
+    ws.getCell('B2').value = 100;
+    wb.definedNames.add('Data!$B$2', 'Sales');
+    const snap = workbookToSnapshot(wb, 'Data');
+    const res = snap.resources?.find((r) => r.name === 'SHEET_DEFINED_NAME_PLUGIN');
+    expect(res).toBeDefined();
+    const dn = JSON.parse(res!.data);
+    expect(dn.Sales).toEqual({ id: 'Sales', name: 'Sales', formulaOrRefString: 'Data!$B$2' });
+  });
+
+  it('无筛选/无定义名称时不产出 resources', () => {
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('Plain').getCell('A1').value = 'x';
+    const snap = workbookToSnapshot(wb, 'Plain');
+    expect(snap.resources).toBeUndefined();
+  });
+
+  it('无效 autoFilter 引用被忽略', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Bad');
+    ws.getCell('A1').value = 'x';
+    ws.autoFilter = 'not-a-range';
+    const snap = workbookToSnapshot(wb, 'Bad');
+    expect(snap.resources).toBeUndefined();
+  });
+});

@@ -46,6 +46,10 @@ export interface CellStyle {
   vt?: number;
   /** 换行策略：Univer WrapStrategy（3=自动换行） */
   tb?: number;
+  /** 文字旋转（形状对齐 Univer ITextRotation）：a=角度(度)，v=1 表示竖排文本 */
+  tr?: { a: number; v?: 0 | 1 };
+  /** 上标/下标：Univer BaselineOffset（2=下标 3=上标） */
+  va?: number;
   /** 四边边框 */
   bd?: { t?: BorderStyle; b?: BorderStyle; l?: BorderStyle; r?: BorderStyle };
 }
@@ -71,6 +75,16 @@ export interface SnapshotSheet {
   name: string;
   /** 1 表示隐藏 sheet（Excel 端 state=hidden/veryHidden 的映射；Univer IWorksheetData.hidden） */
   hidden?: 0 | 1;
+  /** 标签页颜色（Excel tabColor 解析后的 '#rrggbb'；Univer IWorksheetData.tabColor） */
+  tabColor?: string;
+  /** 是否显示网格线（Univer showGridlines：1=显示 0=隐藏；缺省视为显示） */
+  showGridlines?: 0 | 1;
+  /** 从右到左版式（Univer rightToLeft：1=RTL；仅 RTL 工作表置位） */
+  rightToLeft?: 0 | 1;
+  /** 默认行高(px)（Univer defaultRowHeight；无显式高度的行采用） */
+  defaultRowHeight?: number;
+  /** 默认列宽(px)（Univer defaultColumnWidth；无显式宽度的列采用） */
+  defaultColumnWidth?: number;
   rowCount: number;
   columnCount: number;
   cellData: Record<number, Record<number, SnapshotCell>>;
@@ -90,6 +104,8 @@ export interface WorkbookSnapshot {
   sheets: Record<string, SnapshotSheet>;
   /** Univer 运行时快照把单元格样式归一化到这里（cell.s 存样式 id）；导入方向的快照用内联样式，无此字段 */
   styles?: Record<string, CellStyle>;
+  /** Univer 插件资源（筛选/定义名称等以 JSON 字符串挂载；形状对齐 IWorkbookData.resources） */
+  resources?: { name: string; data: string }[];
 }
 
 export interface DocumentMeta {
