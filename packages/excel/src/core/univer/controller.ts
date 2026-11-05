@@ -75,6 +75,7 @@ const WeComZhCN = {
   },
 };
 import type { SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
+import { normalizeSnapshotFormulas } from '../xlsx/formulaNormalize';
 
 /** 界面语言 → Univer 内置语言包 */
 const UNIVER_LOCALE_BY_OFFICE: Record<OfficeLocale, LocaleType> = {
@@ -162,6 +163,8 @@ export function setUniverLocale(locale: OfficeLocale): void {
 
 export interface UniverController {
   getSnapshot(): WorkbookSnapshot | null;
+  /** 加载时是否修正过历史双等号公式（调用方需在绑定保存器后置脏，让修正结果落库） */
+  healedFormulas: boolean;
   destroy(): void;
 }
 
@@ -308,6 +311,8 @@ export function mountUniver(
     };
   }
 
+  // 历史版本导入可能把公式存成 '==SUM(...)'；加载时自愈，避免旧文档继续全表报错
+  const healedFormulas = normalizeSnapshotFormulas(snapshot);
   univerAPI.createWorkbook(snapshot as never);
   // 导入的换行行按内容撑高（等首帧渲染完成后计算，见 scheduleImportedRowAutoHeight）
   const autoHeightWatch = scheduleImportedRowAutoHeight(univerAPI, snapshot);
@@ -392,6 +397,7 @@ export function mountUniver(
   });
 
   return {
+    healedFormulas,
     getSnapshot() {
       const workbook = univerAPI.getActiveWorkbook();
       if (!workbook) return null;

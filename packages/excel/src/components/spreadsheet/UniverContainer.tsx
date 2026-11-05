@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useI18n } from '@eflink-tech/office-kit';
-import { bindEditor, notifyChanged, unbindEditor } from '../../core/saveService';
+import { bindEditor, notifyChanged, saveNow, unbindEditor } from '../../core/saveService';
 import { getUniverApi, mountUniver, setUniverLocale } from '../../core/univer/controller';
 import { insertQueuedImportCharts } from '../../core/univer/importedCharts';
 import { insertQueuedImportAnnotations } from '../../core/univer/importedAnnotations';
@@ -22,6 +22,10 @@ export function UniverContainer({ snapshot }: { snapshot: WorkbookSnapshot }) {
     getUniverApi()?.getActiveWorkbook()?.getActiveSheet()?.getRange(0, 0, 1, 1)?.activate();
     const docId = useEditorStore.getState().docId ?? '';
     bindEditor(docId, () => ctrl.getSnapshot());
+    // 历史双等号公式已在挂载时修正，需立即落库：否则下次加载/导出仍是错误公式
+    if (ctrl.healedFormulas) {
+      void saveNow().catch((err) => console.error('自愈公式保存失败', err));
+    }
     // 通知 FormulaBar 等：Univer API 已就绪
     window.dispatchEvent(new Event(UNIVER_READY_EVENT));
     // xlsx 导入的图表在此落位（需 Univer 挂载后才能插浮动图片）
