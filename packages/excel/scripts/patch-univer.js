@@ -9,6 +9,8 @@
  *    vertical（固定在筛选列下方，空间不足自动上翻）。
  * 3) sheets-filter-ui 按钮 hover：hover 背景 gray.50 在白底上不可见 → gray.200，
  *    并在 hover 时把光标设为 pointer，提示可点击。
+ * 4) sheets-ui 冻结视口尺寸：冻结区合计宽高超过可视区域时，主视口被挤成负尺寸而无法滚动
+ *    （xlsx 常见：冻结多列后在窄窗口打开）→ 冻结区尺寸钳制，为主视口保留最小尺寸。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -102,6 +104,36 @@ const PATCHES = [
     name: '禁用图片双击预览浮层（双击图表改为打开属性面板）',
     anchor: '_addDialogForImage(o) {',
     insert: '_addDialogForImage(o) {\n\t\t// [patch-univer] 图片双击预览已禁用：双击图表改为打开图表属性面板\n\t\treturn;',
+  },
+  // 冻结区尺寸钳制：xlsx 里冻结列/行合计宽高可能超过可视区域（如冻结 A–E 列后在窄窗口打开），
+  // 上游直接把主视口 left/top 设成冻结区尺寸，导致主视口宽高为负、判定 inactive，
+  // 滚轮与滚动条全部失效（整表无法上下滚动）。这里给主视口保留至少 80px，冻结区超出部分裁切（与 Excel 一致）。
+  {
+    pkg: 'sheets-ui',
+    file: 'lib/es/index.js',
+    name: '冻结列超出可视宽度时主视口塌陷（仅左右冻结）',
+    anchor:
+      '\t\t} else if (isTopView === false && isLeftView === true) {\n\t\t\tconst leftGap = endSheetView.startX - startSheetView.startX;',
+    insert:
+      '\t\t} else if (isTopView === false && isLeftView === true) {\n\t\t\t// [patch-univer] 冻结区超宽时保留主视口最小宽度，避免滚动失效\n\t\t\tconst leftGap = Math.max(0, Math.min(endSheetView.startX - startSheetView.startX, viewMain.scene.getParent().width / (Math.abs(viewMain.scene.scaleX) || 1) - rowHeaderWidthAndMarginLeft - 80));',
+  },
+  {
+    pkg: 'sheets-ui',
+    file: 'lib/es/index.js',
+    name: '冻结行超出可视高度时主视口塌陷（仅上下冻结）',
+    anchor:
+      '\t\t} else if (isTopView === true && isLeftView === false) {\n\t\t\tconst topGap = endSheetView.startY - startSheetView.startY;',
+    insert:
+      '\t\t} else if (isTopView === true && isLeftView === false) {\n\t\t\t// [patch-univer] 冻结区超高时保留主视口最小高度，避免滚动失效\n\t\t\tconst topGap = Math.max(0, Math.min(endSheetView.startY - startSheetView.startY, viewMain.scene.getParent().height / (Math.abs(viewMain.scene.scaleY) || 1) - columnHeaderHeightAndMarginTop - 80));',
+  },
+  {
+    pkg: 'sheets-ui',
+    file: 'lib/es/index.js',
+    name: '冻结行列同时超出可视尺寸时主视口塌陷',
+    anchor:
+      '\t\t\tconst leftGap = endSheetView.startX - startSheetView.startX;\n\t\t\tconst topGap = endSheetView.startY - startSheetView.startY;',
+    insert:
+      '\t\t\t// [patch-univer] 冻结区超宽/超高时保留主视口最小尺寸，避免滚动失效\n\t\t\tconst leftGap = Math.max(0, Math.min(endSheetView.startX - startSheetView.startX, viewMain.scene.getParent().width / (Math.abs(viewMain.scene.scaleX) || 1) - rowHeaderWidthAndMarginLeft - 80));\n\t\t\tconst topGap = Math.max(0, Math.min(endSheetView.startY - startSheetView.startY, viewMain.scene.getParent().height / (Math.abs(viewMain.scene.scaleY) || 1) - columnHeaderHeightAndMarginTop - 80));',
   },
 ];
 

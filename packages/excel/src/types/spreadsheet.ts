@@ -18,6 +18,7 @@ export interface SheetRichTextRun {
 export interface SheetRichTextBody {
   dataStream: string;
   textRuns?: SheetRichTextRun[];
+  paragraphs?: { startIndex: number }[];
 }
 
 /** 单元格富文本子集（形状对齐 Univer IDocumentData；快照经 as never 直通 createWorkbook） */

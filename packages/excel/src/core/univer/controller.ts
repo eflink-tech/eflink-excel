@@ -4,6 +4,7 @@ import {
   LocaleType,
   mergeLocales,
 } from '@univerjs/presets';
+import { IUndoRedoService, type IDisposable, type Injector } from '@univerjs/core';
 import type { OfficeLocale } from '@eflink-tech/office-kit';
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
 import PresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
@@ -73,7 +74,7 @@ const WeComZhCN = {
     },
   },
 };
-import type { WorkbookSnapshot } from '../../types/spreadsheet';
+import type { SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 
 /** 界面语言 → Univer 内置语言包 */
 const UNIVER_LOCALE_BY_OFFICE: Record<OfficeLocale, LocaleType> = {
@@ -169,6 +170,81 @@ export interface MountHooks {
   onChange(): void;
 }
 
+/** Univer WrapStrategy.WRAP（导入快照内联样式 s.tb 的取值） */
+const WRAP_STRATEGY_WRAP = 3;
+
+/**
+ * 自动行高相关命令（含非当前 sheet 懒计算与脏行标记）：只影响版式，
+ * 由内容编辑间接触发时不应单独置脏（否则打开文件后切页就会显示「未保存」）。
+ */
+const AUTO_HEIGHT_COMMANDS = new Set([
+  'sheet.command.set-row-is-auto-height',
+  'sheet.mutation.set-worksheet-row-is-auto-height',
+  'sheet.mutation.set-worksheet-row-auto-height',
+  'sheet.operation.mark-dirty-row-auto-height',
+  'sheet.operation.cancel-mark-dirty-row-auto-height',
+]);
+
+/**
+ * 找出「有自动换行、但没有显式行高」的行，返回连续段 [起始行, 行数]。
+ * Excel/LibreOffice 打开这类行会按内容自动撑高，而 Univer 加载快照时不做计算，
+ * 保持默认行高会把换行文本裁掉。
+ */
+function wrappedRowsWithoutHeight(sheet: SnapshotSheet): [number, number][] {
+  const explicitRows = sheet.rowData ?? {};
+  const rows: number[] = [];
+  for (const [key, cells] of Object.entries(sheet.cellData ?? {})) {
+    const row = Number(key);
+    if (explicitRows[row]) continue;
+    const wrapped = Object.values(cells).some((cell: SnapshotCell) => typeof cell.s === 'object' && cell.s?.tb === WRAP_STRATEGY_WRAP);
+    if (wrapped) rows.push(row);
+  }
+  rows.sort((a, b) => a - b);
+  const runs: [number, number][] = [];
+  for (const row of rows) {
+    const last = runs[runs.length - 1];
+    if (last && row === last[0] + last[1]) last[1] += 1;
+    else runs.push([row, 1]);
+  }
+  return runs;
+}
+
+/**
+ * 导入后还原自动行高：文本尺寸要等首帧渲染（skeleton 就绪）才能测量，故等 Rendered 阶段再算。
+ * 返回的生命周期监听需在销毁时释放。
+ */
+function scheduleImportedRowAutoHeight(api: UniverApi, snapshot: WorkbookSnapshot): IDisposable | null {
+  const run = () => {
+    if (currentApi !== api) return;
+    const wb = api.getActiveWorkbook();
+    if (!wb) return;
+    for (const [sheetId, sheet] of Object.entries(snapshot.sheets)) {
+      const ws = wb.getSheetBySheetId(sheetId);
+      if (!ws) continue;
+      for (const [startRow, numRows] of wrappedRowsWithoutHeight(sheet)) {
+        ws.setRowAutoHeight(startRow, numRows);
+      }
+    }
+    // 加载还原不应留在撤销栈里：否则首次撤销会把行高改回裁切状态
+    try {
+      (getUniverInjector() as Injector | null)?.get(IUndoRedoService).clearUndoRedo(wb.getId());
+    } catch {
+      // DI 容器不可用时仅影响撤销栈，行高已生效
+    }
+  };
+  if (api.getCurrentLifecycleStage() >= api.Enum.LifecycleStages.Rendered) {
+    run();
+    return null;
+  }
+  let watch: IDisposable | null = null;
+  watch = api.addEvent(api.Event.LifeCycleChanged, ({ stage }) => {
+    if (stage < api.Enum.LifecycleStages.Rendered) return;
+    watch?.dispose();
+    run();
+  });
+  return watch;
+}
+
 export function mountUniver(
   container: HTMLElement,
   snapshot: WorkbookSnapshot,
@@ -233,12 +309,16 @@ export function mountUniver(
   }
 
   univerAPI.createWorkbook(snapshot as never);
+  // 导入的换行行按内容撑高（等首帧渲染完成后计算，见 scheduleImportedRowAutoHeight）
+  const autoHeightWatch = scheduleImportedRowAutoHeight(univerAPI, snapshot);
 
   // 恢复该工作簿持久化的图表元数据（双击图表打开设置面板依赖它）
   const workbookUnitId = univerAPI.getActiveWorkbook()?.getId();
   if (workbookUnitId) loadChartMetasForUnit(workbookUnitId);
 
-  const stopWatch = univerAPI.onCommandExecuted(() => hooks.onChange());
+  const stopWatch = univerAPI.onCommandExecuted((command) => {
+    if (!AUTO_HEIGHT_COMMANDS.has(command.id)) hooks.onChange();
+  });
 
   // 数据联动：单元格赋值（编辑/粘贴/填充/清除）与行列增删后，按图表源引用重读并重渲染
   // （setSource 走 drawing 命令，不在集合内，不会循环触发）
@@ -319,6 +399,7 @@ export function mountUniver(
     },
       destroy() {
         stopWatch.dispose();
+        autoHeightWatch?.dispose();
         liveChartWatch.dispose();
         filterPanelWatch.dispose();
         selectedWatch.dispose();

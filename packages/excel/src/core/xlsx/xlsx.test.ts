@@ -233,6 +233,31 @@ describe('xlsx 导入方向：扩展样式', () => {
     expect(snap.sheets['sheet-01'].cellData[0]?.[0]?.s).toBeUndefined();
   });
 
+  it('只有样式没有值的单元格也导入（空行框线/底色不丢）', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = '表头';
+      const empty = ws.getCell('C3');
+      empty.border = { top: { style: 'thin' }, left: { style: 'thin' } };
+      empty.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
+    });
+    const cell = snap.sheets['sheet-01'].cellData[2]?.[2];
+    expect(cell?.v).toBeUndefined();
+    const st = cell?.s as CellStyle;
+    expect(st.bd).toEqual({ t: { s: 1, cl: { rgb: '#000000' } }, l: { s: 1, cl: { rgb: '#000000' } } });
+    expect(st.bg).toEqual({ rgb: '#e7e6e6' });
+  });
+
+  it('列宽按 Normal 字体数字宽换算（12pt → 每字符 8px + 5px 内边距）', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('列宽表');
+    ws.getCell('A1').value = 'x';
+    ws.getColumn(1).width = 15.83203125;
+    ws.getColumn(2).width = 8.43;
+    const snap = workbookToSnapshot(wb, '列宽', { normalFontSize: 12 });
+    expect(snap.sheets['sheet-01'].columnData?.[0]?.w).toBe(132);
+    expect(snap.sheets['sheet-01'].columnData?.[1]?.w).toBe(72);
+  });
+
   it('冻结窗格与隐藏行列导入', () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('冻结表');
@@ -302,6 +327,32 @@ describe('xlsx 导入方向：扩展样式', () => {
     expect(cell?.p?.body.textRuns?.[0]).toMatchObject({ st: 0, ed: 3 });
   });
 
+  it('纯文本含换行转文档：双击编辑不再丢失换行', () => {
+    const snap = importWorkbook((ws) => {
+      ws.getCell('A1').value = '第一行\n第二行\r\n第三行';
+    });
+    const cell = snap.sheets['sheet-01'].cellData[0]?.[0];
+    // Univer 编辑器会丢弃 v 里的 \r\n（extractPureTextFromCell），故导入即转富文本文档
+    expect(cell?.v).toBe('第一行\n第二行\n第三行');
+    expect(cell?.p?.body.dataStream).toBe('第一行\r第二行\r第三行\r\n');
+    expect(cell?.p?.body.paragraphs).toEqual([
+      { startIndex: 3 },
+      { startIndex: 7 },
+      { startIndex: 11 },
+    ]);
+  });
+
+  it('纯文本换行转文档后可无损导出回 xlsx', () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('换行表');
+    ws.getCell('A1').value = '第一行\n第二行';
+    const snap = workbookToSnapshot(wb, '换行');
+    const out = new ExcelJS.Workbook();
+    snapshotToWorkbook(snap, out);
+    const value = out.worksheets[0].getCell('A1').value as { richText?: { text: string }[] };
+    expect(value.richText?.map((t) => t.text)).toEqual(['第一行\n第二行']);
+  });
+
   it('冻结窗格仅 topLeftCell 时回退解析', () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('回退表');
@@ -360,7 +411,7 @@ describe('xlsx 导出方向：扩展样式', () => {
     expect(ws.views?.[0]).toMatchObject({ state: 'frozen', xSplit: 1, ySplit: 2 });
     expect(ws.getRow(1).height).toBeCloseTo(24, 0);
     expect(ws.getRow(4).hidden).toBe(true);
-    expect(ws.getColumn(1).width).toBeCloseTo(12, 0);
+    expect(ws.getColumn(1).width).toBeCloseTo(16.43, 1);
     expect(ws.getColumn(3).hidden).toBe(true);
   });
 
@@ -401,7 +452,7 @@ describe('xlsx 导出方向：扩展样式', () => {
     expect(ws.getRow(4).hidden).toBe(true);
     expect(ws.getRow(4).height).toBeCloseTo(30, 0);
     expect(ws.getColumn(3).hidden).toBe(true);
-    expect(ws.getColumn(3).width).toBeCloseTo(10, 0);
+    expect(ws.getColumn(3).width).toBeCloseTo(13.57, 1);
   });
 
   it('toArgb 颜色防御：3 位展开、8 位去 alpha、异常回退黑色', () => {
@@ -643,7 +694,7 @@ describe('xlsx 导入：表属性（标签色/网格线/RTL/默认尺寸）', ()
     expect(sheet.showGridlines).toBe(0);
     expect(sheet.rightToLeft).toBe(1);
     expect(sheet.defaultRowHeight).toBe(27); // 20pt → 27px
-    expect(sheet.defaultColumnWidth).toBe(120); // 12字符 → 120px
+    expect(sheet.defaultColumnWidth).toBe(89); // 12字符 × 7px + 5px 内边距
   });
 
   it('回路：表属性写回 exceljs（views 合并冻结/网格线/RTL）', () => {

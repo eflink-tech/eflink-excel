@@ -5,7 +5,21 @@ import { newId } from '../../types/spreadsheet';
 import { parseThemePalette, resolveColorHex, STANDARD_OFFICE_THEME, type ColorRef } from './colorResolve';
 
 const PT_TO_PX = 1 / 0.75;
-const CHAR_TO_PX = 10;
+
+/** 字号(pt) → 数字最大宽度(px)：Excel 列宽字符单位取自 Normal 字体数字宽（Calibri 约 0.507em） */
+function digitWidthOf(fontPt: number): number {
+  return Math.max(1, Math.round(fontPt * PT_TO_PX * 0.507));
+}
+
+/** 列宽字符 → px：Excel 以 Normal 字体数字宽为 1 字符，另加 5px 单元格内边距 */
+function columnWidthToPx(width: number, digitWidth: number): number {
+  return Math.round(width * digitWidth) + 5;
+}
+
+export interface SnapshotImportOptions {
+  /** 工作簿 Normal 字号（styles.xml 首个 cellStyleXf 的 fontId 指向的字体）；缺省按 Excel 默认 Calibri 11 */
+  normalFontSize?: number;
+}
 
 /** exceljs/OOXML 线型 → Univer BorderStyleTypes 数值枚举（1=THIN…13=THICK），两侧词表一致故 1:1 直映 */
 const BORDER_STYLE_IDS: Record<string, number> = {
@@ -40,14 +54,15 @@ function themePaletteOf(wb: Workbook): string[] {
   return (xml && parseThemePalette(xml)) || STANDARD_OFFICE_THEME;
 }
 
-export function workbookToSnapshot(wb: Workbook, name: string): WorkbookSnapshot {
+export function workbookToSnapshot(wb: Workbook, name: string, options: SnapshotImportOptions = {}): WorkbookSnapshot {
   const palette = themePaletteOf(wb);
+  const digitWidth = digitWidthOf(options.normalFontSize ?? 11);
   const sheets: Record<string, SnapshotSheet> = {};
   const sheetOrder: string[] = [];
   const filters: Record<string, { ref: MergeRange; filterColumns: never[] }> = {};
   wb.worksheets.forEach((ws, index) => {
     const id = `sheet-${String(index + 1).padStart(2, '0')}`;
-    sheets[id] = readSheet(ws, id, palette);
+    sheets[id] = readSheet(ws, id, palette, digitWidth);
     sheetOrder.push(id);
     const ref = readAutoFilter(ws);
     if (ref) filters[id] = { ref, filterColumns: [] };
@@ -62,14 +77,14 @@ export function workbookToSnapshot(wb: Workbook, name: string): WorkbookSnapshot
   };
 }
 
-function readSheet(ws: Worksheet, id: string, palette: string[]): SnapshotSheet {
+function readSheet(ws: Worksheet, id: string, palette: string[], digitWidth: number): SnapshotSheet {
   const cellData: SnapshotSheet['cellData'] = {};
-  ws.eachRow({ includeEmpty: false }, (row, r) => {
-    cellData[r - 1] ??= {};
-    row.eachCell({ includeEmpty: false }, (cell, c) => {
+  // includeEmpty 必须为 true：只有边框/底色而无值的单元格同样是源表视觉的一部分（如表格框线的空行）
+  ws.eachRow({ includeEmpty: true }, (row, r) => {
+    row.eachCell({ includeEmpty: true }, (cell, c) => {
       const uc = readCell(cell, palette);
       // 富文本单元格仅有 p，也需保留
-      if (uc.v !== undefined || uc.f || uc.s || uc.p) cellData[r - 1][c - 1] = uc;
+      if (uc.v !== undefined || uc.f || uc.s || uc.p) (cellData[r - 1] ??= {})[c - 1] = uc;
     });
   });
 
@@ -85,7 +100,7 @@ function readSheet(ws: Worksheet, id: string, palette: string[]): SnapshotSheet 
   const columnData: SnapshotSheet['columnData'] = {};
   ws.columns?.forEach((col, i) => {
     if (!col) return;
-    const w = col.width ? Math.round(col.width * CHAR_TO_PX) : 0;
+    const w = col.width ? columnWidthToPx(col.width, digitWidth) : 0;
     if (col.hidden) columnData[i] = { w, hd: 1 };
     else if (w) columnData[i] = { w };
   });
@@ -118,7 +133,7 @@ function readSheet(ws: Worksheet, id: string, palette: string[]): SnapshotSheet 
   const defaultRowHeight = ws.properties?.defaultRowHeight;
   if (defaultRowHeight) sheet.defaultRowHeight = Math.round(defaultRowHeight * PT_TO_PX);
   const defaultColWidth = ws.properties?.defaultColWidth;
-  if (defaultColWidth) sheet.defaultColumnWidth = Math.round(defaultColWidth * CHAR_TO_PX);
+  if (defaultColWidth) sheet.defaultColumnWidth = columnWidthToPx(defaultColWidth, digitWidth);
 
   return sheet;
 }
@@ -208,6 +223,10 @@ function readCell(cell: Cell, palette: string[]): SnapshotCell {
     // 超链接对象：显示文本（缺省退化为 URL 本身），不能把对象塞进 v；URL 由 fileIO 侧单独提取落位
     const link = val as CellHyperlinkValue;
     uc.v = typeof link.text === 'string' ? link.text : link.hyperlink;
+  } else if (typeof val === 'string' && /[\r\n]/.test(val)) {
+    // 纯文本换行转富文本：Univer 双击编辑时走 extractPureTextFromCell，会把 v 里的 \r\n 丢掉，
+    // 提交后换行即丢失；以文档形式存储才能让编辑器保留段落
+    applyPlainText(uc, val, Number(cell.row), Number(cell.col));
   } else if (val != null) {
     uc.v = val as string | number | boolean;
   }
@@ -307,6 +326,24 @@ function applyRichText(uc: SnapshotCell, val: CellRichTextValue, row: number, co
     body: { dataStream, ...(textRuns.length ? { textRuns } : {}) },
     documentStyle: {},
   };
+}
+
+/** 纯文本 → 富文本：按 Univer 文档流约定用 \r 分段（\r\n 仅作文档结尾） */
+function applyPlainText(uc: SnapshotCell, text: string, row: number, col: number): void {
+  const normalized = text.replace(/\r\n?/g, '\n');
+  const dataStream = `${normalized.replace(/\n/g, '\r')}\r\n`;
+  // 段落表让 Univer 编辑提交时按富文本保留（isRichText 判定依赖段落数/样式），否则会被压回单段
+  const paragraphs: { startIndex: number }[] = [];
+  for (let i = 0; i < dataStream.length; i++) {
+    if (dataStream[i] === '\r') paragraphs.push({ startIndex: i });
+  }
+  uc.p = {
+    id: `__eflink-plain-text-r${row}-c${col}`,
+    body: { dataStream, paragraphs },
+    documentStyle: {},
+  };
+  // 同时保留纯文本值，供公式栏等只读 v 的入口展示
+  uc.v = normalized;
 }
 
 /** exceljs run 字体 → CellStyle（字段名与 CellStyle 有差异，先做显式转换） */

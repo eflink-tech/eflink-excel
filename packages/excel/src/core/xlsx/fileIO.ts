@@ -1,8 +1,10 @@
 // 浏览器侧文件 IO：xlsx 导入导出、PNG 导出、下载工具
 import * as ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
+import JSZip from 'jszip';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
+import { findAll, findFirst, parseXml } from './xmlLite';
 import { extractCharts, type ImportedChart } from './chartImport';
 import { extractAnnotations, type ImportedAnnotations } from './annotationImport';
 import { buildChartOption, DEFAULT_CHART_ELEMENTS, renderChartFrameToDataUrl } from '../univer/chartOptions';
@@ -29,12 +31,27 @@ export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
-  const snapshot = workbookToSnapshot(wb, trimExt(file.name));
+  const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
+  const snapshot = workbookToSnapshot(wb, trimExt(file.name), { normalFontSize });
   const [charts, annotations] = await Promise.all([
     renderImportedCharts(await extractCharts(buffer).catch(() => [])),
     extractAnnotations(buffer).catch(() => ({ links: [], comments: [] })),
   ]);
   return { snapshot, charts, annotations };
+}
+
+/** styles.xml → Normal 字号：cellStyleXfs 首个 xf 的 fontId 指向字体（缺省 0），列宽字符单位以此换算 */
+async function readNormalFontSize(buffer: ArrayBuffer): Promise<number | undefined> {
+  const zip = await JSZip.loadAsync(buffer);
+  const xml = await zip.file('xl/styles.xml')?.async('string');
+  if (!xml) return undefined;
+  const root = parseXml(xml);
+  const fonts = findAll(root, 'font');
+  const styleXfs = findFirst(root, 'cellStyleXfs');
+  const firstXf = findAll(styleXfs, 'xf')[0];
+  const font = fonts[Number(firstXf?.attrs.fontId ?? 0)] ?? fonts[0];
+  const size = Number(findAll(font, 'sz')[0]?.attrs.val);
+  return Number.isFinite(size) && size > 0 ? size : undefined;
 }
 
 /** 解析出的图表渲染为 PNG dataUrl（单张失败跳过，不影响其余与单元格导入） */

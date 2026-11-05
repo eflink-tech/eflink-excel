@@ -12,7 +12,9 @@ const toArgb = (rgb: string): string => {
   return 'FF000000';
 };
 const PX_TO_PT = 0.75; // Univer 行高(px) -> excel 行高(pt)
-const PX_TO_CHAR = 10; // Univer 列宽(px) -> excel 字符宽（经验换算）
+/** Univer 列宽(px) -> excel 字符宽：与导入侧对称（Calibri 11 数字宽 7px，另加 5px 内边距） */
+const CHAR_DIGIT_PX = 7;
+const pxToChar = (px: number): number => Math.max(5, (px - 5) / CHAR_DIGIT_PX);
 
 /** Univer BorderStyleTypes 数值枚举 → exceljs/OOXML 线型（1:1 直映） */
 const BORDER_STYLE_NAMES: Record<number, string> = {
@@ -64,7 +66,7 @@ function writeSheet(sheet: SnapshotSheet, ws: Worksheet, styles: Record<string, 
   // 表属性：标签色 + 默认行列尺寸（行高 px→pt、列宽 px→字符）
   if (sheet.tabColor) ws.properties.tabColor = { argb: toArgb(sheet.tabColor) };
   if (sheet.defaultRowHeight) ws.properties.defaultRowHeight = sheet.defaultRowHeight * PX_TO_PT;
-  if (sheet.defaultColumnWidth) ws.properties.defaultColWidth = sheet.defaultColumnWidth / PX_TO_CHAR;
+  if (sheet.defaultColumnWidth) ws.properties.defaultColWidth = pxToChar(sheet.defaultColumnWidth);
   for (const [r, rd] of Object.entries(sheet.rowData ?? {})) {
     const row = ws.getRow(Number(r) + 1);
     if (rd.hd) row.hidden = true;
@@ -73,7 +75,7 @@ function writeSheet(sheet: SnapshotSheet, ws: Worksheet, styles: Record<string, 
   for (const [c, cd] of Object.entries(sheet.columnData ?? {})) {
     const col = ws.getColumn(Number(c) + 1);
     if (cd.hd) col.hidden = true;
-    if (cd.w) col.width = Math.max(5, cd.w / PX_TO_CHAR); // 隐藏列也保留原尺寸
+    if (cd.w) col.width = pxToChar(cd.w); // 隐藏列也保留原尺寸
   }
 }
 
