@@ -1,7 +1,9 @@
 // 顶部菜单可用的文件操作（标题栏、AppMenu 共用）
 import { currentSnapshot, saveNow } from './saveService';
 import { exportEfexcel, importEfexcel } from './efexcel';
-import { exportPng, exportXlsx, importXlsx, trimExt } from './xlsx/fileIO';
+import { exportXlsx, importXlsx, trimExt } from './xlsx/fileIO';
+import { exportSheetPng } from './xlsx/sheetImage';
+import { getActiveSheetImageData } from './univer/controller';
 import { queueImportedCharts } from './xlsx/chartImport';
 import { queueImportedAnnotations } from './xlsx/annotationImport';
 import { pickFile } from './filePicker';
@@ -48,13 +50,14 @@ export async function exportEfexcelAction(): Promise<void> {
   }
 }
 
-/** 导出图片是纯读操作：直接截当前 DOM，不保存、不改变 dirty 状态 */
+/** 导出图片：导出当前 sheet 的全部内容（按已用区域重建整表，而非可视区域截图） */
 export async function exportPngAction(): Promise<void> {
-  const el = document.getElementById('univer-container');
-  if (!el) return;
   const { title } = useEditorStore.getState();
+  const snapshot = currentSnapshot();
+  const data = snapshot ? getActiveSheetImageData(snapshot) : null;
+  if (!data) return;
   try {
-    await exportPng(el, title || excelT('excel.untitled'));
+    await exportSheetPng(data, title || excelT('excel.untitled'));
     useUiStore.getState().showToast(excelT('excel.toast.exportedPng'));
   } catch (err) {
     console.error('导出图片失败', err);

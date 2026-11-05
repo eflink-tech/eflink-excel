@@ -75,6 +75,7 @@ const WeComZhCN = {
   },
 };
 import type { SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
+import type { SheetImageData } from '../xlsx/sheetImage';
 import { normalizeSnapshotFormulas } from '../xlsx/formulaNormalize';
 
 /** 界面语言 → Univer 内置语言包 */
@@ -148,6 +149,35 @@ let currentUniver: ReturnType<typeof createUniver>['univer'] | null = null;
 
 export function getUniverApi(): UniverApi | null {
   return currentApi;
+}
+
+/**
+ * 当前 sheet 的整表导出数据：已用区域（含合并单元格）的显示值、原始值、行高列宽。
+ * 显示值走 facade，保证公式结果与数字格式和界面一致。
+ */
+export function getActiveSheetImageData(snapshot: WorkbookSnapshot): SheetImageData | null {
+  const ws = currentApi?.getActiveWorkbook()?.getActiveSheet();
+  if (!ws) return null;
+  const sheetId = ws.getSheetId();
+  const sheet = snapshot.sheets[sheetId];
+  if (!sheet) return null;
+  let lastRow = Math.max(0, ws.getLastRow());
+  let lastColumn = Math.max(0, ws.getLastColumn());
+  for (const merge of sheet.mergeData ?? []) {
+    lastRow = Math.max(lastRow, merge.endRow);
+    lastColumn = Math.max(lastColumn, merge.endColumn);
+  }
+  lastRow = Math.min(lastRow, Math.max(0, ws.getMaxRows() - 1));
+  lastColumn = Math.min(lastColumn, Math.max(0, ws.getMaxColumns() - 1));
+  const range = ws.getRange(0, 0, lastRow + 1, lastColumn + 1);
+  return {
+    sheet,
+    styles: snapshot.styles,
+    displayValues: range.getDisplayValues(),
+    rawValues: range.getValues() as unknown[][],
+    rowHeights: Array.from({ length: lastRow + 1 }, (_, r) => ws.getRowHeight(r)),
+    columnWidths: Array.from({ length: lastColumn + 1 }, (_, c) => ws.getColumnWidth(c)),
+  };
 }
 
 /** 暴露底层 DI 容器：导入批注需向 UserManagerService 注册原作者（facade 未开放 addUser） */

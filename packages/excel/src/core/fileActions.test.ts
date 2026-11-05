@@ -7,10 +7,17 @@ vi.mock('./efexcel', () => ({
 }));
 
 vi.mock('./xlsx/fileIO', () => ({
-  exportPng: vi.fn(),
   exportXlsx: vi.fn(),
   importXlsx: vi.fn(),
   trimExt: (name: string) => name.replace(/\.(xlsx|xlsm|xls)$/i, ''),
+}));
+
+vi.mock('./xlsx/sheetImage', () => ({
+  exportSheetPng: vi.fn(),
+}));
+
+vi.mock('./univer/controller', () => ({
+  getActiveSheetImageData: vi.fn(),
 }));
 
 vi.mock('./filePicker', () => ({
@@ -23,7 +30,9 @@ vi.mock('./saveService', () => ({
 }));
 
 import { exportEfexcel, importEfexcel } from './efexcel';
-import { exportPng, exportXlsx, importXlsx } from './xlsx/fileIO';
+import { exportXlsx, importXlsx } from './xlsx/fileIO';
+import { exportSheetPng } from './xlsx/sheetImage';
+import { getActiveSheetImageData } from './univer/controller';
 import { pickFile } from './filePicker';
 import { currentSnapshot, saveNow } from './saveService';
 import {
@@ -45,7 +54,8 @@ import { createDocument, createEmptySnapshot } from '../types/spreadsheet';
 
 const mockExportEfexcel = vi.mocked(exportEfexcel);
 const mockImportEfexcel = vi.mocked(importEfexcel);
-const mockExportPng = vi.mocked(exportPng);
+const mockExportSheetPng = vi.mocked(exportSheetPng);
+const mockGetActiveSheetImageData = vi.mocked(getActiveSheetImageData);
 const mockExportXlsx = vi.mocked(exportXlsx);
 const mockImportXlsx = vi.mocked(importXlsx);
 const mockPickFile = vi.mocked(pickFile);
@@ -54,6 +64,8 @@ const mockCurrentSnapshot = vi.mocked(currentSnapshot);
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  mockCurrentSnapshot.mockReset();
+  mockGetActiveSheetImageData.mockReset();
   mockSaveNow.mockResolvedValue(undefined);
   setDefaultStorage(memoryStorage());
   useDocumentsStore.setState({ docs: [] });
@@ -129,28 +141,35 @@ describe('fileActions 文件动作', () => {
     expect(useUiStore.getState().toast).toBe('导出失败');
   });
 
-  it('exportPngAction 页面无编辑器容器时不触发导出', async () => {
-    document.getElementById('univer-container')?.remove();
+  it('exportPngAction 没有当前 sheet 数据时不触发导出', async () => {
+    mockGetActiveSheetImageData.mockReturnValueOnce(null);
 
     await exportPngAction();
 
-    expect(mockExportPng).not.toHaveBeenCalled();
+    expect(mockExportSheetPng).not.toHaveBeenCalled();
   });
 
-  it('exportPngAction 截图编辑器容器并提示已导出图片', async () => {
-    const container = document.createElement('div');
-    container.id = 'univer-container';
-    document.body.appendChild(container);
+  it('exportPngAction 导出当前 sheet 整表并提示已导出图片', async () => {
+    const snapshot = createEmptySnapshot();
+    const data = {
+      sheet: snapshot.sheets['sheet-01'],
+      displayValues: [['1']],
+      rawValues: [[1]],
+      rowHeights: [24],
+      columnWidths: [88],
+    };
+    mockCurrentSnapshot.mockReturnValueOnce(snapshot);
+    mockGetActiveSheetImageData.mockReturnValueOnce(data);
     useEditorStore.setState({ dirty: true });
 
     await exportPngAction();
 
-    expect(mockExportPng).toHaveBeenCalledWith(container, '基础文档');
+    expect(mockGetActiveSheetImageData).toHaveBeenCalledWith(snapshot);
+    expect(mockExportSheetPng).toHaveBeenCalledWith(data, '基础文档');
     expect(useUiStore.getState().toast).toBe('已导出图片');
     // 纯读操作：不触发保存、不改变 dirty 状态
     expect(mockSaveNow).not.toHaveBeenCalled();
     expect(useEditorStore.getState().dirty).toBe(true);
-    container.remove();
   });
 
   it('importFileAction 成功后新建文档打开并提示导入成功', async () => {
