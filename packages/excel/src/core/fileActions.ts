@@ -102,36 +102,42 @@ export async function importXlsxAction(file: File): Promise<void> {
   // 确认期间文档可能已被切换/关闭，重新快照 docId（TOCTOU）
   const confirmedDocId = useEditorStore.getState().docId;
   if (!confirmedDocId) return;
+  // 与 Word 导入一致：解析期间显示全屏 loading，结束（含失败）后关闭
+  useUiStore.getState().setImporting(true);
   try {
-    // 先保存：冲掉 dirty 与自动保存防抖，避免导入后 ⌘S/自动保存用旧编辑器快照覆盖导入结果
-    await saveNow();
-  } catch (err) {
-    console.error('导入前保存失败', err);
-    useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
-    return;
-  }
-  try {
-    // 先解析：失败在落盘前抛出，当前文档不受影响（图表已渲染成图片随结果一并返回）
-    const { snapshot, charts, annotations } = await importXlsx(file);
     try {
-      await getDefaultStorage().updateContent(confirmedDocId, trimExt(file.name), snapshot);
+      // 先保存：冲掉 dirty 与自动保存防抖，避免导入后 ⌘S/自动保存用旧编辑器快照覆盖导入结果
+      await saveNow();
     } catch (err) {
-      console.error('导入保存文档失败', err);
+      console.error('导入前保存失败', err);
       useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
       return;
     }
-    // 图表/批注/超链接入队：编辑器重载挂载 Univer 后落位（队列在各解析模块，避免此处引入 Univer 依赖）
-    queueImportedCharts(charts);
-    queueImportedAnnotations(annotations);
-    clearDraft(confirmedDocId); // 防重载读到旧草稿
-    void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
-    useEditorStore.getState().bumpReload();
-    useUiStore
-      .getState()
-      .showToast(charts.length ? excelT('excel.toast.importedWithCharts', { count: charts.length }) : excelT('excel.toast.imported'));
-  } catch (err) {
-    console.error('导入 Excel 失败', err);
-    useUiStore.getState().showToast(excelT('excel.toast.importFailed'));
+    try {
+      // 先解析：失败在落盘前抛出，当前文档不受影响（图表已渲染成图片随结果一并返回）
+      const { snapshot, charts, annotations } = await importXlsx(file);
+      try {
+        await getDefaultStorage().updateContent(confirmedDocId, trimExt(file.name), snapshot);
+      } catch (err) {
+        console.error('导入保存文档失败', err);
+        useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
+        return;
+      }
+      // 图表/批注/超链接入队：编辑器重载挂载 Univer 后落位（队列在各解析模块，避免此处引入 Univer 依赖）
+      queueImportedCharts(charts);
+      queueImportedAnnotations(annotations);
+      clearDraft(confirmedDocId); // 防重载读到旧草稿
+      void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
+      useEditorStore.getState().bumpReload();
+      useUiStore
+        .getState()
+        .showToast(charts.length ? excelT('excel.toast.importedWithCharts', { count: charts.length }) : excelT('excel.toast.imported'));
+    } catch (err) {
+      console.error('导入 Excel 失败', err);
+      useUiStore.getState().showToast(excelT('excel.toast.importFailed'));
+    }
+  } finally {
+    useUiStore.getState().setImporting(false);
   }
 }
 

@@ -16,6 +16,9 @@ interface UiStore {
   toast: string | null;
   showToast: (msg: string) => void;
   clearToast: () => void;
+  /** Excel 导入进行中（解析/落盘），由 LoadingDialog 全屏遮罩消费 */
+  importing: boolean;
+  setImporting: (importing: boolean) => void;
   /** 当前打开「图表设置」面板的图片 id（null = 面板关闭） */
   chartPanelDrawingId: string | null;
   openChartPanel: (drawingId: string) => void;
@@ -34,6 +37,8 @@ export const useUiStore = create<UiStore>((set) => ({
   toast: null,
   showToast: (msg) => set({ toast: msg }),
   clearToast: () => set({ toast: null }),
+  importing: false,
+  setImporting: (importing) => set({ importing }),
   chartPanelDrawingId: null,
   openChartPanel: (drawingId) => set({ chartPanelDrawingId: drawingId }),
   closeChartPanel: () => set({ chartPanelDrawingId: null }),

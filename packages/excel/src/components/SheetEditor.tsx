@@ -18,6 +18,7 @@ import {
 import * as cmd from '../core/univer/commands';
 import { EXCEL_MESSAGES, setExcelLocale } from '../i18n';
 import { ConfirmDialogHost } from './ConfirmDialog';
+import { LoadingDialog } from './LoadingDialog';
 import { ShareDialog } from './ShareDialog';
 import { FormulaBar } from './toolbar/FormulaBar';
 import { SheetToolbar } from './toolbar/SheetToolbar';
@@ -97,6 +98,7 @@ function SheetEditorInner({
   const [snapshot, setSnapshot] = useState<WorkbookSnapshot | null>(null);
   const aiPanelOpen = useUiStore((s) => s.aiPanelOpen);
   const toggleAIPanel = useUiStore((s) => s.toggleAIPanel);
+  const importing = useUiStore((s) => s.importing);
   // 导入替换等场景触发文档重载（docId 不变，仅此计数变化）
   const reloadToken = useEditorStore((s) => s.reloadToken);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -343,6 +345,7 @@ function SheetEditorInner({
       <BottomBar />
       {/* 确认弹窗宿主（新建文档等二次确认经 useUiStore.requestConfirm 发起） */}
       <ConfirmDialogHost />
+      {importing && <LoadingDialog message={t('excel.loading.importXlsx')} />}
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>

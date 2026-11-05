@@ -201,6 +201,22 @@ describe('fileActions 文件动作', () => {
     expect(useUiStore.getState().toast).toBe('导入成功');
   });
 
+  it('importXlsxAction 解析期间显示 loading，结束后关闭', async () => {
+    const base = createDocument('基础文档');
+    base.id = 'doc-base';
+    await getDefaultStorage().save(base);
+    let finish!: (value: Awaited<ReturnType<typeof importXlsx>>) => void;
+    mockImportXlsx.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+
+    const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
+    useUiStore.getState().resolveConfirm(true);
+    await vi.waitFor(() => expect(useUiStore.getState().importing).toBe(true));
+    finish({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] } });
+    await action;
+
+    expect(useUiStore.getState().importing).toBe(false);
+  });
+
   it('importXlsxAction 取消确认不解析不落盘', async () => {
     const reloadBefore = useEditorStore.getState().reloadToken;
     const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
@@ -247,6 +263,7 @@ describe('fileActions 文件动作', () => {
     await action;
 
     expect(useUiStore.getState().toast).toBe('导入失败：无法解析该文件');
+    expect(useUiStore.getState().importing).toBe(false);
     expect(useEditorStore.getState().reloadToken).toBe(reloadBefore);
   });
 

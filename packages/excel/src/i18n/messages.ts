@@ -11,6 +11,7 @@ const ROWS = {
   'excel.untitled': ['未命名表格', 'Untitled spreadsheet', 'Hoja de cálculo sin título', 'Planilha sem título'],
   'excel.loading': ['加载中…', 'Loading…', 'Cargando…', 'Carregando…'],
   'excel.editor.loading': ['编辑器加载中…', 'Loading editor…', 'Cargando el editor…', 'Carregando o editor…'],
+  'excel.loading.importXlsx': ['正在导入 Excel，请稍候…', 'Importing Excel, please wait…', 'Importando Excel, espera…', 'Importando Excel, aguarde…'],
   'excel.doc.notFound': ['文档不存在: {id}', 'Document not found: {id}', 'Documento no encontrado: {id}', 'Documento não encontrado: {id}'],
 
   // ── 文件菜单 ────────────────────────────────────────────
