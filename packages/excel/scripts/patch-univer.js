@@ -7,8 +7,9 @@
  *    抛 SyntaxError: Illegal character，导致此类内容粘贴失败。→ 增加剥离首尾单引号。
  * 2) sheets-filter-ui 面板定位：筛选面板 direction 由 horizontal（左右乱飘）改为
  *    vertical（固定在筛选列下方，空间不足自动上翻）。
- * 3) sheets-filter-ui 按钮 hover：hover 背景 gray.50 在白底上不可见 → gray.200，
- *    并在 hover 时把光标设为 pointer，提示可点击。
+ * 3) sheets-filter-ui 按钮 hover 与位置：hover 背景 gray.50 在白底上不可见 → gray.200，
+ *    hover 时把光标设为 pointer；按钮垂直位置改为统一居中，避免表头单元格垂直对齐
+ *    不一致时各列按钮高低错落。
  * 4) sheets-ui 冻结视口尺寸：冻结区合计宽高超过可视区域时，主视口被挤成负尺寸而无法滚动
  *    （xlsx 常见：冻结多列后在窄窗口打开）→ 冻结区尺寸钳制，为主视口保留最小尺寸。
  */
@@ -83,6 +84,13 @@ const PATCHES = [
     name: '筛选按钮 hover 背景加强',
     anchor: 'this._hovered ? this._themeService.getColorFromTheme("gray.50") : "rgba(255, 255, 255, 1.0)"',
     insert: 'this._hovered ? this._themeService.getColorFromTheme("gray.200") : "rgba(255, 255, 255, 1.0)"',
+  },
+  {
+    pkg: 'sheets-filter-ui',
+    file: 'lib/es/index.js',
+    name: '筛选按钮垂直居中（表头对齐不一致时错落）',
+    anchor: 'top: computeIconTop(startY, endY, cellHeight, verticalAlign),',
+    insert: 'top: startY + Math.max(0, (cellHeight - 16) / 2), // [patch-univer] 各列按钮统一垂直居中（表头对齐不一致时错落）',
   },
   {
     pkg: 'sheets-filter-ui',
