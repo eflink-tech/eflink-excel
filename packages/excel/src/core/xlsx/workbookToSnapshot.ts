@@ -68,13 +68,75 @@ export function workbookToSnapshot(wb: Workbook, name: string, options: Snapshot
     if (ref) filters[id] = { ref, filterColumns: [] };
   });
   const resources = buildResources(wb, filters);
-  return {
+  const snapshot: WorkbookSnapshot = {
     id: newId().replace('doc-', 'workbook-'),
     name,
     sheetOrder,
     sheets,
     ...(resources.length ? { resources } : {}),
   };
+  expandSheetBounds(sheets);
+  return snapshot;
+}
+
+/** 列字母 → 1 基列号（A=1） */
+function columnNumber(letters: string): number {
+  return letters.toUpperCase().split('').reduce((acc, ch) => acc * 26 + ch.charCodeAt(0) - 64, 0);
+}
+
+/** 取出公式里所有单元格/区域引用（含表名限定），供撑开 sheet 边界用 */
+function referencedRanges(formula: string): { sheetName?: string; range: string }[] {
+  const refs: { sheetName?: string; range: string }[] = [];
+  const cellRange = String.raw`\$?[A-Za-z]{1,3}\$?\d+(?::\$?[A-Za-z]{1,3}\$?\d+)?`;
+  // 表名限定：'带引号'!A1 或 表名!A1；带引号表名允许 '' 转义
+  const qualified = new RegExp(String.raw`(?:'((?:[^']|'')+)'|([^\s'!(),;+\-*/&^<>=%"]+))!(${cellRange})`, 'g');
+  let rest = formula;
+  for (const m of formula.matchAll(qualified)) {
+    refs.push({ sheetName: (m[1] !== undefined ? m[1].replace(/''/g, "'") : m[2]), range: m[3] });
+    rest = rest.replace(m[0], ' ');
+  }
+  // 去掉字符串字面量后，剩余为当前表内的本地引用
+  rest = rest.replace(/"(?:[^"]|"")*"/g, ' ');
+  for (const m of rest.matchAll(new RegExp(cellRange, 'g'))) refs.push({ range: m[0] });
+  return refs;
+}
+
+/**
+ * Univer 对超出 sheet 行列范围的引用求值成 #NAME?，Excel 则返回空单元格值 0。
+ * 源表常引用远大于实际数据区的空单元格（如 =②问题修复!V194 而该表只用到 181 行），
+ * 因此按公式引用把各 sheet 的 rowCount/columnCount 撑到引用范围，保证空引用正常求值为 0。
+ */
+function expandSheetBounds(sheets: Record<string, SnapshotSheet>): void {
+  const idByName = new Map<string, string>();
+  for (const sheet of Object.values(sheets)) idByName.set(sheet.name, sheet.id);
+  const required = new Map<string, { rows: number; cols: number }>();
+  const need = (id: string) => {
+    const cur = required.get(id) ?? { rows: 0, cols: 0 };
+    required.set(id, cur);
+    return cur;
+  };
+  for (const source of Object.values(sheets)) {
+    for (const row of Object.values(source.cellData)) {
+      for (const cell of Object.values(row)) {
+        if (!cell.f) continue;
+        for (const ref of referencedRanges(cell.f)) {
+          const targetId = ref.sheetName ? idByName.get(ref.sheetName) : source.id;
+          if (!targetId) continue;
+          const m = ref.range.match(/([A-Za-z]+)(\d+)/);
+          if (!m) continue;
+          const cur = need(targetId);
+          cur.rows = Math.max(cur.rows, Number(m[2]));
+          cur.cols = Math.max(cur.cols, columnNumber(m[1]));
+        }
+      }
+    }
+  }
+  for (const [id, req] of required) {
+    const sheet = sheets[id];
+    if (!sheet) continue;
+    sheet.rowCount = Math.max(sheet.rowCount ?? 0, req.rows + 5);
+    sheet.columnCount = Math.max(sheet.columnCount ?? 0, req.cols + 3);
+  }
 }
 
 function readSheet(ws: Worksheet, id: string, palette: string[], digitWidth: number): SnapshotSheet {
@@ -209,8 +271,11 @@ function readCell(cell: Cell, palette: string[]): SnapshotCell {
   const val = cell.value;
   if (val != null && typeof val === 'object' && ('formula' in val || 'sharedFormula' in val)) {
     // 普通公式 value 带 formula 文本；共享公式 value 只有 { sharedFormula, result }（formula 为
-    // undefined），须读 cell.formula getter——exceljs 已按行列位移把相对引用平移成本单元格的公式
-    uc.f = '=' + (cell.formula || (val as CellFormulaValue).formula);
+    // undefined），须读 cell.formula getter——exceljs 已按行列位移把相对引用平移成本单元格的公式。
+    // 公式文本按 OOXML 惯例不带 '='，但 WPS 等生产者会写成 <f>=SUM(...)</f>，须先去掉再补，
+    // 否则会得到 '==SUM(...)' 导致 Univer 解析失败、整表引用公式报 #VALUE!
+    const rawFormula = cell.formula || (val as CellFormulaValue).formula || '';
+    uc.f = rawFormula.startsWith('=') ? rawFormula : `=${rawFormula}`;
     applyCachedResult(uc, (val as CellFormulaValue | CellSharedFormulaValue).result);
   } else if (val != null && typeof val === 'object' && 'richText' in (val as CellRichTextValue)) {
     // exceljs 类型缺陷：Cell 继承的 Address 把 row/col 误声明为 string，运行时实为 number

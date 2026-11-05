@@ -311,6 +311,8 @@ const ROWS = {
   'excel.toast.exportFailed': ['导出失败', 'Export failed', 'Error al exportar', 'Falha ao exportar'],
   'excel.toast.imported': ['导入成功', 'Imported successfully', 'Importado correctamente', 'Importado com sucesso'],
   'excel.toast.importedWithCharts': ['导入成功（含 {count} 张图表）', 'Imported successfully ({count} charts)', 'Importado correctamente ({count} gráficos)', 'Importado com sucesso ({count} gráficos)'],
+  'excel.toast.importedLocalOnly': ['导入成功，文档超过 500KB，将仅保存在本地浏览器', 'Imported. The document exceeds 500KB and is saved only in this browser', 'Importado. El documento supera 500 KB y solo se guarda en este navegador', 'Importado. O documento excede 500 KB e será salvo apenas neste navegador'],
+  'excel.toast.importedWithChartsLocalOnly': ['导入成功（含 {count} 张图表），文档超过 500KB，将仅保存在本地浏览器', 'Imported ({count} charts). The document exceeds 500KB and is saved only in this browser', 'Importado ({count} gráficos). El documento supera 500 KB y solo se guarda en este navegador', 'Importado ({count} gráficos). O documento excede 500 KB e será salvo apenas neste navegador'],
   'excel.toast.importFailed': ['导入失败：无法解析该文件', "Import failed: couldn't parse the file", 'Error al importar: no se pudo analizar el archivo', 'Falha ao importar: não foi possível analisar o arquivo'],
   'excel.toast.importSaveFailed': ['导入失败：保存文档失败', "Import failed: couldn't save the document", 'Error al importar: no se pudo guardar el documento', 'Falha ao importar: não foi possível salvar o documento'],
   'excel.confirm.cancel': ['取消', 'Cancel', 'Cancelar', 'Cancelar'],
@@ -318,7 +320,7 @@ const ROWS = {
   'excel.confirm.newDocTitle': ['新建文档', 'New spreadsheet', 'Nueva hoja de cálculo', 'Nova planilha'],
   'excel.confirm.newDocMessage': ['新建文档将清空当前内容，请确保已经下载备份文档！', 'Creating a new spreadsheet will clear the current content. Make sure you have downloaded a backup!', 'Crear una hoja de cálculo nueva borrará el contenido actual. Asegúrate de haber descargado una copia de seguridad.', 'Criar uma nova planilha limpará o conteúdo atual. Certifique-se de ter baixado um backup!'],
   'excel.confirm.importTitle': ['导入 Excel', 'Import Excel', 'Importar Excel', 'Importar Excel'],
-  'excel.confirm.importMessage': ['导入将替换当前文档「{title}」的内容，确定继续吗？', 'Importing will replace the content of "{title}". Continue?', 'La importación reemplazará el contenido de “{title}”. ¿Continuar?', 'A importação substituirá o conteúdo de "{title}". Continuar?'],
+  'excel.confirm.importMessage': ['导入将替换当前文档「{title}」的内容，确定继续吗？超过 500KB 的文档将仅保存在本地浏览器，不会上传到服务器。', 'Importing will replace the content of "{title}". Continue? Documents over 500KB are saved only in this browser, not on the server.', 'La importación reemplazará el contenido de “{title}”. ¿Continuar? Los documentos de más de 500 KB solo se guardan en este navegador, no en el servidor.', 'A importação substituirá o conteúdo de "{title}". Continuar? Documentos com mais de 500 KB são salvos apenas neste navegador, não no servidor.'],
 } as const satisfies Record<string, Row>;
 
 function build(): OfficeMessagesByLocale {

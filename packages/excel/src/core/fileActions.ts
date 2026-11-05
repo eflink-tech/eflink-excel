@@ -90,6 +90,9 @@ export async function exportXlsxAction(): Promise<void> {
   }
 }
 
+/** 超过该字节数的文档由宿主存本地浏览器，不写服务器数据库（与宿主 office 存储上限一致） */
+const LOCAL_ONLY_LIMIT_BYTES = 500 * 1024;
+
 /** 导入 Excel (.xlsx)：解析成功后替换当前文档内容（docId 不变），并触发编辑器重载 */
 export async function importXlsxAction(file: File): Promise<void> {
   const { docId, title } = useEditorStore.getState();
@@ -129,9 +132,16 @@ export async function importXlsxAction(file: File): Promise<void> {
       clearDraft(confirmedDocId); // 防重载读到旧草稿
       void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
       useEditorStore.getState().bumpReload();
-      useUiStore
-        .getState()
-        .showToast(charts.length ? excelT('excel.toast.importedWithCharts', { count: charts.length }) : excelT('excel.toast.imported'));
+      // 超过 500KB 的文档宿主只存本地浏览器，导入后明确告知用户
+      const localOnly = new TextEncoder().encode(JSON.stringify(snapshot ?? null)).length > LOCAL_ONLY_LIMIT_BYTES;
+      const toast = localOnly
+        ? charts.length
+          ? excelT('excel.toast.importedWithChartsLocalOnly', { count: charts.length })
+          : excelT('excel.toast.importedLocalOnly')
+        : charts.length
+          ? excelT('excel.toast.importedWithCharts', { count: charts.length })
+          : excelT('excel.toast.imported');
+      useUiStore.getState().showToast(toast);
     } catch (err) {
       console.error('导入 Excel 失败', err);
       useUiStore.getState().showToast(excelT('excel.toast.importFailed'));

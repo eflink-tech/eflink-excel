@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import JSZip from 'jszip';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
+import { clampOversizedDataValidations } from './dataValidationSanitize';
 import { findAll, findFirst, parseXml } from './xmlLite';
 import { extractCharts, type ImportedChart } from './chartImport';
 import { extractAnnotations, type ImportedAnnotations } from './annotationImport';
@@ -30,7 +31,7 @@ export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Pro
 export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buffer);
+  await wb.xlsx.load(await clampOversizedDataValidations(buffer));
   const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
   const snapshot = workbookToSnapshot(wb, trimExt(file.name), { normalFontSize });
   const [charts, annotations] = await Promise.all([

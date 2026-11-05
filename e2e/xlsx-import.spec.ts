@@ -70,7 +70,44 @@ async function exportPayload(page: import('@playwright/test').Page): Promise<{ s
   return JSON.parse((await import('node:fs')).readFileSync(await download.path(), 'utf8')) as never;
 }
 
+async function buildHugeValidationXlsx(): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('校验页');
+  ws.getCell('A1').value = '序号';
+  ws.getCell('A2').value = 1;
+  ws.getCell('A3').value = 2;
+  const buffer = await wb.xlsx.writeBuffer();
+
+  // WPS 常见写法：数据验证覆盖整列，ExcelJS 会逐单元格展开
+  const zip = await JSZip.loadAsync(buffer);
+  const sheetPath = 'xl/worksheets/sheet1.xml';
+  const xml = await zip.file(sheetPath)!.async('string');
+  zip.file(sheetPath, xml.replace(
+    '</worksheet>',
+    '<dataValidations count="1"><dataValidation type="date" allowBlank="1" sqref="A2:A1048576"/></dataValidations></worksheet>',
+  ));
+  return zip.generateAsync({ type: 'nodebuffer' });
+}
+
 test.describe('导入 Excel(.xlsx)', () => {
+  test('WPS 整列数据验证不阻塞导入', async ({ page }) => {
+    await waitEditor(page);
+    const fixture = await buildHugeValidationXlsx();
+
+    await menuClick(page, '文件');
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('menuitem', { name: '导入 Excel (.xlsx)' }).click();
+    const chooser = await fileChooserPromise;
+    await chooser.setFiles({ name: '整列校验.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fixture });
+    await page.getByRole('button', { name: '确定' }).click();
+
+    await expect(page.getByText('导入成功', { exact: true })).toBeVisible({ timeout: 15000 });
+    const payload = await exportPayload(page);
+    const sheet = Object.values((payload.snapshot as { sheets: Record<string, { name: string; cellData: Record<number, Record<number, { v?: unknown }>> }> }).sheets).find((s) => s.name === '校验页')!;
+    expect(sheet.cellData[1]?.[0]?.v).toBe(1);
+    expect(sheet.cellData[2]?.[0]?.v).toBe(2);
+  });
+
   test('共享公式/隐藏 sheet 保真，图表落位为浮动图片', async ({ page }) => {
     await waitEditor(page);
     await importFixture(page);

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 
 // exportPng 依赖 html2canvas 渲染，jsdom 下用假画布代替
 vi.mock('html2canvas', () => ({
@@ -148,4 +149,31 @@ describe('fileIO 浏览器侧文件 IO', () => {
     const bad = new File([new TextEncoder().encode('not an xlsx')], '坏文件.xlsx');
     await expect(importXlsx(bad)).rejects.toThrow();
   });
+
+  it('importXlsx 收敛整列数据验证，避免逐单元格展开导致卡死', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('校验');
+    ws.getCell('A1').value = '序号';
+    ws.getCell('A2').value = 1;
+    const buffer = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
+
+    const zip = await JSZip.loadAsync(buffer);
+    const sheetPath = 'xl/worksheets/sheet1.xml';
+    const xml = await zip.file(sheetPath)!.async('string');
+    zip.file(
+      sheetPath,
+      xml.replace(
+        '</worksheet>',
+        '<dataValidations count="1"><dataValidation type="list" allowBlank="1" sqref="A2:A1048576"><formula1>"1,2"</formula1></dataValidation></dataValidations></worksheet>',
+      ),
+    );
+    const patched = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const file = new File([patched], '整列校验.xlsx', { type: XLSX_MIME });
+    const { snapshot } = await importXlsx(file);
+
+    const sheet = Object.values(snapshot.sheets)[0];
+    expect(sheet.cellData[0]?.[0]?.v).toBe('序号');
+    expect(sheet.cellData[1]?.[0]?.v).toBe(1);
+  }, 10_000);
 });

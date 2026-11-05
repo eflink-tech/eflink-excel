@@ -190,6 +190,8 @@ describe('fileActions 文件动作', () => {
     const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
     expect(useUiStore.getState().confirm?.title).toBe('导入 Excel');
     expect(useUiStore.getState().confirm?.message).toContain('基础文档');
+    // 500KB 本地存储规则须在导入前（确认弹窗）就告知，而不是只在导入后 toast
+    expect(useUiStore.getState().confirm?.message).toContain('500KB');
     useUiStore.getState().resolveConfirm(true);
     await action;
 
@@ -199,6 +201,21 @@ describe('fileActions 文件动作', () => {
     expect(doc?.snapshot.name).toBe('导入表');
     expect(useEditorStore.getState().reloadToken).toBe(reloadBefore + 1);
     expect(useUiStore.getState().toast).toBe('导入成功');
+  });
+
+  it('importXlsxAction 导入超过 500KB 的文档提示仅保存在本地浏览器', async () => {
+    const base = createDocument('基础文档');
+    base.id = 'doc-base';
+    await getDefaultStorage().save(base);
+    const snapshot = createEmptySnapshot('大表');
+    snapshot.sheets['sheet-01'].cellData[0] = { 0: { v: 'x'.repeat(500 * 1024 + 1024) } };
+    mockImportXlsx.mockResolvedValueOnce({ snapshot, charts: [], annotations: { links: [], comments: [] } });
+
+    const action = importXlsxAction(new File(['x'], '大表.xlsx'));
+    useUiStore.getState().resolveConfirm(true);
+    await action;
+
+    expect(useUiStore.getState().toast).toBe('导入成功，文档超过 500KB，将仅保存在本地浏览器');
   });
 
   it('importXlsxAction 解析期间显示 loading，结束后关闭', async () => {

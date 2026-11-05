@@ -553,6 +553,42 @@ describe('xlsx 导入：共享公式与隐藏 sheet', () => {
     expect(wb2.getWorksheet('后台页')!.state).toBe('hidden');
   });
 
+  it('WPS 式 <f>=SUM(...)</f> 公式文本只保留一个前导等号', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('公式');
+    ws.getCell('A1').value = 1;
+    ws.getCell('A2').value = 2;
+    ws.getCell('B1').value = { formula: 'SUM(A1:A2)', result: 3 };
+    const buffer = await wb.xlsx.writeBuffer();
+    const zip = await JSZip.loadAsync(buffer);
+    const sheetPath = Object.keys(zip.files).find((n) => /^xl\/worksheets\/sheet1\.xml$/.test(n))!;
+    const xml = await zip.file(sheetPath)!.async('string');
+    // WPS 会在 <f> 内写入前导 '='（Excel 不写），exceljs 原样保留，导入侧须自行归一化
+    const rewritten = xml.replace(/<f>SUM\(A1:A2\)<\/f>/, '<f>=SUM(A1:A2)</f>');
+    if (rewritten === xml) throw new Error('公式改写未命中（exceljs 输出格式变化？）');
+    zip.file(sheetPath, rewritten);
+    const loaded = new ExcelJS.Workbook();
+    await loaded.xlsx.load(await zip.generateAsync({ type: 'arraybuffer' }));
+    const snap = workbookToSnapshot(loaded, '公式');
+    expect(snap.sheets['sheet-01'].cellData[0]?.[1]).toMatchObject({ f: '=SUM(A1:A2)', v: 3 });
+  });
+
+  it('公式引用超出数据区时撑开目标 sheet 行列范围（避免 Univer 返回 #NAME?）', () => {
+    const wb = new ExcelJS.Workbook();
+    const data = wb.addWorksheet('数据');
+    data.getCell('A1').value = 1;
+    const ref = wb.addWorksheet('引用表');
+    ref.getCell('A1').value = { formula: '数据!Z999', result: 0 };
+    ref.getCell('A2').value = { formula: 'AA999', result: 0 };
+    const snap = workbookToSnapshot(wb, '边界');
+    const dataSheet = snap.sheets['sheet-01']!;
+    const refSheet = snap.sheets['sheet-02']!;
+    expect(dataSheet.rowCount).toBeGreaterThanOrEqual(999);
+    expect(dataSheet.columnCount).toBeGreaterThanOrEqual(26);
+    expect(refSheet.rowCount).toBeGreaterThanOrEqual(999);
+    expect(refSheet.columnCount).toBeGreaterThanOrEqual(27);
+  });
+
   it('超链接单元格导入显示文本而非对象', () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('链接');
