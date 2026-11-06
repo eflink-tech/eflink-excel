@@ -10,8 +10,6 @@ import {
   exportEfexcelAction,
   exportPngAction,
   exportXlsxAction,
-  importFileAction,
-  importXlsxMenuAction,
   newDocAction,
   saveAction,
 } from '../core/fileActions';
@@ -27,6 +25,7 @@ import { BottomBar } from './BottomBar';
 import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { AIChatPanel } from './ai/AIChatPanel';
+import { ImportDialog } from './ImportDialog';
 import { useEditorStore } from '../store/editorStore';
 import { useDocumentsStore } from '../store/documentsStore';
 import { useUiStore } from '../store/uiStore';
@@ -102,7 +101,7 @@ function SheetEditorInner({
   // 导入替换等场景触发文档重载（docId 不变，仅此计数变化）
   const reloadToken = useEditorStore((s) => s.reloadToken);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
@@ -213,8 +212,11 @@ function SheetEditorInner({
           { key: 'save', label: t('action.save'), icon: <Save size={16} />, shortcut: 'Ctrl S', onSelect: () => void saveAction() },
         ],
         [
-          { key: 'importJson', label: t('excel.file.importJson'), onSelect: () => importInputRef.current?.click() },
-          { key: 'importXlsx', label: t('excel.file.importXlsx'), onSelect: () => void importXlsxMenuAction() },
+          {
+            key: 'import',
+            label: t('excel.file.import'),
+            onSelect: () => setImportOpen(true),
+          },
         ],
         [
           { key: 'exportJson', label: t('excel.file.exportJson'), onSelect: () => void exportEfexcelAction() },
@@ -310,17 +312,6 @@ function SheetEditorInner({
           </>
         }
       />
-      <input
-        ref={importInputRef}
-        type="file"
-        accept=".efx.json,.efexcel,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void importFileAction(file);
-          e.target.value = '';
-        }}
-      />
       {/* 第二行：表格工具栏 */}
       {showToolbar && (
         <div className="relative z-30 flex shrink-0 items-stretch border-b border-[#dadbdd] bg-white">
@@ -348,6 +339,7 @@ function SheetEditorInner({
       {importing && <LoadingDialog message={t('excel.loading.importXlsx')} />}
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {importOpen && <ImportDialog onClose={() => setImportOpen(false)} />}
     </div>
   );
 }

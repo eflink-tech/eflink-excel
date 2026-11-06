@@ -41,6 +41,15 @@ export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   return { snapshot, charts, annotations };
 }
 
+/** 只解析工作簿快照（不渲染图表/批注），供导入预览使用 */
+export async function parseXlsxSnapshot(file: File): Promise<WorkbookSnapshot> {
+  const buffer = await file.arrayBuffer();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await clampOversizedDataValidations(buffer));
+  const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
+  return workbookToSnapshot(wb, trimExt(file.name), { normalFontSize });
+}
+
 /** styles.xml → Normal 字号：cellStyleXfs 首个 xf 的 fontId 指向字体（缺省 0），列宽字符单位以此换算 */
 async function readNormalFontSize(buffer: ArrayBuffer): Promise<number | undefined> {
   const zip = await JSZip.loadAsync(buffer);

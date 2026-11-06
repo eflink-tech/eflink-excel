@@ -16,11 +16,26 @@ const ROWS = {
 
   // ── 文件菜单 ────────────────────────────────────────────
   'excel.file.new': ['新建表格', 'New spreadsheet', 'Nueva hoja de cálculo', 'Nova planilha'],
-  'excel.file.importJson': ['导入数据 (.efx.json)', 'Import data (.efx.json)', 'Importar datos (.efx.json)', 'Importar dados (.efx.json)'],
-  'excel.file.importXlsx': ['导入 Excel (.xlsx)', 'Import Excel (.xlsx)', 'Importar Excel (.xlsx)', 'Importar Excel (.xlsx)'],
+  'excel.file.import': ['导入', 'Import', 'Importar', 'Importar'],
   'excel.file.exportJson': ['导出数据 (.efx.json)', 'Export data (.efx.json)', 'Exportar datos (.efx.json)', 'Exportar dados (.efx.json)'],
   'excel.file.exportXlsx': ['导出 Excel (.xlsx)', 'Export Excel (.xlsx)', 'Exportar Excel (.xlsx)', 'Exportar Excel (.xlsx)'],
   'excel.file.exportPng': ['导出图片', 'Export image', 'Exportar imagen', 'Exportar imagem'],
+
+  // ── 导入弹窗 ────────────────────────────────────────────
+  'excel.import.title': ['导入', 'Import', 'Importar', 'Importar'],
+  'excel.import.previewTitle': ['导入预览', 'Import preview', 'Vista previa de importación', 'Pré-visualização da importação'],
+  'excel.import.choose': ['点击选择文件', 'Click to choose a file', 'Haz clic para elegir un archivo', 'Clique para escolher um arquivo'],
+  'excel.import.support': ['支持 .xlsx / .xlsm（Excel 工作簿）与 .json（本工具工程文件）', 'Supports .xlsx / .xlsm (Excel workbooks) and .json (project files from this tool)', 'Admite .xlsx / .xlsm (libros de Excel) y .json (archivos de proyecto de esta herramienta)', 'Compatível com .xlsx / .xlsm (pastas de trabalho do Excel) e .json (arquivos de projeto desta ferramenta)'],
+  'excel.import.previewNote': ['Excel 文件将先展示工作表预览，确认后再导入为可编辑内容', 'Excel files are previewed first and imported as editable content after you confirm', 'Los archivos de Excel se previsualizan primero y se importan como contenido editable tras confirmar', 'Arquivos do Excel são pré-visualizados primeiro e importados como conteúdo editável após a confirmação'],
+  'excel.import.limitNote': ['导入尽力还原单元格、字体、颜色与合并单元格；复杂图表可能以图片形式呈现', 'Import restores cells, fonts, colors and merged cells as faithfully as possible; complex charts may appear as images', 'La importación restaura celdas, fuentes, colores y celdas combinadas con la mayor fidelidad posible; los gráficos complejos pueden aparecer como imágenes', 'A importação restaura células, fontes, cores e células mescladas com a maior fidelidade possível; gráficos complexos podem aparecer como imagens'],
+  'excel.import.previewing': ['正在生成预览…', 'Generating preview…', 'Generando vista previa…', 'Gerando pré-visualização…'],
+  'excel.import.back': ['返回', 'Back', 'Atrás', 'Voltar'],
+  'excel.import.confirm': ['确认导入（可编辑）', 'Import as editable', 'Importar como editable', 'Importar como editável'],
+  'excel.import.chooseFile': ['请选择 .xlsx、.xlsm 或 .json 文件', 'Choose a .xlsx, .xlsm or .json file', 'Elige un archivo .xlsx, .xlsm o .json', 'Escolha um arquivo .xlsx, .xlsm ou .json'],
+  'excel.import.previewFailed': ['无法读取该文件，请确认是有效的 Excel 工作簿', 'Could not read this file. Make sure it is a valid Excel workbook.', 'No se pudo leer el archivo. Asegúrate de que sea un libro de Excel válido.', 'Não foi possível ler o arquivo. Verifique se é uma pasta de trabalho do Excel válida.'],
+  'excel.import.sheetCount': ['共 {count} 个工作表', '{count} sheets', '{count} hojas', '{count} planilhas'],
+  'excel.import.truncated': ['预览最多显示前 {rows} 行、前 {cols} 列', 'Preview shows up to {rows} rows and {cols} columns', 'La vista previa muestra hasta {rows} filas y {cols} columnas', 'A pré-visualização mostra até {rows} linhas e {cols} colunas'],
+  'excel.import.replaceNote': ['导入将替换当前文档「{title}」的内容，请先导出备份（.efx.json）；超过 500KB 的文档将仅保存在本地浏览器。', 'Importing replaces the content of "{title}". Export a backup (.efx.json) first; documents over 500 KB are saved only in this browser.', 'La importación reemplazará el contenido de “{title}”. Exporta una copia de seguridad (.efx.json) primero; los documentos de más de 500 KB solo se guardan en este navegador.', 'A importação substituirá o conteúdo de "{title}". Exporte um backup (.efx.json) primeiro; documentos com mais de 500 KB são salvos apenas neste navegador.'],
 
   'excel.edit.clearContent': ['清除内容', 'Clear content', 'Borrar contenido', 'Limpar conteúdo'],
 
@@ -319,8 +334,6 @@ const ROWS = {
   'excel.confirm.ok': ['确定', 'OK', 'Aceptar', 'OK'],
   'excel.confirm.newDocTitle': ['新建文档', 'New spreadsheet', 'Nueva hoja de cálculo', 'Nova planilha'],
   'excel.confirm.newDocMessage': ['新建文档将清空当前内容，请确保已经下载备份文档！', 'Creating a new spreadsheet will clear the current content. Make sure you have downloaded a backup!', 'Crear una hoja de cálculo nueva borrará el contenido actual. Asegúrate de haber descargado una copia de seguridad.', 'Criar uma nova planilha limpará o conteúdo atual. Certifique-se de ter baixado um backup!'],
-  'excel.confirm.importTitle': ['导入 Excel', 'Import Excel', 'Importar Excel', 'Importar Excel'],
-  'excel.confirm.importMessage': ['导入将替换当前文档「{title}」的内容，确定继续吗？超过 500KB 的文档将仅保存在本地浏览器，不会上传到服务器。', 'Importing will replace the content of "{title}". Continue? Documents over 500KB are saved only in this browser, not on the server.', 'La importación reemplazará el contenido de “{title}”. ¿Continuar? Los documentos de más de 500 KB solo se guardan en este navegador, no en el servidor.', 'A importação substituirá o conteúdo de "{title}". Continuar? Documentos com mais de 500 KB são salvos apenas neste navegador, não no servidor.'],
 } as const satisfies Record<string, Row>;
 
 function build(): OfficeMessagesByLocale {

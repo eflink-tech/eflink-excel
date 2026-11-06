@@ -6,7 +6,6 @@ import { exportSheetPng } from './xlsx/sheetImage';
 import { getActiveSheetImageData } from './univer/controller';
 import { queueImportedCharts } from './xlsx/chartImport';
 import { queueImportedAnnotations } from './xlsx/annotationImport';
-import { pickFile } from './filePicker';
 import { getDefaultStorage } from '../storage/registry';
 import { clearDraft } from '../storage/draft';
 import { useDocumentsStore } from '../store/documentsStore';
@@ -65,15 +64,17 @@ export async function exportPngAction(): Promise<void> {
   }
 }
 
-export async function importFileAction(file: File): Promise<void> {
+export async function importFileAction(file: File): Promise<boolean> {
   try {
     const doc = await importEfexcel(file);
     await useDocumentsStore.getState().addDoc(doc);
     useEditorStore.getState().openDoc({ id: doc.id, title: doc.title });
     useUiStore.getState().showToast(excelT('excel.toast.imported'));
+    return true;
   } catch (err) {
     console.error('导入失败', err);
     useUiStore.getState().showToast(excelT('excel.toast.importFailed'));
+    return false;
   }
 }
 
@@ -96,18 +97,10 @@ export async function exportXlsxAction(): Promise<void> {
 /** 超过该字节数的文档由宿主存本地浏览器，不写服务器数据库（与宿主 office 存储上限一致） */
 const LOCAL_ONLY_LIMIT_BYTES = 500 * 1024;
 
-/** 导入 Excel (.xlsx)：解析成功后替换当前文档内容（docId 不变），并触发编辑器重载 */
-export async function importXlsxAction(file: File): Promise<void> {
-  const { docId, title } = useEditorStore.getState();
-  if (!docId) return;
-  const ok = await useUiStore.getState().requestConfirm({
-    title: excelT('excel.confirm.importTitle'),
-    message: excelT('excel.confirm.importMessage', { title }),
-  });
-  if (!ok) return;
-  // 确认期间文档可能已被切换/关闭，重新快照 docId（TOCTOU）
-  const confirmedDocId = useEditorStore.getState().docId;
-  if (!confirmedDocId) return;
+/** 导入 Excel (.xlsx)：替换当前文档内容（docId 不变），并触发编辑器重载 */
+export async function importXlsxAction(file: File): Promise<boolean> {
+  const { docId } = useEditorStore.getState();
+  if (!docId) return false;
   // 与 Word 导入一致：解析期间显示全屏 loading，结束（含失败）后关闭
   useUiStore.getState().setImporting(true);
   try {
@@ -117,22 +110,22 @@ export async function importXlsxAction(file: File): Promise<void> {
     } catch (err) {
       console.error('导入前保存失败', err);
       useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
-      return;
+      return false;
     }
     try {
       // 先解析：失败在落盘前抛出，当前文档不受影响（图表已渲染成图片随结果一并返回）
       const { snapshot, charts, annotations } = await importXlsx(file);
       try {
-        await getDefaultStorage().updateContent(confirmedDocId, trimExt(file.name), snapshot);
+        await getDefaultStorage().updateContent(docId, trimExt(file.name), snapshot);
       } catch (err) {
         console.error('导入保存文档失败', err);
         useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
-        return;
+        return false;
       }
       // 图表/批注/超链接入队：编辑器重载挂载 Univer 后落位（队列在各解析模块，避免此处引入 Univer 依赖）
       queueImportedCharts(charts);
       queueImportedAnnotations(annotations);
-      clearDraft(confirmedDocId); // 防重载读到旧草稿
+      clearDraft(docId); // 防重载读到旧草稿
       void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
       useEditorStore.getState().bumpReload();
       // 超过 500KB 的文档宿主只存本地浏览器，导入后明确告知用户
@@ -145,18 +138,13 @@ export async function importXlsxAction(file: File): Promise<void> {
           ? excelT('excel.toast.importedWithCharts', { count: charts.length })
           : excelT('excel.toast.imported');
       useUiStore.getState().showToast(toast);
+      return true;
     } catch (err) {
       console.error('导入 Excel 失败', err);
       useUiStore.getState().showToast(excelT('excel.toast.importFailed'));
+      return false;
     }
   } finally {
     useUiStore.getState().setImporting(false);
   }
-}
-
-/** 菜单入口：弹文件选择框（限 xlsx/xlsm），选中后走导入动作 */
-export async function importXlsxMenuAction(): Promise<void> {
-  const file = await pickFile('.xlsx,.xlsm');
-  if (!file) return;
-  await importXlsxAction(file);
 }
