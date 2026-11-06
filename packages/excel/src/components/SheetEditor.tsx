@@ -282,6 +282,21 @@ function SheetEditorInner({
         menus={menus}
         actions={
           <>
+            {/* AI 入口固定放在 actions 区最左，与 pptx / word 一致 */}
+            <button
+              type="button"
+              onClick={toggleAIPanel}
+              title={t('excel.toolbar.ai')}
+              aria-label={t('excel.toolbar.ai')}
+              data-testid="ai-toggle"
+              aria-pressed={aiPanelOpen}
+              className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs transition-colors ${
+                aiPanelOpen ? 'bg-[#e7f4ec] text-[#107c41]' : 'text-[#4c5158] hover:bg-black/[0.06] hover:text-[#1f2329]'
+              }`}
+            >
+              <Sparkles size={14} />
+              {t('excel.toolbar.ai')}
+            </button>
             {canShare && (
               <button
                 type="button"
@@ -294,19 +309,6 @@ function SheetEditorInner({
                 {t('shell.share')}
               </button>
             )}
-            <button
-              type="button"
-              onClick={toggleAIPanel}
-              title={t('excel.toolbar.ai')}
-              aria-label={t('excel.toolbar.ai')}
-              data-testid="ai-toggle"
-              className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs transition-colors ${
-                aiPanelOpen ? 'bg-[#e7f4ec] text-[#107c41]' : 'text-[#5f6062] hover:bg-[#f2f3f4] hover:text-[#26282b]'
-              }`}
-            >
-              <Sparkles size={14} />
-              {t('excel.toolbar.ai')}
-            </button>
           </>
         }
       />
@@ -327,8 +329,10 @@ function SheetEditorInner({
           {/* 图表设置面板：双击插入的图表后从右侧滑出 */}
           <ChartSettingsPanel />
         </div>
-        {/* AI 助手面板（右侧独立列，参考 eflink-draw / eflink-pptx） */}
-        {aiPanelOpen && <AIChatPanel />}
+        {/* AI 助手面板（右侧独立列）：常驻挂载以保留会话，靠 .efk-ai-slot 宽度过渡滑入滑出 */}
+        <div className="efk-ai-slot" data-open={aiPanelOpen}>
+          <AIChatPanel />
+        </div>
       </div>
       {/* 底部状态栏：文档名（点击改名）+ 保存状态；始终渲染，不随 branding 隐藏 */}
       <BottomBar />

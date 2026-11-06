@@ -5,9 +5,18 @@ export interface AISettings {
   model: string
 }
 
+/** 随消息发送的图片：已在前端压缩为 data URL，直接进 vision 请求 */
+export interface MessageImage {
+  dataUrl: string
+}
+
 export interface ConversationMessage {
   role: 'user' | 'assistant'
   content: string
+  /** 模型返回的思考过程（reasoning 模型），仅展示用，不写回下一轮请求 */
+  reasoning?: string
+  /** 用户随该条消息发送的图片 */
+  images?: MessageImage[]
   /** 关联产物（如已写入表格的结构化 JSON） */
   payload?: unknown
   time: number

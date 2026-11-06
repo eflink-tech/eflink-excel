@@ -66,3 +66,20 @@
   color: #8f959e;
   font-family: inherit;
 }
+
+/* ---------- AI 助手面板停靠位 ---------- */
+/* 五个办公编辑器共用同一套类名与时长：面板常驻挂载以保留会话状态，
+   靠宽度过渡实现滑入滑出；关闭时 visibility 延迟到动画结束再生效，
+   收起过程仍然可见，收起后不接收焦点与点击。 */
+.efk-ai-slot {
+  flex: none;
+  width: 0;
+  visibility: hidden;
+  overflow: hidden;
+  transition: width 0.2s ease-out, visibility 0s linear 0.2s;
+}
+.efk-ai-slot[data-open="true"] {
+  width: 320px;
+  visibility: visible;
+  transition: width 0.2s ease-out, visibility 0s;
+}
