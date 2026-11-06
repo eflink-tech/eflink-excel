@@ -6,13 +6,7 @@ import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
 import { readDraft, clearDraft } from '../storage/draft';
 import { getExcelShareHandler } from '../core/share/shareBridge';
 import { getEditorBackHref } from '../core/chrome';
-import {
-  exportEfexcelAction,
-  exportPngAction,
-  exportXlsxAction,
-  newDocAction,
-  saveAction,
-} from '../core/fileActions';
+import { newDocAction, saveAction } from '../core/fileActions';
 import * as cmd from '../core/univer/commands';
 import { EXCEL_MESSAGES, setExcelLocale } from '../i18n';
 import { ConfirmDialogHost } from './ConfirmDialog';
@@ -26,6 +20,7 @@ import { ChartSettingsPanel } from './spreadsheet/ChartSettingsPanel';
 import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { AIChatPanel } from './ai/AIChatPanel';
 import { ImportDialog } from './ImportDialog';
+import { ExportDialog } from './ExportDialog';
 import { useEditorStore } from '../store/editorStore';
 import { useDocumentsStore } from '../store/documentsStore';
 import { useUiStore } from '../store/uiStore';
@@ -102,6 +97,7 @@ function SheetEditorInner({
   const reloadToken = useEditorStore((s) => s.reloadToken);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
@@ -219,9 +215,11 @@ function SheetEditorInner({
           },
         ],
         [
-          { key: 'exportJson', label: t('excel.file.exportJson'), onSelect: () => void exportEfexcelAction() },
-          { key: 'exportXlsx', label: t('excel.file.exportXlsx'), onSelect: () => void exportXlsxAction() },
-          { key: 'exportPng', label: t('excel.file.exportPng'), onSelect: () => void exportPngAction() },
+          {
+            key: 'export',
+            label: t('excel.file.export'),
+            onSelect: () => setExportOpen(true),
+          },
         ],
       ],
     },
@@ -340,6 +338,7 @@ function SheetEditorInner({
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       {importOpen && <ImportDialog onClose={() => setImportOpen(false)} />}
+      {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
     </div>
   );
 }

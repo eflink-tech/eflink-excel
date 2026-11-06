@@ -17,9 +17,17 @@ const ROWS = {
   // ── 文件菜单 ────────────────────────────────────────────
   'excel.file.new': ['新建表格', 'New spreadsheet', 'Nueva hoja de cálculo', 'Nova planilha'],
   'excel.file.import': ['导入', 'Import', 'Importar', 'Importar'],
-  'excel.file.exportJson': ['导出数据 (.efx.json)', 'Export data (.efx.json)', 'Exportar datos (.efx.json)', 'Exportar dados (.efx.json)'],
-  'excel.file.exportXlsx': ['导出 Excel (.xlsx)', 'Export Excel (.xlsx)', 'Exportar Excel (.xlsx)', 'Exportar Excel (.xlsx)'],
-  'excel.file.exportPng': ['导出图片', 'Export image', 'Exportar imagen', 'Exportar imagem'],
+  'excel.file.export': ['导出', 'Export', 'Exportar', 'Exportar'],
+
+  // ── 导出弹窗 ────────────────────────────────────────────
+  'excel.export.title': ['导出', 'Export', 'Exportar', 'Exportar'],
+  'excel.export.busy': ['导出中', 'Exporting', 'Exportando', 'Exportando'],
+  'excel.export.xlsx': ['Excel 工作簿 (.xlsx)', 'Excel workbook (.xlsx)', 'Libro de Excel (.xlsx)', 'Pasta de trabalho do Excel (.xlsx)'],
+  'excel.export.xlsxDesc': ['标准 Excel 文件，可在其他软件中继续编辑', 'Standard Excel file, editable in other software', 'Archivo Excel estándar, editable en otros programas', 'Arquivo Excel padrão, editável em outros programas'],
+  'excel.export.image': ['图片 (.png)', 'Image (.png)', 'Imagen (.png)', 'Imagem (.png)'],
+  'excel.export.imageDesc': ['导出当前工作表的完整内容', 'Exports the full contents of the current sheet', 'Exporta el contenido completo de la hoja actual', 'Exporta o conteúdo completo da planilha atual'],
+  'excel.export.data': ['工程数据 (.efx.json)', 'Project data (.efx.json)', 'Datos del proyecto (.efx.json)', 'Dados do projeto (.efx.json)'],
+  'excel.export.dataDesc': ['完整工程数据，可在本工具重新导入继续编辑', 'Full project data, re-importable into this tool', 'Datos completos del proyecto, reimportables en esta herramienta', 'Dados completos do projeto, reimportáveis nesta ferramenta'],
 
   // ── 导入弹窗 ────────────────────────────────────────────
   'excel.import.title': ['导入', 'Import', 'Importar', 'Importar'],
