@@ -1,5 +1,9 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { Keyboard, MessageCircle, Save, Share2, Sparkles } from 'lucide-react';
+import {
+  ArrowDownToLine, ArrowRightToLine, Download, Eraser, FilePlus2, Grid3x3,
+  Keyboard, MessageCircle, Redo2, RemoveFormatting, Save, Share2, Sparkles,
+  Undo2, Unlock, Upload,
+} from 'lucide-react';
 import { I18nProvider, OfficeHeader, useI18n, type OfficeLocale, type OfficeMenu } from '@eflink-tech/office-kit';
 import { saveNow, currentSnapshot } from '../core/saveService';
 import { getDefaultStorage, setDefaultStorage } from '../storage/registry';
@@ -204,13 +208,14 @@ function SheetEditorInner({
       label: t('shell.menu.file'),
       items: [
         [
-          { key: 'new', label: t('excel.file.new'), onSelect: () => void newDocAction() },
+          { key: 'new', label: t('excel.file.new'), icon: <FilePlus2 size={16} />, onSelect: () => void newDocAction() },
           { key: 'save', label: t('action.save'), icon: <Save size={16} />, shortcut: 'Ctrl S', onSelect: () => void saveAction() },
         ],
         [
           {
             key: 'import',
             label: t('excel.file.import'),
+            icon: <Upload size={16} />,
             onSelect: () => setImportOpen(true),
           },
         ],
@@ -218,6 +223,7 @@ function SheetEditorInner({
           {
             key: 'export',
             label: t('excel.file.export'),
+            icon: <Download size={16} />,
             onSelect: () => setExportOpen(true),
           },
         ],
@@ -228,12 +234,12 @@ function SheetEditorInner({
       label: t('shell.menu.edit'),
       items: [
         [
-          { key: 'undo', label: t('action.undo'), shortcut: 'Ctrl Z', onSelect: cmd.undo },
-          { key: 'redo', label: t('action.redo'), shortcut: 'Ctrl Y', onSelect: cmd.redo },
+          { key: 'undo', label: t('action.undo'), icon: <Undo2 size={16} />, shortcut: 'Ctrl Z', onSelect: cmd.undo },
+          { key: 'redo', label: t('action.redo'), icon: <Redo2 size={16} />, shortcut: 'Ctrl Y', onSelect: cmd.redo },
         ],
         [
-          { key: 'clearContent', label: t('excel.edit.clearContent'), onSelect: cmd.clearContentOnly },
-          { key: 'clearFormat', label: t('action.clearFormat'), onSelect: cmd.clearFormatOnly },
+          { key: 'clearContent', label: t('excel.edit.clearContent'), icon: <Eraser size={16} />, onSelect: cmd.clearContentOnly },
+          { key: 'clearFormat', label: t('action.clearFormat'), icon: <RemoveFormatting size={16} />, onSelect: cmd.clearFormatOnly },
         ],
       ],
     },
@@ -242,10 +248,10 @@ function SheetEditorInner({
       label: t('shell.menu.view'),
       items: [
         [
-          { key: 'freezeFirstRow', label: t('excel.view.freezeFirstRow'), onSelect: cmd.freezeFirstRow },
-          { key: 'freezeFirstColumn', label: t('excel.view.freezeFirstColumn'), onSelect: cmd.freezeFirstColumn },
-          { key: 'freezeToCell', label: t('excel.view.freezeToCell'), onSelect: cmd.freezeToActiveCell },
-          { key: 'unfreeze', label: t('excel.view.unfreeze'), onSelect: cmd.cancelFreeze },
+          { key: 'freezeFirstRow', label: t('excel.view.freezeFirstRow'), icon: <ArrowDownToLine size={16} />, onSelect: cmd.freezeFirstRow },
+          { key: 'freezeFirstColumn', label: t('excel.view.freezeFirstColumn'), icon: <ArrowRightToLine size={16} />, onSelect: cmd.freezeFirstColumn },
+          { key: 'freezeToCell', label: t('excel.view.freezeToCell'), icon: <Grid3x3 size={16} />, onSelect: cmd.freezeToActiveCell },
+          { key: 'unfreeze', label: t('excel.view.unfreeze'), icon: <Unlock size={16} />, onSelect: cmd.cancelFreeze },
         ],
       ],
     },
