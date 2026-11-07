@@ -144,11 +144,43 @@ test.describe('网格边缘追加行列', () => {
     await expect(addCol).toBeVisible({ timeout: 15000 });
     await addCol.click();
 
+    // 覆盖带只能落在内容末缘之后：若从表格中间开始，整表看起来只剩一列
+    const rightBandLefts = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas[id^="univer-sheet-main-canvas"]')!.getBoundingClientRect();
+      return [...document.querySelectorAll('div.absolute')]
+        .filter((el) => getComputedStyle(el).backgroundColor === 'rgb(246, 246, 247)')
+        .map((el) => el.getBoundingClientRect())
+        // 右侧覆盖带从画布顶部开始，底部覆盖带从内容末行开始
+        .filter((r) => r.width > 0 && r.height > 0 && Math.abs(r.top - canvas.top) < 10)
+        .map((r) => r.left - canvas.right);
+    });
+    expect(rightBandLefts.every((d) => d > -60)).toBe(true);
+
     await clickCellA1(page);
     for (let i = 0; i < 20; i++) {
       await page.keyboard.press('ArrowRight');
     }
     // 默认 20 列（A~T），新增一列后第 21 列为 U
     await expect(nameBox(page)).toHaveValue('U1', { timeout: 10000 });
+  });
+
+  test('AI 助手面板打开后不被内容外侧覆盖带遮住', async ({ page }) => {
+    await waitEditor(page);
+    await page.getByTestId('ai-toggle').click();
+    const panel = page.getByTestId('ai-panel');
+    await expect(panel).toBeVisible();
+    // 等宽度过渡与几何重算稳定
+    await page.waitForTimeout(600);
+
+    // 覆盖带（#f6f6f7）在 AI 面板开合后必须钳在网格列内，不能压到面板上
+    const spill = await page.evaluate(() => {
+      const panelRect = document.querySelector('[data-testid="ai-panel"]')!.getBoundingClientRect();
+      return [...document.querySelectorAll('div.absolute')]
+        .filter((el) => getComputedStyle(el).backgroundColor === 'rgb(246, 246, 247)')
+        .some((el) => el.getBoundingClientRect().right > panelRect.left + 1);
+    });
+    expect(spill).toBe(false);
+    // 面板自身内容可见（头部标题不被盖住）
+    await expect(panel.getByText('AI 助手').first()).toBeVisible();
   });
 });

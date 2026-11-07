@@ -23,7 +23,6 @@ const MAIN_CANVAS_SELECTOR = 'canvas[id^="univer-sheet-main-canvas"]';
 export function GridEdgeControls() {
   const { t } = useI18n();
   const wrapRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef({ x: 0, y: 0 });
   const disposeRef = useRef<{ dispose(): void } | null>(null);
   const [right, setRight] = useState({ left: 0, visible: false });
   const [bottom, setBottom] = useState({ top: 0, visible: false });
@@ -46,81 +45,79 @@ export function GridEdgeControls() {
       const dy = canvasRect.top - wrapRect.top;
       const canvasW = canvasRect.width;
       const canvasH = canvasRect.height;
+      // 覆盖带再钳到网格列内：AI 助手/图表面板开合会让列宽瞬间变化，
+      // 重算前旧带子不得越过列边界盖住右侧面板
+      const canvasRight = Math.min(dx + canvasW, wrapRect.width);
+      const canvasBottom = Math.min(dy + canvasH, wrapRect.height);
       // 累加行高/列宽得到内容总尺寸，再按滚动与缩放换算成画布上的屏幕位置
       let totalW = 0;
       for (let c = 0; c < ws.getMaxColumns(); c++) totalW += ws.getColumnWidth(c);
       let totalH = 0;
       for (let r = 0; r < ws.getMaxRows(); r++) totalH += ws.getRowHeight(r);
+      // 滚动量必须取自实际滚动状态：命令参数（如 scrollToCell 越界时）未必等于钳制后的结果，
+      // 用命令参数还原会把覆盖带画到表格中间，看起来像列被删掉了
+      const scroll = ws.getScrollState();
+      let scrollX = scroll.offsetX;
+      for (let c = 0; c < scroll.sheetViewStartColumn; c++) scrollX += ws.getColumnWidth(c);
+      let scrollY = scroll.offsetY;
+      for (let r = 0; r < scroll.sheetViewStartRow; r++) scrollY += ws.getRowHeight(r);
       const zoom = ws.getZoom();
       // 行头/列头尺寸同样参与缩放（实测 50% 时行头仅 23px）
-      const xEnd = (ROW_HEADER_WIDTH + (totalW - scrollRef.current.x)) * zoom;
-      const yEnd = (COL_HEADER_HEIGHT + (totalH - scrollRef.current.y)) * zoom;
+      const xEnd = (ROW_HEADER_WIDTH + (totalW - scrollX)) * zoom;
+      const yEnd = (COL_HEADER_HEIGHT + (totalH - scrollY)) * zoom;
       // 仅当内容末缘进入可视区（含滚动/缩放到末尾、末缘贴住视口边的钳制状态）才显示；
       // +6 容差吸收滚动钳制时的 1px 边界线与取整误差；末缘贴边时按钮钳到边缘内侧，保证可点。
-      const rightVisible = xEnd >= ROW_HEADER_WIDTH && xEnd <= dx + canvasW + 6;
-      const rightLeft = Math.min(xEnd + (BLANK_STRIP - BTN_SIZE) / 2, dx + canvasW - BTN_SIZE - 2);
-      const bottomVisible = yEnd >= COL_HEADER_HEIGHT && yEnd <= dy + canvasH + 6;
-      const bottomTop = Math.min(yEnd + (BLANK_STRIP - BTN_SIZE) / 2, dy + canvasH - BTN_SIZE - 2);
+      const rightVisible = xEnd >= ROW_HEADER_WIDTH && xEnd <= canvasRight + 6;
+      const rightLeft = Math.min(xEnd + (BLANK_STRIP - BTN_SIZE) / 2, canvasRight - BTN_SIZE - 2);
+      const bottomVisible = yEnd >= COL_HEADER_HEIGHT && yEnd <= canvasBottom + 6;
+      const bottomTop = Math.min(yEnd + (BLANK_STRIP - BTN_SIZE) / 2, canvasBottom - BTN_SIZE - 2);
       setRight({ left: rightLeft, visible: rightVisible });
       setBottom({ top: bottomTop, visible: bottomVisible });
-      // 超出区域覆盖带：+1 保留表格自身的边界线，且不越过画布边界
+      // 超出区域覆盖带：+1 保留表格自身的边界线，且不越过画布/网格列边界
+      const rightStart = Math.min(Math.max(xEnd + 1, 0), canvasRight);
       setRightBand({
-        left: xEnd + 1,
+        left: rightStart,
         top: dy,
-        width: Math.max(0, dx + canvasW - xEnd - 1),
-        height: canvasH,
+        width: Math.max(0, canvasRight - rightStart),
+        height: Math.max(0, canvasBottom - dy),
       });
+      const bottomStart = Math.min(Math.max(yEnd + 1, 0), canvasBottom);
       setBottomBand({
         left: dx,
-        top: yEnd + 1,
-        width: canvasW,
-        height: Math.max(0, dy + canvasH - yEnd - 1),
+        top: bottomStart,
+        width: Math.max(0, canvasRight - dx),
+        height: Math.max(0, canvasBottom - bottomStart),
       });
            } catch {
         // 几何重算失败时保持现状（按钮/覆盖带维持上一次的位置）
       }
     };
 
-    // 滚动状态同步：Univer 滚轮走 set-scroll-relative（增量），拖滚动条走 scroll-view（绝对值），
-    // Scroll facade 事件在当前版本无派发点，故从 onCommandExecuted 的命令参数中还原滚动值。
-    const syncScrollFromCommand = (id: string, params: unknown) => {
-      const ws = getUniverApi()?.getActiveWorkbook()?.getActiveSheet();
-      if (!ws) return;
-      const p = (params ?? {}) as {
-        sheetViewStartRow?: number;
-        sheetViewStartColumn?: number;
-        offsetX?: number;
-        offsetY?: number;
-      };
-      if (id === 'sheet.command.scroll-view') {
-        let x = 0;
-        for (let c = 0; c < (p.sheetViewStartColumn ?? 0); c++) x += ws.getColumnWidth(c);
-        let y = 0;
-        for (let r = 0; r < (p.sheetViewStartRow ?? 0); r++) y += ws.getRowHeight(r);
-        scrollRef.current = { x: x + (p.offsetX ?? 0), y: y + (p.offsetY ?? 0) };
-      } else if (id === 'sheet.command.set-scroll-relative') {
-        scrollRef.current = {
-          x: scrollRef.current.x + (p.offsetX ?? 0),
-          y: scrollRef.current.y + (p.offsetY ?? 0),
-        };
-      } else if (id === 'sheet.command.scroll-view-reset') {
-        scrollRef.current = { x: 0, y: 0 };
-      }
+    // 列宽/列高变化（AI 助手面板开合、窗口缩放、全屏切换）不派发 Univer 事件，
+    // 靠 ResizeObserver 在尺寸落定后重算，否则覆盖带与 ⊕ 停留在旧位置
+    let rafId = 0;
+    const scheduleRecompute = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        recompute();
+      });
     };
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleRecompute);
+    if (wrapRef.current) resizeObserver?.observe(wrapRef.current);
 
     const bind = () => {
       const api = getUniverApi();
       if (!api) return false;
+      // 画布尺寸在容器变化后由 Univer 自行调整，单独观察以拿到调整完成后的几何
+      const canvas = document.querySelector<HTMLCanvasElement>(MAIN_CANVAS_SELECTOR);
+      if (canvas) resizeObserver?.observe(canvas);
       disposeRef.current?.dispose();
       const disposables = [
         api.addEvent(api.Event.SheetZoomChanged, recompute),
         api.addEvent(api.Event.SelectionChanged, recompute),
-        api.onCommandExecuted((command) => {
-          const c = command as { id?: string; params?: unknown };
-          const id = c.id ?? '';
-          if (id.startsWith('sheet.command.scroll')) syncScrollFromCommand(id, c.params);
-          recompute();
-        }),
+        api.addEvent(api.Event.Scroll, scheduleRecompute),
+        api.onCommandExecuted(() => recompute()),
       ];
       disposeRef.current = {
         dispose: () => disposables.forEach((d) => d.dispose()),
@@ -142,6 +139,8 @@ export function GridEdgeControls() {
     window.addEventListener('resize', recompute);
     return () => {
       if (retryTimer) clearTimeout(retryTimer);
+      if (rafId) cancelAnimationFrame(rafId);
+      resizeObserver?.disconnect();
       window.removeEventListener(UNIVER_READY_EVENT, bind);
       window.removeEventListener('resize', recompute);
       disposeRef.current?.dispose();
