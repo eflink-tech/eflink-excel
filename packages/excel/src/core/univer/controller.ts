@@ -414,6 +414,20 @@ export function mountUniver(
   };
   window.addEventListener('keydown', onFloatingDeleteKey, true);
 
+  // 右键菜单的数字输入（插入 N 行/列、列宽/行高）：Univer 的 MenuItemInput 回车只回写数值、
+  // 不触发所在菜单项，用户输入数量后按回车看似没反应；这里回车直接触发该行按钮。
+  const onMenuInputEnter = (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName !== 'INPUT') return;
+    const row = target.closest<HTMLElement>('button.univer-relative');
+    if (!row) return;
+    e.preventDefault();
+    e.stopPropagation();
+    row.click();
+  };
+  window.addEventListener('keydown', onMenuInputEnter, true);
+
   // 筛选面板打开时，把选区设为对应列的表头单元格：以选区高亮标识面板属于哪一列（企微样式）
   const filterPanelWatch = univerAPI.onCommandExecuted((command) => {
     if (command.id !== 'sheet.operation.open-filter-panel') return;
@@ -442,6 +456,7 @@ export function mountUniver(
         removedWatch.dispose();
         container.removeEventListener('dblclick', onCanvasDblClick, true);
         window.removeEventListener('keydown', onFloatingDeleteKey, true);
+        window.removeEventListener('keydown', onMenuInputEnter, true);
         univerAPI.dispose();
         if (currentApi === univerAPI) currentApi = null;
         if (currentUniver === univer) currentUniver = null;

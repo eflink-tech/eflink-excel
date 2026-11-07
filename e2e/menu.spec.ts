@@ -164,6 +164,27 @@ test.describe('网格边缘追加行列', () => {
     await expect(nameBox(page)).toHaveValue('U1', { timeout: 10000 });
   });
 
+  test('右键菜单输入列数后回车即可插入', async ({ page }) => {
+    await waitEditor(page);
+    const box = await page.locator('#univer-container').boundingBox();
+    if (!box) throw new Error('未找到编辑器容器');
+    // 右键列头 K（第 11 列）
+    await page.mouse.click(box.x + 46 + 10 * 88 + 44, box.y + 12, { button: 'right' });
+
+    const row = page.getByRole('button').filter({ hasText: '在右侧插入' }).filter({ visible: true }).first();
+    const countInput = row.locator('input');
+    await expect(countInput).toBeVisible({ timeout: 10000 });
+    await countInput.fill('12');
+    await countInput.press('Enter');
+
+    // 默认 20 列（A~T），在 K 右侧插入 12 列后共 32 列，末列为 AF
+    await clickCellA1(page);
+    for (let i = 0; i < 31; i++) {
+      await page.keyboard.press('ArrowRight');
+    }
+    await expect(nameBox(page)).toHaveValue('AF1', { timeout: 10000 });
+  });
+
   test('AI 助手面板打开后不被内容外侧覆盖带遮住', async ({ page }) => {
     await waitEditor(page);
     await page.getByTestId('ai-toggle').click();
