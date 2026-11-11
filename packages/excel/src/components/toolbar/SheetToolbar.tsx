@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { ChevronRight, PenLine } from 'lucide-react';
 import { useI18n } from '@eflink-tech/office-kit';
 import * as cmd from '../../core/univer/commands';
@@ -214,6 +214,14 @@ export function SheetToolbar() {
     refreshSoon();
     setOpenPanel(null);
   };
+  // 单元格内编辑时工具栏 mousedown 会抢走编辑器焦点，命令就落在整格上。
+  // 只在编辑器聚焦时阻止默认行为，让 set-range-* 走富文本 inline-format。
+  const keepEditorFocus = (e: ReactMouseEvent) => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.getAttribute('data-u-comp') === 'editor') {
+      e.preventDefault();
+    }
+  };
   const dev = () => showToast(t('excel.toolbar.developing'));
 
   const applyDialogBorders = (edges: BorderTypeKey[], style: BorderStyleKey, color: string) => {
@@ -425,7 +433,7 @@ export function SheetToolbar() {
 
     // 字体 / 字号面板
     items.push(
-      <li key="fontFamily">
+      <li key="fontFamily" onMouseDown={keepEditorFocus}>
         <a
           role="button"
           tabIndex={0}
@@ -458,7 +466,7 @@ export function SheetToolbar() {
           </ToolbarDropdownPanel>
         )}
       </li>,
-      <li key="fontSize">
+      <li key="fontSize" onMouseDown={keepEditorFocus}>
         <a
           role="button"
           tabIndex={0}
@@ -483,22 +491,22 @@ export function SheetToolbar() {
           </ToolbarDropdownPanel>
         )}
       </li>,
-      <li key="bold">
+      <li key="bold" onMouseDown={keepEditorFocus}>
         <a role="button" tabIndex={0} title={t('excel.toolbar.bold')} aria-label={t('excel.toolbar.bold')} className={sel.bl ? 'active' : ''} onClick={run(cmd.toggleBold)}>
           <span className="myf-icon myf-icon-bold" />
         </a>
       </li>,
-      <li key="italic">
+      <li key="italic" onMouseDown={keepEditorFocus}>
         <a role="button" tabIndex={0} title={t('excel.toolbar.italic')} aria-label={t('excel.toolbar.italic')} className={sel.it ? 'active' : ''} onClick={run(cmd.toggleItalic)}>
           <span className="myf-icon myf-icon-italic" />
         </a>
       </li>,
-      <li key="underline">
+      <li key="underline" onMouseDown={keepEditorFocus}>
         <a role="button" tabIndex={0} title={t('excel.toolbar.underline')} aria-label={t('excel.toolbar.underline')} className={sel.u ? 'active' : ''} onClick={run(cmd.toggleUnderline)}>
           <span className="myf-icon myf-icon-underline" />
         </a>
       </li>,
-      <li key="strike">
+      <li key="strike" onMouseDown={keepEditorFocus}>
         <a role="button" tabIndex={0} title={t('excel.toolbar.strikethrough')} aria-label={t('excel.toolbar.strikethrough')} className={sel.st ? 'active' : ''} onClick={run(cmd.toggleStrikeThrough)}>
           <span className="myf-icon myf-icon-delete" />
         </a>
@@ -507,7 +515,7 @@ export function SheetToolbar() {
 
     // 字体颜色 / 填充颜色 / 边框（分体式：图标直接生效，箭头开面板）
     items.push(
-      <li className="right-icon" key="fontColor">
+      <li className="right-icon" key="fontColor" onMouseDown={keepEditorFocus}>
         <div className="myf-arrows-container">
           <a role="button" tabIndex={0} className="arrows-left" title={t('excel.toolbar.fontColor')} onClick={run(() => cmd.setFontColor(sel.cl ?? '#000000'))}>
             <div className="myf-icon myf-icon-fontcolor" />

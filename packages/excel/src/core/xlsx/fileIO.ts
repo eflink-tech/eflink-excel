@@ -112,5 +112,5 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 export function trimExt(filename: string): string {
-  return filename.replace(/\.(xlsx|xlsm|xls)$/i, '');
+  return filename.replace(/\.(xlsx|xlsm|xls|csv)$/i, '');
 }

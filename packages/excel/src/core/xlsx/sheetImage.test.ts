@@ -114,4 +114,45 @@ describe('buildSheetImageElement 整表图片', () => {
     const table = buildSheetImageElement(makeData());
     expect(table.querySelectorAll('td')).toHaveLength(1);
   });
+
+  it('富文本按 textRuns 分段渲染样式', () => {
+    const data = makeData({
+      sheet: {
+        id: 's1',
+        name: 'Sheet1',
+        rowCount: 20,
+        columnCount: 20,
+        cellData: {
+          0: {
+            0: {
+              p: {
+                id: 'p1',
+                body: {
+                  dataStream: 'HELLO\r\n',
+                  textRuns: [
+                    { st: 0, ed: 2, ts: { bl: 1 } },
+                    { st: 2, ed: 4, ts: { it: 1, cl: { rgb: '#ff0000' } } },
+                  ],
+                },
+                documentStyle: {},
+              },
+            },
+          },
+        },
+      },
+      displayValues: [['HELLO']],
+      rawValues: [['HELLO']],
+    });
+
+    const td = buildSheetImageElement(data).querySelector('td') as HTMLTableCellElement;
+    expect(td.textContent).toBe('HELLO');
+    const spans = td.querySelectorAll('span');
+    expect(spans).toHaveLength(3);
+    expect(spans[0].textContent).toBe('HE');
+    expect(spans[0].style.fontWeight).toBe('700');
+    expect(spans[1].textContent).toBe('LL');
+    expect(spans[1].style.fontStyle).toBe('italic');
+    expect(spans[1].style.color).toBe('rgb(255, 0, 0)');
+    expect(spans[2].textContent).toBe('O');
+  });
 });

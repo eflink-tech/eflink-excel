@@ -3,8 +3,9 @@
 // - .json（.efx.json / .efexcel）：工程文件原样还原，直接导入为新文档
 import { useEffect, useState, type ReactNode } from 'react';
 import { useI18n } from '@eflink-tech/office-kit';
-import { importFileAction, importXlsxAction } from '../core/fileActions';
+import { importCsvAction, importFileAction, importXlsxAction } from '../core/fileActions';
 import { parseXlsxSnapshot } from '../core/xlsx/fileIO';
+import { csvToSnapshot } from '../core/csv/csv';
 import { useEditorStore } from '../store/editorStore';
 import { XlsxPreview } from './XlsxPreview';
 import type { WorkbookSnapshot } from '../types/spreadsheet';
@@ -16,6 +17,7 @@ interface ImportDialogProps {
 interface XlsxPreviewState {
   file: File;
   snapshot: WorkbookSnapshot;
+  kind: 'xlsx' | 'csv';
 }
 
 type Busy = null | 'preview' | 'import';
@@ -48,14 +50,31 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
       }
       return;
     }
-    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xlsm')) {
+    if (lower.endsWith('.xls') && !lower.endsWith('.xlsx') && !lower.endsWith('.xlsm')) {
+      setError(t('excel.import.xlsUnsupported'));
+      return;
+    }
+    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xlsm') && !lower.endsWith('.csv')) {
       setError(t('excel.import.chooseFile'));
+      return;
+    }
+    if (lower.endsWith('.csv')) {
+      setBusy('preview');
+      try {
+        const snapshot = csvToSnapshot(await file.text(), file.name.replace(/\.csv$/i, ''));
+        setPreview({ file, snapshot, kind: 'csv' });
+      } catch (err) {
+        console.error('解析 CSV 预览失败', err);
+        setError(t('excel.import.previewFailed'));
+      } finally {
+        setBusy(null);
+      }
       return;
     }
     setBusy('preview');
     try {
       const snapshot = await parseXlsxSnapshot(file);
-      setPreview({ file, snapshot });
+      setPreview({ file, snapshot, kind: 'xlsx' });
     } catch (err) {
       console.error('解析 Excel 预览失败', err);
       setError(t('excel.import.previewFailed'));
@@ -68,7 +87,7 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
     if (!preview || busy) return;
     setBusy('import');
     setError(null);
-    const ok = await importXlsxAction(preview.file);
+    const ok = preview.kind === 'csv' ? await importCsvAction(preview.file) : await importXlsxAction(preview.file);
     if (ok) {
       onClose();
     } else {
@@ -150,7 +169,7 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
       <label className="block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 px-6 py-10 text-center hover:border-[#2b7fff]">
         <input
           type="file"
-          accept=".xlsx,.xlsm,.json"
+          accept=".xlsx,.xlsm,.csv,.json"
           className="hidden disabled:opacity-50"
           disabled={!!busy}
           onChange={(e) => {

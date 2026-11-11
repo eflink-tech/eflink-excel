@@ -1,7 +1,8 @@
 // 顶部菜单可用的文件操作（标题栏、AppMenu 共用）
 import { currentSnapshot, saveNow } from './saveService';
 import { exportEfexcel, importEfexcel } from './efexcel';
-import { exportXlsx, importXlsx, trimExt } from './xlsx/fileIO';
+import { exportXlsx, importXlsx, trimExt, downloadBlob } from './xlsx/fileIO';
+import { csvToSnapshot, displayValuesToRows, serializeCsv } from './csv/csv';
 import { exportSheetPng } from './xlsx/sheetImage';
 import { getActiveSheetImageData } from './univer/controller';
 import { queueImportedCharts } from './xlsx/chartImport';
@@ -97,6 +98,65 @@ export async function exportXlsxAction(): Promise<void> {
 
 /** 超过该字节数的文档由宿主存本地浏览器，不写服务器数据库（与宿主 office 存储上限一致） */
 const LOCAL_ONLY_LIMIT_BYTES = 500 * 1024;
+
+/** 导出当前 sheet 的显示值为 CSV（UTF-8 BOM，Excel 直接打开不乱码） */
+export async function exportCsvAction(): Promise<void> {
+  const { title } = useEditorStore.getState();
+  const snapshot = currentSnapshot();
+  const data = snapshot ? getActiveSheetImageData(snapshot) : null;
+  if (!data) return;
+  try {
+    const rows = displayValuesToRows(data.displayValues);
+    downloadBlob(
+      new Blob([serializeCsv(rows)], { type: 'text/csv;charset=utf-8' }),
+      `${title || excelT('excel.untitled')}.csv`,
+    );
+    useUiStore.getState().showToast(excelT('excel.toast.exportedCsv'));
+  } catch (err) {
+    console.error('导出 CSV 失败', err);
+    useUiStore.getState().showToast(excelT('excel.toast.exportFailed'));
+  }
+}
+
+/** 导入 CSV：替换当前文档内容（docId 不变），按文本写入单表快照 */
+export async function importCsvAction(file: File): Promise<boolean> {
+  const { docId } = useEditorStore.getState();
+  if (!docId) return false;
+  useUiStore.getState().setImporting(true);
+  try {
+    try {
+      await saveNow();
+    } catch (err) {
+      console.error('导入前保存失败', err);
+      useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
+      return false;
+    }
+    try {
+      const snapshot = csvToSnapshot(await file.text(), trimExt(file.name));
+      try {
+        await getDefaultStorage().updateContent(docId, trimExt(file.name), snapshot);
+      } catch (err) {
+        console.error('导入保存文档失败', err);
+        useUiStore.getState().showToast(excelT('excel.toast.importSaveFailed'));
+        return false;
+      }
+      clearDraft(docId);
+      void useDocumentsStore.getState().refresh().catch(() => {});
+      useEditorStore.getState().bumpReload();
+      const localOnly = new TextEncoder().encode(JSON.stringify(snapshot)).length > LOCAL_ONLY_LIMIT_BYTES;
+      useUiStore.getState().showToast(
+        localOnly ? excelT('excel.toast.importedLocalOnly') : excelT('excel.toast.imported'),
+      );
+      return true;
+    } catch (err) {
+      console.error('导入 CSV 失败', err);
+      useUiStore.getState().showToast(excelT('excel.toast.importFailed'));
+      return false;
+    }
+  } finally {
+    useUiStore.getState().setImporting(false);
+  }
+}
 
 /** 导入 Excel (.xlsx)：替换当前文档内容（docId 不变），并触发编辑器重载 */
 export async function importXlsxAction(file: File): Promise<boolean> {

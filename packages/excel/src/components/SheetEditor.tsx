@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import {
   ArrowDownToLine, ArrowRightToLine, Download, Eraser, FilePlus2, Grid3x3,
-  Keyboard, MessageCircle, Redo2, RemoveFormatting, Save, Share2, Sparkles,
+  Keyboard, MessageCircle, Printer, Redo2, RemoveFormatting, Save, Share2, Sparkles,
   Undo2, Unlock, Upload,
 } from 'lucide-react';
 import { I18nProvider, OfficeHeader, useI18n, type OfficeLocale, type OfficeMenu } from '@eflink-tech/office-kit';
@@ -25,6 +25,7 @@ import { GridEdgeControls } from './spreadsheet/GridEdgeControls';
 import { AIChatPanel } from './ai/AIChatPanel';
 import { ImportDialog } from './ImportDialog';
 import { ExportDialog } from './ExportDialog';
+import { PrintDialog } from './PrintDialog';
 import { useEditorStore } from '../store/editorStore';
 import { useDocumentsStore } from '../store/documentsStore';
 import { useUiStore } from '../store/uiStore';
@@ -102,6 +103,7 @@ function SheetEditorInner({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   // 回调走 ref：父组件传内联函数时避免触发重新加载
   const onLoadedRef = useRef(onDocLoaded);
   onLoadedRef.current = onDocLoaded;
@@ -226,6 +228,12 @@ function SheetEditorInner({
             icon: <Download size={16} />,
             onSelect: () => setExportOpen(true),
           },
+          {
+            key: 'print',
+            label: t('excel.file.print'),
+            icon: <Printer size={16} />,
+            onSelect: () => setPrintOpen(true),
+          },
         ],
       ],
     },
@@ -348,7 +356,16 @@ function SheetEditorInner({
       <ShareDialog open={shareOpen} doc={shareDoc} onClose={closeShare} />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       {importOpen && <ImportDialog onClose={() => setImportOpen(false)} />}
-      {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
+      {exportOpen && (
+        <ExportDialog
+          onClose={() => setExportOpen(false)}
+          onOpenPrint={() => {
+            setExportOpen(false);
+            setPrintOpen(true);
+          }}
+        />
+      )}
+      {printOpen && <PrintDialog onClose={() => setPrintOpen(false)} />}
     </div>
   );
 }

@@ -28,54 +28,25 @@ export const undo = () => activeWorkbook()?.undo();
 export const redo = () => activeWorkbook()?.redo();
 export const formatPainter = () => execCommand('sheet.command.set-once-format-painter');
 
-// ---------- 字体样式（读取当前样式做 toggle） ----------
-function currentStyle(): { bl?: number; it?: number; u?: { s?: boolean }; st?: { s?: boolean } } | null {
-  let out: ReturnType<FRange['getCellStyleData']> = null;
-  withActiveRange((range) => {
-    out = range.getCellStyleData();
-  });
-  return out as { bl?: number; it?: number; u?: { s?: boolean }; st?: { s?: boolean } } | null;
-}
-
-export function toggleBold(): void {
-  withActiveRange((range) => {
-    const on = currentStyle()?.bl === 1;
-    range.setFontWeight((on ? 'normal' : 'bold') as Arg<FRange['setFontWeight']>);
-  });
-}
-
-export function toggleItalic(): void {
-  withActiveRange((range) => {
-    const on = currentStyle()?.it === 1;
-    range.setFontStyle((on ? 'normal' : 'italic') as Arg<FRange['setFontStyle']>);
-  });
-}
-
-export function toggleUnderline(): void {
-  withActiveRange((range) => {
-    const on = currentStyle()?.u?.s === true;
-    range.setFontLine((on ? 'none' : 'underline') as Arg<FRange['setFontLine']>);
-  });
-}
-
-export function toggleStrikeThrough(): void {
-  withActiveRange((range) => {
-    const on = currentStyle()?.st?.s === true;
-    range.setFontLine((on ? 'none' : 'line-through') as Arg<FRange['setFontLine']>);
-  });
-}
+// ---------- 字体样式 ----------
+// 统一走 set-range-*：单元格编辑态（EDITOR_ACTIVATED）时 Univer 自动路由到富文本
+// inline-format，只改选中文字；非编辑态作用整格。
+export const toggleBold = (): void => execCommand('sheet.command.set-range-bold');
+export const toggleItalic = (): void => execCommand('sheet.command.set-range-italic');
+export const toggleUnderline = (): void => execCommand('sheet.command.set-range-underline');
+export const toggleStrikeThrough = (): void => execCommand('sheet.command.set-range-stroke');
 
 export function setFontFamily(family: string): void {
-  withActiveRange((range) => range.setFontFamily(family));
+  execCommand('sheet.command.set-range-font-family', { value: family });
 }
 
 export function setFontSize(size: number): void {
-  withActiveRange((range) => range.setFontSize(size));
+  execCommand('sheet.command.set-range-fontsize', { value: size });
 }
 
 // ---------- 颜色 ----------
 export function setFontColor(color: string): void {
-  withActiveRange((range) => range.setFontColor(color));
+  execCommand('sheet.command.set-range-text-color', { value: color });
 }
 
 export function resetFontColor(): void {

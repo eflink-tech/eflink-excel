@@ -47,6 +47,47 @@ function richTextOf(cell?: SnapshotCell): string {
   return stream.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
 }
 
+interface RichSegment {
+  text: string;
+  style?: CellStyle;
+}
+
+/** 富文本按 textRuns 切段；没有 runs 或内容全为纯文本时返回 null，走普通文本渲染 */
+function richSegments(cell?: SnapshotCell): RichSegment[] | null {
+  const body = cell?.p?.body;
+  if (!body || !body.textRuns?.length) return null;
+  const text = richTextOf(cell);
+  const runs = [...body.textRuns].sort((a, b) => a.st - b.st);
+  const segments: RichSegment[] = [];
+  let pos = 0;
+  for (const run of runs) {
+    const start = Math.max(pos, run.st);
+    const end = Math.min(text.length, run.ed);
+    if (end <= start) continue;
+    if (start > pos) segments.push({ text: text.slice(pos, start) });
+    segments.push({ text: text.slice(start, end), style: run.ts });
+    pos = end;
+  }
+  if (pos < text.length) segments.push({ text: text.slice(pos) });
+  return segments;
+}
+
+function applyRunStyle(span: HTMLSpanElement, style?: CellStyle): void {
+  if (!style) return;
+  const css: string[] = [];
+  if (style.bl === 1) css.push('font-weight:700');
+  if (style.it === 1) css.push('font-style:italic');
+  if (style.fs) css.push(`font-size:${style.fs}pt`);
+  if (style.ff) css.push(`font-family:${style.ff.replace(/["\\;]/g, '')},Arial,'PingFang SC','Microsoft YaHei',sans-serif`);
+  const color = resolveFontColor(style);
+  if (color) css.push(`color:${color}`);
+  if (style.ul?.s === 1) css.push('text-decoration:underline');
+  if (style.st?.s === 1) css.push('text-decoration:line-through');
+  if (style.va === 2) css.push('vertical-align:sub;font-size:smaller');
+  if (style.va === 3) css.push('vertical-align:super;font-size:smaller');
+  span.style.cssText = css.join(';');
+}
+
 function defaultAlign(cell: SnapshotCell | undefined, raw: unknown): string {
   if (cell?.p) return 'left';
   if (typeof raw === 'number') return 'right';
@@ -164,7 +205,17 @@ export function buildSheetImageElement(data: SheetImageData): HTMLTableElement {
         if (border) css.push(`border-${side === 't' ? 'top' : side === 'r' ? 'right' : side === 'b' ? 'bottom' : 'left'}:${border}`);
       }
       td.style.cssText = css.join(';');
-      td.textContent = text;
+      const segments = richSegments(cell);
+      if (segments) {
+        for (const segment of segments) {
+          const span = document.createElement('span');
+          applyRunStyle(span, segment.style);
+          span.textContent = segment.text;
+          td.appendChild(span);
+        }
+      } else {
+        td.textContent = text;
+      }
       tr.appendChild(td);
     }
     tbody.appendChild(tr);

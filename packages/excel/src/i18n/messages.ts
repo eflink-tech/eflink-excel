@@ -18,6 +18,7 @@ const ROWS = {
   'excel.file.new': ['新建表格', 'New spreadsheet', 'Nueva hoja de cálculo', 'Nova planilha'],
   'excel.file.import': ['导入', 'Import', 'Importar', 'Importar'],
   'excel.file.export': ['导出', 'Export', 'Exportar', 'Exportar'],
+  'excel.file.print': ['打印 / PDF', 'Print / PDF', 'Imprimir / PDF', 'Imprimir / PDF'],
 
   // ── 导出弹窗 ────────────────────────────────────────────
   'excel.export.title': ['导出', 'Export', 'Exportar', 'Exportar'],
@@ -28,18 +29,35 @@ const ROWS = {
   'excel.export.imageDesc': ['导出当前工作表的完整内容', 'Exports the full contents of the current sheet', 'Exporta el contenido completo de la hoja actual', 'Exporta o conteúdo completo da planilha atual'],
   'excel.export.data': ['工程数据 (.efx.json)', 'Project data (.efx.json)', 'Datos del proyecto (.efx.json)', 'Dados do projeto (.efx.json)'],
   'excel.export.dataDesc': ['完整工程数据，可在本工具重新导入继续编辑', 'Full project data, re-importable into this tool', 'Datos completos del proyecto, reimportables en esta herramienta', 'Dados completos do projeto, reimportáveis nesta ferramenta'],
+  'excel.export.csv': ['CSV (.csv)', 'CSV (.csv)', 'CSV (.csv)', 'CSV (.csv)'],
+  'excel.export.csvDesc': ['当前工作表的显示值，UTF-8 编码，Excel 可直接打开', 'Displayed values of the current sheet, UTF-8, opens directly in Excel', 'Valores mostrados de la hoja actual, UTF-8, se abre directamente en Excel', 'Valores exibidos da planilha atual, UTF-8, abre diretamente no Excel'],
+  'excel.export.pdf': ['PDF(.pdf)', 'PDF (.pdf)', 'PDF (.pdf)', 'PDF (.pdf)'],
+  'excel.export.pdfDesc': ['通过系统打印对话框另存为 PDF，保留表格样式', 'Save as PDF via the system print dialog, with table styling preserved', 'Guardar como PDF mediante el diálogo de impresión del sistema, conservando el estilo', 'Salvar como PDF pelo diálogo de impressão do sistema, mantendo o estilo da tabela'],
+
+  // ── 打印 / PDF ──────────────────────────────────────────
+  'excel.print.title': ['打印 / PDF', 'Print / PDF', 'Imprimir / PDF', 'Imprimir / PDF'],
+  'excel.print.orientation': ['纸张方向', 'Orientation', 'Orientación', 'Orientação'],
+  'excel.print.portrait': ['纵向', 'Portrait', 'Vertical', 'Retrato'],
+  'excel.print.landscape': ['横向', 'Landscape', 'Horizontal', 'Paisagem'],
+  'excel.print.preview': ['打印预览', 'Print preview', 'Vista previa de impresión', 'Pré-visualização de impressão'],
+  'excel.print.print': ['打印', 'Print', 'Imprimir', 'Imprimir'],
+  'excel.print.pdf': ['另存为 PDF', 'Save as PDF', 'Guardar como PDF', 'Salvar como PDF'],
+  'excel.print.hint': ['「另存为 PDF」会打开系统打印对话框，请选择目标为「另存为 PDF / Save as PDF」。', '"Save as PDF" opens the system print dialog; choose "Save as PDF" as the destination.', '«Guardar como PDF» abre el diálogo de impresión del sistema; elige «Guardar como PDF» como destino.', '"Salvar como PDF" abre o diálogo de impressão do sistema; escolha "Salvar como PDF" como destino.'],
+  'excel.print.scope': ['打印当前工作表已用区域，宽表会自动缩放到页宽。', 'Prints the used range of the current sheet; wide tables are scaled to page width.', 'Imprime el área usada de la hoja actual; las tablas anchas se ajustan al ancho de página.', 'Imprime a área usada da planilha atual; tabelas largas são ajustadas à largura da página.'],
+  'excel.print.empty': ['当前工作表没有可打印内容', 'The current sheet has no printable content', 'La hoja actual no tiene contenido imprimible', 'A planilha atual não tem conteúdo para imprimir'],
 
   // ── 导入弹窗 ────────────────────────────────────────────
   'excel.import.title': ['导入', 'Import', 'Importar', 'Importar'],
   'excel.import.previewTitle': ['导入预览', 'Import preview', 'Vista previa de importación', 'Pré-visualização da importação'],
   'excel.import.choose': ['点击选择文件', 'Click to choose a file', 'Haz clic para elegir un archivo', 'Clique para escolher um arquivo'],
-  'excel.import.support': ['支持 .xlsx / .xlsm（Excel 工作簿）与 .json（本工具工程文件）', 'Supports .xlsx / .xlsm (Excel workbooks) and .json (project files from this tool)', 'Admite .xlsx / .xlsm (libros de Excel) y .json (archivos de proyecto de esta herramienta)', 'Compatível com .xlsx / .xlsm (pastas de trabalho do Excel) e .json (arquivos de projeto desta ferramenta)'],
-  'excel.import.previewNote': ['Excel 文件将先展示工作表预览，确认后再导入为可编辑内容', 'Excel files are previewed first and imported as editable content after you confirm', 'Los archivos de Excel se previsualizan primero y se importan como contenido editable tras confirmar', 'Arquivos do Excel são pré-visualizados primeiro e importados como conteúdo editável após a confirmação'],
+  'excel.import.support': ['支持 .xlsx / .xlsm（Excel 工作簿）、.csv（逗号分隔）与 .json（本工具工程文件）', 'Supports .xlsx / .xlsm (Excel workbooks), .csv (comma-separated) and .json (project files from this tool)', 'Admite .xlsx / .xlsm (libros de Excel), .csv (separado por comas) y .json (archivos de proyecto de esta herramienta)', 'Compatível com .xlsx / .xlsm (pastas de trabalho do Excel), .csv (separado por vírgulas) e .json (arquivos de projeto desta ferramenta)'],
+  'excel.import.previewNote': ['Excel / CSV 文件将先展示内容预览，确认后再导入为可编辑内容', 'Excel / CSV files are previewed first and imported as editable content after you confirm', 'Los archivos de Excel / CSV se previsualizan primero y se importan como contenido editable tras confirmar', 'Arquivos do Excel / CSV são pré-visualizados primeiro e importados como conteúdo editável após a confirmação'],
   'excel.import.limitNote': ['导入尽力还原单元格、字体、颜色与合并单元格；复杂图表可能以图片形式呈现', 'Import restores cells, fonts, colors and merged cells as faithfully as possible; complex charts may appear as images', 'La importación restaura celdas, fuentes, colores y celdas combinadas con la mayor fidelidad posible; los gráficos complejos pueden aparecer como imágenes', 'A importação restaura células, fontes, cores e células mescladas com a maior fidelidade possível; gráficos complexos podem aparecer como imagens'],
   'excel.import.previewing': ['正在生成预览…', 'Generating preview…', 'Generando vista previa…', 'Gerando pré-visualização…'],
   'excel.import.back': ['返回', 'Back', 'Atrás', 'Voltar'],
   'excel.import.confirm': ['确认导入（可编辑）', 'Import as editable', 'Importar como editable', 'Importar como editável'],
-  'excel.import.chooseFile': ['请选择 .xlsx、.xlsm 或 .json 文件', 'Choose a .xlsx, .xlsm or .json file', 'Elige un archivo .xlsx, .xlsm o .json', 'Escolha um arquivo .xlsx, .xlsm ou .json'],
+  'excel.import.chooseFile': ['请选择 .xlsx、.xlsm、.csv 或 .json 文件', 'Choose a .xlsx, .xlsm, .csv or .json file', 'Elige un archivo .xlsx, .xlsm, .csv o .json', 'Escolha um arquivo .xlsx, .xlsm, .csv ou .json'],
+  'excel.import.xlsUnsupported': ['不支持 .xls 旧格式，请先在 Excel / WPS 中另存为 .xlsx 后再导入', 'The legacy .xls format is not supported. Save it as .xlsx in Excel / WPS first.', 'El formato antiguo .xls no es compatible. Guárdalo como .xlsx en Excel / WPS primero.', 'O formato antigo .xls não é compatível. Salve como .xlsx no Excel / WPS primeiro.'],
   'excel.import.previewFailed': ['无法读取该文件，请确认是有效的 Excel 工作簿', 'Could not read this file. Make sure it is a valid Excel workbook.', 'No se pudo leer el archivo. Asegúrate de que sea un libro de Excel válido.', 'Não foi possível ler o arquivo. Verifique se é uma pasta de trabalho do Excel válida.'],
   'excel.import.sheetCount': ['共 {count} 个工作表', '{count} sheets', '{count} hojas', '{count} planilhas'],
   'excel.import.truncated': ['预览最多显示前 {rows} 行、前 {cols} 列', 'Preview shows up to {rows} rows and {cols} columns', 'La vista previa muestra hasta {rows} filas y {cols} columnas', 'A pré-visualização mostra até {rows} linhas e {cols} colunas'],
@@ -237,6 +255,12 @@ const ROWS = {
   'excel.shortcuts.rowStartEnd': ['选择下一行首/行尾', 'Row start / end', 'Inicio / fin de fila', 'Início / fim da linha'],
   'excel.shortcuts.doubleClick': ['双击', 'Double-click', 'Doble clic', 'Clique duplo'],
   'excel.shortcuts.arrowKeys': ['方向键', 'arrow keys', 'flechas', 'setas'],
+  'excel.shortcuts.inlineFormat': [
+    '编辑单元格时先选中文字，再点加粗/字号/颜色，可只改选中部分',
+    'While editing a cell, select text first; bold/size/color then applies only to the selection',
+    'Al editar una celda, selecciona texto primero; negrita/tamaño/color solo afectan a la selección',
+    'Ao editar uma célula, selecione o texto primeiro; negrito/tamanho/cor afetam apenas a seleção',
+  ],
 
   // ── 图表 ────────────────────────────────────────────────
   'excel.chart.group.bar': ['柱状图', 'Column charts', 'Gráficos de columnas', 'Gráficos de colunas'],
@@ -364,6 +388,7 @@ const ROWS = {
   'excel.toast.renameFailed': ['重命名失败', 'Rename failed', 'No se pudo renombrar', 'Falha ao renomear'],
   'excel.toast.exportedJson': ['已导出 efexcel', 'efexcel exported', 'efexcel exportado', 'efexcel exportado'],
   'excel.toast.exportedXlsx': ['已导出 xlsx', 'xlsx exported', 'xlsx exportado', 'xlsx exportado'],
+  'excel.toast.exportedCsv': ['已导出 CSV', 'CSV exported', 'CSV exportado', 'CSV exportado'],
   'excel.toast.exportedPng': ['已导出图片', 'image exported', 'Imagen exportada', 'Imagem exportada'],
   'excel.toast.exportFailed': ['导出失败', 'Export failed', 'Error al exportar', 'Falha ao exportar'],
   'excel.toast.imported': ['导入成功', 'Imported successfully', 'Importado correctamente', 'Importado com sucesso'],

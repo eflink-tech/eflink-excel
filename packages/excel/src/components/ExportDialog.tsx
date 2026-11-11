@@ -5,13 +5,15 @@ import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '@eflink-tech/office-kit';
-import { exportEfexcelAction, exportPngAction, exportXlsxAction } from '../core/fileActions';
+import { exportCsvAction, exportEfexcelAction, exportPngAction, exportXlsxAction } from '../core/fileActions';
 
 interface ExportDialogProps {
   onClose: () => void;
+  /** 从导出弹窗进入打印 / PDF 预览 */
+  onOpenPrint?: () => void;
 }
 
-type ExportKey = 'xlsx' | 'image' | 'data';
+type ExportKey = 'xlsx' | 'csv' | 'pdf' | 'image' | 'data';
 
 // 双 rAF 等 loading 真正绘制一帧后再开始重导出，否则同步绘制会阻塞首帧
 function nextPaint(): Promise<void> {
@@ -20,7 +22,7 @@ function nextPaint(): Promise<void> {
   });
 }
 
-export function ExportDialog({ onClose }: ExportDialogProps) {
+export function ExportDialog({ onClose, onOpenPrint }: ExportDialogProps) {
   const { t } = useI18n();
   const [busy, setBusy] = useState<ExportKey | null>(null);
 
@@ -45,6 +47,15 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
 
   const options: Array<{ key: ExportKey; title: string; desc: string; run: () => Promise<void> }> = [
     { key: 'xlsx', title: t('excel.export.xlsx'), desc: t('excel.export.xlsxDesc'), run: exportXlsxAction },
+    { key: 'csv', title: t('excel.export.csv'), desc: t('excel.export.csvDesc'), run: exportCsvAction },
+    {
+      key: 'pdf',
+      title: t('excel.export.pdf'),
+      desc: t('excel.export.pdfDesc'),
+      run: async () => {
+        onOpenPrint?.();
+      },
+    },
     { key: 'image', title: t('excel.export.image'), desc: t('excel.export.imageDesc'), run: exportPngAction },
     { key: 'data', title: t('excel.export.data'), desc: t('excel.export.dataDesc'), run: exportEfexcelAction },
   ];

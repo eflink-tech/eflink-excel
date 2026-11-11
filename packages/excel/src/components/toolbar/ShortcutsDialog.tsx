@@ -135,6 +135,8 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
               </div>
             ))}
           </div>
+
+          <p className="mt-4 text-center text-[12px] text-slate-400">{t('excel.shortcuts.inlineFormat')}</p>
         </div>
       </div>
     </div>,
