@@ -43,5 +43,18 @@ export function UniverContainer({ snapshot }: { snapshot: WorkbookSnapshot }) {
     setUniverLocale(locale);
   }, [locale]);
 
+  // 单元格编辑中禁止滚轮滚动：Univer 编辑框按视口坐标定位，滚动后会脱离单元格悬浮
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      const target = event.target as Element | null;
+      if (!target?.closest?.('#univer-container')) return;
+      if (!getUniverApi()?.getActiveWorkbook()?.isCellEditing()) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    return () => window.removeEventListener('wheel', onWheel, { capture: true });
+  }, []);
+
   return <div ref={ref} id="univer-container" />;
 }
