@@ -18,6 +18,6 @@ export interface OfficeMenu {
   key: string;
   label: string;
   items: OfficeMenuItem[][];
-  /** 下拉对齐方式；默认靠近右缘的菜单自动右对齐 */
+  /** 下拉对齐方式；默认左对齐（下拉从按钮左缘向右展开） */
   align?: 'start' | 'end';
 }

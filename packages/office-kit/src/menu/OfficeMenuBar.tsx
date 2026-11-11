@@ -299,7 +299,7 @@ export function OfficeMenuBar({ menus, className, ariaLabel }: OfficeMenuBarProp
     >
       {menus.map((menu, index) => {
         if (index >= visibleCount) return null;
-        const alignEnd = (menu.align ?? (index >= menus.length - 2 ? 'end' : 'start')) === 'end';
+        const alignEnd = menu.align === 'end';
         return (
           <div className="efk-menu-root" key={menu.key}>
             <button
