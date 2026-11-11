@@ -6,6 +6,7 @@ import { exportSheetPng } from './xlsx/sheetImage';
 import { getActiveSheetImageData } from './univer/controller';
 import { queueImportedCharts } from './xlsx/chartImport';
 import { queueImportedAnnotations } from './xlsx/annotationImport';
+import { queueImportedRetentions } from './xlsx/retentionImport';
 import { getDefaultStorage } from '../storage/registry';
 import { clearDraft } from '../storage/draft';
 import { useDocumentsStore } from '../store/documentsStore';
@@ -114,7 +115,7 @@ export async function importXlsxAction(file: File): Promise<boolean> {
     }
     try {
       // 先解析：失败在落盘前抛出，当前文档不受影响（图表已渲染成图片随结果一并返回）
-      const { snapshot, charts, annotations } = await importXlsx(file);
+      const { snapshot, charts, annotations, retentions } = await importXlsx(file);
       try {
         await getDefaultStorage().updateContent(docId, trimExt(file.name), snapshot);
       } catch (err) {
@@ -125,6 +126,7 @@ export async function importXlsxAction(file: File): Promise<boolean> {
       // 图表/批注/超链接入队：编辑器重载挂载 Univer 后落位（队列在各解析模块，避免此处引入 Univer 依赖）
       queueImportedCharts(charts);
       queueImportedAnnotations(annotations);
+      queueImportedRetentions(retentions);
       clearDraft(docId); // 防重载读到旧草稿
       void useDocumentsStore.getState().refresh().catch(() => {}); // 防列表刷新失败的 unhandledrejection
       useEditorStore.getState().bumpReload();

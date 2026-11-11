@@ -197,7 +197,7 @@ describe('fileActions 文件动作', () => {
     base.id = 'doc-base';
     await getDefaultStorage().save(base);
     const reloadBefore = useEditorStore.getState().reloadToken;
-    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] } });
+    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] }, retentions: { conditionalFormats: [], dataValidations: [] } });
 
     const ok = await importXlsxAction(new File(['x'], '外部报表.xlsx'));
 
@@ -216,7 +216,7 @@ describe('fileActions 文件动作', () => {
     await getDefaultStorage().save(base);
     const snapshot = createEmptySnapshot('大表');
     snapshot.sheets['sheet-01'].cellData[0] = { 0: { v: 'x'.repeat(500 * 1024 + 1024) } };
-    mockImportXlsx.mockResolvedValueOnce({ snapshot, charts: [], annotations: { links: [], comments: [] } });
+    mockImportXlsx.mockResolvedValueOnce({ snapshot, charts: [], annotations: { links: [], comments: [] }, retentions: { conditionalFormats: [], dataValidations: [] } });
 
     await importXlsxAction(new File(['x'], '大表.xlsx'));
 
@@ -232,7 +232,7 @@ describe('fileActions 文件动作', () => {
 
     const action = importXlsxAction(new File(['x'], '外部报表.xlsx'));
     await vi.waitFor(() => expect(useUiStore.getState().importing).toBe(true));
-    finish({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] } });
+    finish({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] }, retentions: { conditionalFormats: [], dataValidations: [] } });
     await action;
 
     expect(useUiStore.getState().importing).toBe(false);
@@ -264,7 +264,7 @@ describe('fileActions 文件动作', () => {
       ...memoryStorage(),
       updateContent: vi.fn(async () => { throw new Error('写库失败'); }),
     });
-    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] } });
+    mockImportXlsx.mockResolvedValueOnce({ snapshot: createEmptySnapshot('导入表'), charts: [], annotations: { links: [], comments: [] }, retentions: { conditionalFormats: [], dataValidations: [] } });
     const ok = await importXlsxAction(new File(['x'], '外部报表.xlsx'));
 
     expect(ok).toBe(false);

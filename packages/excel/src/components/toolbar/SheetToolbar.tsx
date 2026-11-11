@@ -9,6 +9,8 @@ import { useUiStore } from '../../store/uiStore';
 import { RECENT_COLORS_KEYS as RECENT_COLOR_KEYS } from '../../storage/keys';
 import { ColorPicker } from '../color';
 import { ChartPickerPanel } from './ChartPickerPanel';
+import { BorderDialog } from './BorderDialog';
+import { NumberFormatDialog } from './NumberFormatDialog';
 import { ToolbarAlignMenuItem, ToolbarDropdownPanel, ToolbarMenuDivider, ToolbarMenuItem } from './ToolbarMenuPanel';
 import { closeAllToolbarDropdowns } from './toolbarDropdown';
 import { UNIVER_READY_EVENT } from './FormulaBar';
@@ -47,7 +49,8 @@ interface NumFormatItem {
 type PanelId =
   | 'insert' | 'convention' | 'fontFamily' | 'fontSize'
   | 'fontColor' | 'fillColor' | 'border'
-  | 'hAlign' | 'vAlign' | 'freeze' | 'sum' | 'sort' | 'comment';
+  | 'hAlign' | 'vAlign' | 'freeze' | 'sum' | 'sort' | 'comment'
+  | 'conditionalFormat' | 'dataValidation';
 
 /** 「更多」按钮预留宽度（溢出收纳计算用） */
 const MORE_RESERVE = 44;
@@ -62,6 +65,8 @@ export function SheetToolbar() {
   const [sel, setSel] = useState<SelState>(INITIAL_SEL);
   const [borderStyle, setBorderStyle] = useState<BorderStyleKey>('thin');
   const [borderColor, setBorderColor] = useState('#000000');
+  const [numFormatOpen, setNumFormatOpen] = useState(false);
+  const [borderDialogOpen, setBorderDialogOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -210,6 +215,11 @@ export function SheetToolbar() {
     setOpenPanel(null);
   };
   const dev = () => showToast(t('excel.toolbar.developing'));
+
+  const applyDialogBorders = (edges: BorderTypeKey[], style: BorderStyleKey, color: string) => {
+    for (const edge of edges) cmd.applyBorder(edge, style, color);
+    refreshSoon();
+  };
 
   const runComment = (fn: () => void) => () => {
     const range = getActiveRange();
@@ -383,7 +393,13 @@ export function SheetToolbar() {
               </Fragment>
             ))}
             <ToolbarMenuDivider />
-            <ToolbarMenuItem label={t('excel.toolbar.moreFormats')} onClick={dev} />
+            <ToolbarMenuItem
+              label={t('excel.toolbar.moreFormats')}
+              onClick={() => {
+                setOpenPanel(null);
+                setNumFormatOpen(true);
+              }}
+            />
           </ToolbarDropdownPanel>
         )}
       </li>,
@@ -602,7 +618,14 @@ export function SheetToolbar() {
                 </button>
               ))}
             </BorderSub>
-            <button type="button" className="myf-x-plain" onClick={dev}>
+            <button
+              type="button"
+              className="myf-x-plain"
+              onClick={() => {
+                setOpenPanel(null);
+                setBorderDialogOpen(true);
+              }}
+            >
               {t('excel.toolbar.moreBorders')}
             </button>
           </div>
@@ -771,6 +794,71 @@ export function SheetToolbar() {
           </ToolbarDropdownPanel>
         )}
       </li>,
+      <li key="conditionalFormat">
+        <a
+          role="button"
+          tabIndex={0}
+          title={t('excel.toolbar.conditionalFormat')}
+          aria-label={t('excel.toolbar.conditionalFormat')}
+          className={`myf-tool-panel${openPanel === 'conditionalFormat' ? ' active' : ''}`}
+          onClick={toggle('conditionalFormat')}
+        >
+          <span className="myf-icon myf-icon-conditional-format" />
+          <div className="myf-icon myf-icon-arrow-down" />
+        </a>
+        {open('conditionalFormat') && (
+          <ToolbarDropdownPanel style={{ width: 168 }}>
+            <ToolbarMenuItem
+              iconClass="myf-icon-conditional-format"
+              label={t('excel.cf.newRule')}
+              onClick={run(() => cmd.openConditionalFormatPanel(1))}
+            />
+            <ToolbarMenuItem
+              iconClass="myf-icon-conditional-format"
+              label={t('excel.cf.manageRules')}
+              onClick={run(() => cmd.openConditionalFormatPanel(2))}
+            />
+            <ToolbarMenuDivider />
+            <ToolbarMenuItem
+              iconClass="myf-icon-clear-format"
+              label={t('excel.cf.clearSelection')}
+              onClick={run(() => cmd.openConditionalFormatPanel(9))}
+            />
+            <ToolbarMenuItem
+              iconClass="myf-icon-clear-format"
+              label={t('excel.cf.clearSheet')}
+              onClick={run(() => cmd.openConditionalFormatPanel(10))}
+            />
+          </ToolbarDropdownPanel>
+        )}
+      </li>,
+      <li key="dataValidation">
+        <a
+          role="button"
+          tabIndex={0}
+          title={t('excel.toolbar.dataValidation')}
+          aria-label={t('excel.toolbar.dataValidation')}
+          className={`myf-tool-panel${openPanel === 'dataValidation' ? ' active' : ''}`}
+          onClick={toggle('dataValidation')}
+        >
+          <span className="myf-icon myf-icon-data-validation" />
+          <div className="myf-icon myf-icon-arrow-down" />
+        </a>
+        {open('dataValidation') && (
+          <ToolbarDropdownPanel style={{ width: 168 }}>
+            <ToolbarMenuItem
+              iconClass="myf-icon-data-validation"
+              label={t('excel.dv.addRule')}
+              onClick={run(cmd.addDataValidation)}
+            />
+            <ToolbarMenuItem
+              iconClass="myf-icon-data-validation"
+              label={t('excel.dv.manageRules')}
+              onClick={run(cmd.openDataValidationPanel)}
+            />
+          </ToolbarDropdownPanel>
+        )}
+      </li>,
       <li key="mention">
         <a role="button" tabIndex={0} title={t('excel.toolbar.mention')} aria-label={t('excel.toolbar.mention')} onClick={dev}>
           <span className="myf-icon myf-icon-mention-ent" />
@@ -837,6 +925,30 @@ export function SheetToolbar() {
           {measureItems}
         </ul>
       </div>
+      {numFormatOpen && (
+        <NumberFormatDialog
+          open
+          value={sel.numfmt}
+          onClose={() => setNumFormatOpen(false)}
+          onApply={(pattern) => {
+            cmd.setNumberFormatPattern(pattern);
+            refreshSoon();
+          }}
+        />
+      )}
+      {borderDialogOpen && (
+        <BorderDialog
+          open
+          initialStyle={borderStyle}
+          initialColor={borderColor}
+          onClose={() => setBorderDialogOpen(false)}
+          onApply={applyDialogBorders}
+          onClear={() => {
+            cmd.applyBorder('none', borderStyle);
+            refreshSoon();
+          }}
+        />
+      )}
     </div>
   );
 }

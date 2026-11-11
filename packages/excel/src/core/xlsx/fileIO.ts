@@ -8,6 +8,7 @@ import { clampOversizedDataValidations } from './dataValidationSanitize';
 import { findAll, findFirst, parseXml } from './xmlLite';
 import { extractCharts, type ImportedChart } from './chartImport';
 import { extractAnnotations, type ImportedAnnotations } from './annotationImport';
+import { extractRetentions, type ImportedRetentions } from './retentionImport';
 import { buildChartOption, DEFAULT_CHART_ELEMENTS, renderChartFrameToDataUrl } from '../univer/chartOptions';
 import type { WorkbookSnapshot } from '../../types/spreadsheet';
 
@@ -19,6 +20,8 @@ export interface ImportXlsxResult {
   charts: ImportedChart[];
   /** 待落位的超链接/批注（编辑器挂载后经 facade 写入，见 univer/importedAnnotations.ts） */
   annotations: ImportedAnnotations;
+  /** 待落位的条件格式/数据验证（编辑器挂载后经 facade/命令写入，见 univer/importedRetentions.ts） */
+  retentions: ImportedRetentions;
 }
 
 export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Promise<void> {
@@ -34,11 +37,12 @@ export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   await wb.xlsx.load(await clampOversizedDataValidations(buffer));
   const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
   const snapshot = workbookToSnapshot(wb, trimExt(file.name), { normalFontSize });
-  const [charts, annotations] = await Promise.all([
+  const [charts, annotations, retentions] = await Promise.all([
     renderImportedCharts(await extractCharts(buffer).catch(() => [])),
     extractAnnotations(buffer).catch(() => ({ links: [], comments: [] })),
+    extractRetentions(buffer).catch(() => ({ conditionalFormats: [], dataValidations: [] })),
   ]);
-  return { snapshot, charts, annotations };
+  return { snapshot, charts, annotations, retentions };
 }
 
 /** 只解析工作簿快照（不渲染图表/批注），供导入预览使用 */

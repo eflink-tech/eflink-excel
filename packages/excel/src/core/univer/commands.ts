@@ -411,6 +411,21 @@ export function openFindReplace(): void {
   execCommand('ui.operation.open-find-dialog');
 }
 
+// ---------- 条件格式 ----------
+/** 条件格式面板：1 新建规则（按当前选区）、2 管理规则、9 清除选区规则、10 清除整表规则 */
+export function openConditionalFormatPanel(mode: 1 | 2 | 9 | 10): void {
+  execCommand('sheet.operation.open.conditional.formatting.panel', { value: mode });
+}
+
+// ---------- 数据验证 ----------
+export function addDataValidation(): void {
+  execCommand('data-validation.command.addRuleAndOpen');
+}
+
+export function openDataValidationPanel(): void {
+  execCommand('data-validation.operation.open-validation-panel', { isAdd: false });
+}
+
 // ---------- 视图 ----------
 export function resetZoom(): void {
   execCommand('sheet.command.set-zoom-ratio', { value: 1 });

@@ -69,7 +69,13 @@ importers:
       '@univerjs/core':
         specifier: ^0.25.1
         version: 0.25.1(react@19.2.8)(rxjs@7.8.2)
+      '@univerjs/preset-sheets-conditional-formatting':
+        specifier: ^0.25.1
+        version: 0.25.1(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rxjs@7.8.2)
       '@univerjs/preset-sheets-core':
+        specifier: ^0.25.1
+        version: 0.25.1(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rxjs@7.8.2)
+      '@univerjs/preset-sheets-data-validation':
         specifier: ^0.25.1
         version: 0.25.1(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rxjs@7.8.2)
       '@univerjs/preset-sheets-drawing':
@@ -93,6 +99,9 @@ importers:
       '@univerjs/presets':
         specifier: ^0.25.1
         version: 0.25.1(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rxjs@7.8.2)
+      '@univerjs/sheets-conditional-formatting':
+        specifier: ^0.25.1
+        version: 0.25.1(react@19.2.8)(rxjs@7.8.2)
       dexie:
         specifier: ^4.4.5
         version: 4.4.5

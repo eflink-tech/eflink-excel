@@ -57,6 +57,8 @@ export interface CellStyle {
 
 export interface SnapshotCell {
   v?: string | number | boolean;
+  /** Univer 单元格值类型（CellValueType：1 文本 / 2 数字 / 3 布尔）；条件格式等按此判断，加载时对缺失项补全 */
+  t?: number;
   f?: string;
   /** 富文本（Univer 文档子集；xlsx 导入方向产出，渲染/持久化由 Univer 原生支持） */
   p?: SheetRichText;

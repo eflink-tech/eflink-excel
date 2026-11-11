@@ -41,6 +41,16 @@ import PresetSheetsThreadCommentZhCN from '@univerjs/preset-sheets-thread-commen
 import PresetSheetsThreadCommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US';
 import PresetSheetsThreadCommentEsES from '@univerjs/preset-sheets-thread-comment/locales/es-ES';
 import PresetSheetsThreadCommentPtBR from '@univerjs/preset-sheets-thread-comment/locales/pt-BR';
+import { UniverSheetsConditionalFormattingPreset } from '@univerjs/preset-sheets-conditional-formatting';
+import PresetSheetsConditionalFormattingZhCN from '@univerjs/preset-sheets-conditional-formatting/locales/zh-CN';
+import PresetSheetsConditionalFormattingEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US';
+import PresetSheetsConditionalFormattingEsES from '@univerjs/preset-sheets-conditional-formatting/locales/es-ES';
+import PresetSheetsConditionalFormattingPtBR from '@univerjs/preset-sheets-conditional-formatting/locales/pt-BR';
+import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation';
+import PresetSheetsDataValidationZhCN from '@univerjs/preset-sheets-data-validation/locales/zh-CN';
+import PresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US';
+import PresetSheetsDataValidationEsES from '@univerjs/preset-sheets-data-validation/locales/es-ES';
+import PresetSheetsDataValidationPtBR from '@univerjs/preset-sheets-data-validation/locales/pt-BR';
 import '@univerjs/presets/lib/styles/preset-sheets-core.css';
 import '@univerjs/presets/lib/styles/preset-sheets-filter.css';
 import '@univerjs/presets/lib/styles/preset-sheets-sort.css';
@@ -48,6 +58,8 @@ import '@univerjs/presets/lib/styles/preset-sheets-drawing.css';
 import '@univerjs/presets/lib/styles/preset-sheets-hyper-link.css';
 import '@univerjs/presets/lib/styles/preset-sheets-find-replace.css';
 import '@univerjs/presets/lib/styles/preset-sheets-thread-comment.css';
+import '@univerjs/presets/lib/styles/preset-sheets-conditional-formatting.css';
+import '@univerjs/presets/lib/styles/preset-sheets-data-validation.css';
 import { useUiStore } from '../../store/uiStore';
 import {
   debugAllMetas,
@@ -76,7 +88,7 @@ const WeComZhCN = {
 };
 import type { SnapshotCell, SnapshotSheet, WorkbookSnapshot } from '../../types/spreadsheet';
 import type { SheetImageData } from '../xlsx/sheetImage';
-import { normalizeSnapshotFormulas } from '../xlsx/formulaNormalize';
+import { normalizeSnapshotCellTypes, normalizeSnapshotFormulas } from '../xlsx/formulaNormalize';
 
 /** 界面语言 → Univer 内置语言包 */
 const UNIVER_LOCALE_BY_OFFICE: Record<OfficeLocale, LocaleType> = {
@@ -97,6 +109,8 @@ function univerLocalesByOffice(locale: OfficeLocale) {
         PresetSheetsHyperLinkEnUS,
         PresetSheetsFindReplaceEnUS,
         PresetSheetsThreadCommentEnUS,
+        PresetSheetsConditionalFormattingEnUS,
+        PresetSheetsDataValidationEnUS,
       );
     case 'es':
       return mergeLocales(
@@ -107,6 +121,8 @@ function univerLocalesByOffice(locale: OfficeLocale) {
         PresetSheetsHyperLinkEsES,
         PresetSheetsFindReplaceEsES,
         PresetSheetsThreadCommentEsES,
+        PresetSheetsConditionalFormattingEsES,
+        PresetSheetsDataValidationEsES,
       );
     case 'pt-BR':
       return mergeLocales(
@@ -117,6 +133,8 @@ function univerLocalesByOffice(locale: OfficeLocale) {
         PresetSheetsHyperLinkPtBR,
         PresetSheetsFindReplacePtBR,
         PresetSheetsThreadCommentPtBR,
+        PresetSheetsConditionalFormattingPtBR,
+        PresetSheetsDataValidationPtBR,
       );
     default:
       return mergeLocales(
@@ -127,6 +145,8 @@ function univerLocalesByOffice(locale: OfficeLocale) {
         PresetSheetsHyperLinkZhCN,
         PresetSheetsFindReplaceZhCN,
         PresetSheetsThreadCommentZhCN,
+        PresetSheetsConditionalFormattingZhCN,
+        PresetSheetsDataValidationZhCN,
         WeComZhCN,
       );
   }
@@ -193,8 +213,8 @@ export function setUniverLocale(locale: OfficeLocale): void {
 
 export interface UniverController {
   getSnapshot(): WorkbookSnapshot | null;
-  /** 加载时是否修正过历史双等号公式（调用方需在绑定保存器后置脏，让修正结果落库） */
-  healedFormulas: boolean;
+  /** 加载时是否修正过快照（双等号公式 / 缺失的单元格类型），调用方需置脏让修正结果落库 */
+  healedSnapshot: boolean;
   destroy(): void;
 }
 
@@ -302,6 +322,8 @@ export function mountUniver(
       UniverSheetsHyperLinkPreset(),
       UniverSheetsFindReplacePreset(),
       UniverSheetsThreadCommentPreset(),
+      UniverSheetsConditionalFormattingPreset(),
+      UniverSheetsDataValidationPreset(),
     ],
   });
   currentApi = univerAPI;
@@ -342,7 +364,8 @@ export function mountUniver(
   }
 
   // 历史版本导入可能把公式存成 '==SUM(...)'；加载时自愈，避免旧文档继续全表报错
-  const healedFormulas = normalizeSnapshotFormulas(snapshot);
+  // 导入快照的单元格只有值没有类型，条件格式的数字规则依赖 cell.t，加载时一并补齐
+  const healedSnapshot = normalizeSnapshotFormulas(snapshot) || normalizeSnapshotCellTypes(snapshot);
   univerAPI.createWorkbook(snapshot as never);
   // 导入的换行行按内容撑高（等首帧渲染完成后计算，见 scheduleImportedRowAutoHeight）
   const autoHeightWatch = scheduleImportedRowAutoHeight(univerAPI, snapshot);
@@ -441,7 +464,7 @@ export function mountUniver(
   });
 
   return {
-    healedFormulas,
+    healedSnapshot,
     getSnapshot() {
       const workbook = univerAPI.getActiveWorkbook();
       if (!workbook) return null;
