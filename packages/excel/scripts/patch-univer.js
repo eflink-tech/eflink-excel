@@ -12,6 +12,8 @@
  *    不一致时各列按钮高低错落。
  * 4) sheets-ui 冻结视口尺寸：冻结区合计宽高超过可视区域时，主视口被挤成负尺寸而无法滚动
  *    （xlsx 常见：冻结多列后在窄窗口打开）→ 冻结区尺寸钳制，为主视口保留最小尺寸。
+ * 5) sheets-ui 编辑框跟随滚动：单元格内编辑时滚动网格，编辑框按打开时的视口坐标绘制，
+ *    不随网格移动而悬浮 → 主视口滚动后重算编辑框位置（滚回时仍在原单元格编辑）。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -119,6 +121,17 @@ const PATCHES = [
   {
     pkg: 'sheets-ui',
     file: 'lib/es/index.js',
+    // 本包只发布 ESM（package.json 无 require 入口），cjs 产物无需同步
+    files: ['lib/es/index.js'],
+    name: '编辑中滚动网格时编辑框跟随单元格',
+    anchor:
+      '\t_init() {\n\t\tconst d = new DisposableCollection();\n\t\tthis._subscribeToCurrentCell(d);',
+    insert:
+      '\t_init() {\n\t\tconst d = new DisposableCollection();\n\t\t// [patch-univer] 编辑中滚动网格时重算编辑框位置，避免编辑框脱离单元格悬浮\n\t\tconst sheetUnit = this._univerInstanceService.getCurrentUnitOfType(UniverInstanceType.UNIVER_SHEET);\n\t\tconst sheetViewport = sheetUnit ? this._renderManagerService.getRenderById(sheetUnit.getUnitId())?.scene?.getViewport(SHEET_VIEWPORT_KEY.VIEW_MAIN) : null;\n\t\tif (sheetViewport) d.add(sheetViewport.onScrollAfter$.subscribeEvent(() => {\n\t\t\tif (!this._editorBridgeService.isVisible().visible) return;\n\t\t\tthis._editorBridgeService.refreshEditCellPosition(false);\n\t\t\tthis._sheetCellEditorResizeService?.fitTextSize();\n\t\t}));\n\t\tthis._subscribeToCurrentCell(d);',
+  },
+  {
+    pkg: 'sheets-ui',
+    file: 'lib/es/index.js',
     name: '冻结列超出可视宽度时主视口塌陷（仅左右冻结）',
     anchor:
       '\t\t} else if (isTopView === false && isLeftView === true) {\n\t\t\tconst leftGap = endSheetView.startX - startSheetView.startX;',
@@ -148,7 +161,7 @@ const PATCHES = [
 // 同一文件多补丁只在读一次内存里链式应用；cjs / es / lib/index 内容一致，一并处理
 const targets = new Map();
 for (const patch of PATCHES) {
-  const files = [patch.file, patch.file.replace('/es/', '/cjs/')];
+  const files = patch.files ?? [patch.file, patch.file.replace('/es/', '/cjs/')];
   // drawing-ui 另有 lib/index.js 入口（部分打包路径会走这里，补丁漏掉会导致双击仍弹出预览）
   if (patch.pkg === 'drawing-ui') files.push('lib/index.js');
   for (const file of files) {
