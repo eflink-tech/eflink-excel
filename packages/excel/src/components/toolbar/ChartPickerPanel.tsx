@@ -1,6 +1,5 @@
 // 图表选择面板：锚定在工具栏按钮下方，样式与其他下拉菜单一致
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import * as echarts from 'echarts';
 import { useI18n } from '@eflink-tech/office-kit';
 import { CHART_GROUPS, buildChartOption, type ChartTypeSpec } from '../../core/univer/chartOptions';
 import { CHART_GROUP_KEYS, CHART_TYPE_KEYS } from '../../i18n';
@@ -12,10 +11,20 @@ const THUMB_H = 58;
 function Thumb({ typeId, matrix }: { typeId: string; matrix: unknown[][] }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!ref.current) return;
-    const chart = echarts.init(ref.current, null, { width: THUMB_W, height: THUMB_H });
-    chart.setOption(buildChartOption(matrix, typeId, true));
-    return () => chart.dispose();
+    const el = ref.current;
+    if (!el) return;
+    let dispose: (() => void) | undefined;
+    let cancelled = false;
+    void import('echarts').then((echarts) => {
+      if (cancelled || !el) return;
+      const chart = echarts.init(el, null, { width: THUMB_W, height: THUMB_H });
+      chart.setOption(buildChartOption(matrix, typeId, true));
+      dispose = () => chart.dispose();
+    });
+    return () => {
+      cancelled = true;
+      dispose?.();
+    };
   }, [typeId, matrix]);
   return <div ref={ref} className="myf-chart-picker__thumb" />;
 }

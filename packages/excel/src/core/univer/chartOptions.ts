@@ -4,7 +4,6 @@
  * 保证「所见即所插」。选区数据约定：柱状/折线类首行为系列名、首列为类别名；
  * 饼图/散点图取第一、二列；雷达图首列为类别名（指标名）。
  */
-import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 
 export interface ChartTypeSpec {
@@ -143,6 +142,7 @@ function trendData(data: number[]): number[] {
 
 /** 渲染图表选项为带边框阴影的 PNG dataURL（白色底板 + 细边框 + 投影） */
 export async function renderChartFrameToDataUrl(option: EChartsOption): Promise<string> {
+  const echarts = await import('echarts');
   const div = document.createElement('div');
   div.style.cssText = 'position:fixed;left:-99999px;top:0;width:640px;height:400px;';
   document.body.appendChild(div);

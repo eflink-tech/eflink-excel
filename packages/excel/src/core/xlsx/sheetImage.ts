@@ -1,7 +1,6 @@
 // 当前 sheet 整表导出为 PNG：按已用区域重建一张 HTML 表格再截图，
 // 而不是截编辑器可视区域（长表/宽表会丢内容）。显示值由 Univer facade 提供，
 // 保证公式结果、数字格式与界面一致。
-import html2canvas from 'html2canvas';
 import { downloadBlob } from './fileIO';
 import type { CellStyle, SnapshotCell, SnapshotSheet } from '../../types/spreadsheet';
 
@@ -247,6 +246,7 @@ export async function exportSheetPng(data: SheetImageData, title: string): Promi
       0.01,
       Math.min(dpr, 2, MAX_DIM / width, MAX_DIM / height, Math.sqrt(MAX_PIXELS / (width * height))),
     );
+    const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(host, {
       backgroundColor: '#ffffff',
       logging: false,

@@ -1,5 +1,5 @@
 // AI 服务：OpenAI 兼容接口（流式，浏览器直连，BYOK 模式与 eflink-pptx 一致）
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
 import { excelT } from '../i18n'
 import { AIError, isAbortError, type AISettings } from './types'
 
@@ -33,7 +33,8 @@ export async function sendMessage(params: SendMessageParams): Promise<SendMessag
     throw new AIError(excelT('excel.ai.notConfiguredError'))
   }
 
-  const client = new OpenAI({
+  const { default: OpenAIClient } = await import('openai')
+  const client = new OpenAIClient({
     baseURL: settings.baseUrl,
     apiKey: settings.apiKey,
     dangerouslyAllowBrowser: true,

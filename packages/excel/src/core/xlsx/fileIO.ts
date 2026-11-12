@@ -1,6 +1,6 @@
 // 浏览器侧文件 IO：xlsx 导入导出、PNG 导出、下载工具
-import * as ExcelJS from 'exceljs';
-import html2canvas from 'html2canvas';
+// exceljs / html2canvas 体量大且只在导入导出/截图时用到，改为调用点动态加载，
+// 避免编辑器首屏就把它们打进同一个 chunk。
 import JSZip from 'jszip';
 import { snapshotToWorkbook } from './snapshotToWorkbook';
 import { workbookToSnapshot } from './workbookToSnapshot';
@@ -25,6 +25,7 @@ export interface ImportXlsxResult {
 }
 
 export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Promise<void> {
+  const ExcelJS = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   snapshotToWorkbook(snapshot, wb);
   const buffer = await wb.xlsx.writeBuffer();
@@ -33,6 +34,7 @@ export async function exportXlsx(snapshot: WorkbookSnapshot, title: string): Pro
 
 export async function importXlsx(file: File): Promise<ImportXlsxResult> {
   const buffer = await file.arrayBuffer();
+  const ExcelJS = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(await clampOversizedDataValidations(buffer));
   const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
@@ -48,6 +50,7 @@ export async function importXlsx(file: File): Promise<ImportXlsxResult> {
 /** 只解析工作簿快照（不渲染图表/批注），供导入预览使用 */
 export async function parseXlsxSnapshot(file: File): Promise<WorkbookSnapshot> {
   const buffer = await file.arrayBuffer();
+  const ExcelJS = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(await clampOversizedDataValidations(buffer));
   const normalFontSize = await readNormalFontSize(buffer).catch(() => undefined);
@@ -88,6 +91,7 @@ async function renderImportedCharts(charts: ImportedChart[]): Promise<ImportedCh
 
 /** 截取编辑器可视区域为 PNG */
 export async function exportPng(container: HTMLElement, title: string): Promise<void> {
+  const { default: html2canvas } = await import('html2canvas');
   const canvas = await html2canvas(container, { backgroundColor: '#ffffff', logging: false });
   await new Promise<void>((resolve) =>
     canvas.toBlob((blob) => {
