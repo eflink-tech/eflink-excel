@@ -1,0 +1,981 @@
+{
+  "title": "销售台账与部门汇总",
+  "workbookName": "2026年11月 销售台账",
+  "sheets": [
+    {
+      "name": "月度销售",
+      "rowCount": 30,
+      "columnCount": 10,
+      "showGridlines": false,
+      "freeze": {
+        "rows": 2,
+        "columns": 0
+      },
+      "tabColor": "#2F5597",
+      "columns": [
+        50,
+        100,
+        140,
+        100,
+        60,
+        90,
+        70,
+        110,
+        80
+      ],
+      "rowHeights": {
+        "0": 40,
+        "1": 30
+      },
+      "merges": [
+        "A1:I1",
+        "A11:F11",
+        "A12:G12"
+      ],
+      "styles": {
+        "title": {
+          "bold": true,
+          "fontSize": 16,
+          "color": "#FFFFFF",
+          "background": "#1F3864",
+          "align": "center",
+          "vAlign": "middle"
+        },
+        "header": {
+          "bold": true,
+          "fontSize": 11,
+          "color": "#FFFFFF",
+          "background": "#2F5597",
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#1F3864"
+          }
+        },
+        "td": {
+          "fontSize": 10,
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "center": {
+          "fontSize": 10,
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "money": {
+          "fontSize": 10,
+          "align": "right",
+          "vAlign": "middle",
+          "numberFormat": "#,##0.00",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "percent": {
+          "fontSize": 10,
+          "align": "center",
+          "vAlign": "middle",
+          "numberFormat": "0.0%",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "total": {
+          "bold": true,
+          "fontSize": 10,
+          "background": "#DCE6F1",
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#2F5597"
+          }
+        },
+        "totalMoney": {
+          "bold": true,
+          "fontSize": 10,
+          "background": "#DCE6F1",
+          "align": "right",
+          "vAlign": "middle",
+          "numberFormat": "#,##0.00",
+          "border": {
+            "style": "thin",
+            "color": "#2F5597"
+          }
+        },
+        "note": {
+          "fontSize": 10,
+          "color": "#6B7280",
+          "vAlign": "middle"
+        }
+      },
+      "data": [
+        [
+          {
+            "value": "2026年11月 销售台账",
+            "style": "title"
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          {
+            "value": "序号",
+            "style": "header"
+          },
+          {
+            "value": "日期",
+            "style": "header"
+          },
+          {
+            "value": "客户",
+            "style": "header"
+          },
+          {
+            "value": "产品",
+            "style": "header"
+          },
+          {
+            "value": "数量",
+            "style": "header"
+          },
+          {
+            "value": "单价",
+            "style": "header"
+          },
+          {
+            "value": "折扣",
+            "style": "header"
+          },
+          {
+            "value": "金额",
+            "style": "header"
+          },
+          {
+            "value": "销售员",
+            "style": "header"
+          }
+        ],
+        [
+          {
+            "value": 1,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-01",
+            "style": "center"
+          },
+          {
+            "value": "华信科技",
+            "style": "td"
+          },
+          {
+            "value": "标准版",
+            "style": "td"
+          },
+          {
+            "value": 20,
+            "style": "center"
+          },
+          {
+            "value": 1200,
+            "style": "money"
+          },
+          {
+            "value": 0.05,
+            "style": "percent"
+          },
+          {
+            "formula": "=E3*F3*(1-G3)",
+            "style": "money"
+          },
+          {
+            "value": "张伟",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 2,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-02",
+            "style": "center"
+          },
+          {
+            "value": "恒远集团",
+            "style": "td"
+          },
+          {
+            "value": "专业版",
+            "style": "td"
+          },
+          {
+            "value": 10,
+            "style": "center"
+          },
+          {
+            "value": 2400,
+            "style": "money"
+          },
+          {
+            "value": 0.1,
+            "style": "percent"
+          },
+          {
+            "formula": "=E4*F4*(1-G4)",
+            "style": "money"
+          },
+          {
+            "value": "李娜",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 3,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-03",
+            "style": "center"
+          },
+          {
+            "value": "蓝海物流",
+            "style": "td"
+          },
+          {
+            "value": "标准版",
+            "style": "td"
+          },
+          {
+            "value": 35,
+            "style": "center"
+          },
+          {
+            "value": 1200,
+            "style": "money"
+          },
+          {
+            "value": 0,
+            "style": "percent"
+          },
+          {
+            "formula": "=E5*F5*(1-G5)",
+            "style": "money"
+          },
+          {
+            "value": "王强",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 4,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-05",
+            "style": "center"
+          },
+          {
+            "value": "星辉传媒",
+            "style": "td"
+          },
+          {
+            "value": "旗舰版",
+            "style": "td"
+          },
+          {
+            "value": 6,
+            "style": "center"
+          },
+          {
+            "value": 4800,
+            "style": "money"
+          },
+          {
+            "value": 0.15,
+            "style": "percent"
+          },
+          {
+            "formula": "=E6*F6*(1-G6)",
+            "style": "money"
+          },
+          {
+            "value": "张伟",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 5,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-08",
+            "style": "center"
+          },
+          {
+            "value": "华信科技",
+            "style": "td"
+          },
+          {
+            "value": "专业版",
+            "style": "td"
+          },
+          {
+            "value": 15,
+            "style": "center"
+          },
+          {
+            "value": 2400,
+            "style": "money"
+          },
+          {
+            "value": 0.05,
+            "style": "percent"
+          },
+          {
+            "formula": "=E7*F7*(1-G7)",
+            "style": "money"
+          },
+          {
+            "value": "赵敏",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 6,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-10",
+            "style": "center"
+          },
+          {
+            "value": "天工制造",
+            "style": "td"
+          },
+          {
+            "value": "标准版",
+            "style": "td"
+          },
+          {
+            "value": 40,
+            "style": "center"
+          },
+          {
+            "value": 1200,
+            "style": "money"
+          },
+          {
+            "value": 0.08,
+            "style": "percent"
+          },
+          {
+            "formula": "=E8*F8*(1-G8)",
+            "style": "money"
+          },
+          {
+            "value": "李娜",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 7,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-12",
+            "style": "center"
+          },
+          {
+            "value": "恒远集团",
+            "style": "td"
+          },
+          {
+            "value": "旗舰版",
+            "style": "td"
+          },
+          {
+            "value": 4,
+            "style": "center"
+          },
+          {
+            "value": 4800,
+            "style": "money"
+          },
+          {
+            "value": 0.1,
+            "style": "percent"
+          },
+          {
+            "formula": "=E9*F9*(1-G9)",
+            "style": "money"
+          },
+          {
+            "value": "王强",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": 8,
+            "style": "center"
+          },
+          {
+            "value": "2026-11-14",
+            "style": "center"
+          },
+          {
+            "value": "蓝海物流",
+            "style": "td"
+          },
+          {
+            "value": "专业版",
+            "style": "td"
+          },
+          {
+            "value": 12,
+            "style": "center"
+          },
+          {
+            "value": 2400,
+            "style": "money"
+          },
+          {
+            "value": 0,
+            "style": "percent"
+          },
+          {
+            "formula": "=E10*F10*(1-G10)",
+            "style": "money"
+          },
+          {
+            "value": "赵敏",
+            "style": "center"
+          }
+        ],
+        [
+          {
+            "value": "合计",
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "formula": "=AVERAGE(G3:G10)",
+            "style": "percent"
+          },
+          {
+            "formula": "=SUM(H3:H10)",
+            "style": "totalMoney"
+          },
+          {
+            "value": null,
+            "style": "total"
+          }
+        ],
+        [
+          {
+            "value": "目标完成情况（目标 260,000）",
+            "style": "note"
+          },
+          {
+            "value": null
+          },
+          {
+            "value": null
+          },
+          {
+            "value": null
+          },
+          {
+            "value": null
+          },
+          {
+            "value": null
+          },
+          {
+            "value": null
+          },
+          {
+            "formula": "=H11/260000",
+            "style": "percent"
+          },
+          {
+            "formula": "=IF(H11>=260000,\"已达成\",\"未达成\")",
+            "style": "center"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "部门汇总",
+      "rowCount": 24,
+      "columnCount": 6,
+      "showGridlines": false,
+      "freeze": {
+        "rows": 1,
+        "columns": 0
+      },
+      "tabColor": "#2E75B6",
+      "columns": [
+        100,
+        80,
+        120,
+        80
+      ],
+      "rowHeights": {
+        "0": 40,
+        "1": 28
+      },
+      "merges": [
+        "A1:D1"
+      ],
+      "styles": {
+        "title": {
+          "bold": true,
+          "fontSize": 16,
+          "color": "#FFFFFF",
+          "background": "#1F3864",
+          "align": "center",
+          "vAlign": "middle"
+        },
+        "header": {
+          "bold": true,
+          "fontSize": 11,
+          "color": "#FFFFFF",
+          "background": "#2F5597",
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#1F3864"
+          }
+        },
+        "center": {
+          "fontSize": 10,
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "money": {
+          "fontSize": 10,
+          "align": "right",
+          "vAlign": "middle",
+          "numberFormat": "#,##0.00",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "percent": {
+          "fontSize": 10,
+          "align": "center",
+          "vAlign": "middle",
+          "numberFormat": "0.0%",
+          "border": {
+            "style": "thin",
+            "color": "#C9D3E0"
+          }
+        },
+        "total": {
+          "bold": true,
+          "fontSize": 10,
+          "background": "#DCE6F1",
+          "align": "center",
+          "vAlign": "middle",
+          "border": {
+            "style": "thin",
+            "color": "#2F5597"
+          }
+        },
+        "totalMoney": {
+          "bold": true,
+          "fontSize": 10,
+          "background": "#DCE6F1",
+          "align": "right",
+          "vAlign": "middle",
+          "numberFormat": "#,##0.00",
+          "border": {
+            "style": "thin",
+            "color": "#2F5597"
+          }
+        }
+      },
+      "data": [
+        [
+          {
+            "value": "2026年11月 部门回款汇总",
+            "style": "title"
+          },
+          null,
+          null,
+          null
+        ],
+        [
+          {
+            "value": "部门",
+            "style": "header"
+          },
+          {
+            "value": "批次",
+            "style": "header"
+          },
+          {
+            "value": "回款金额",
+            "style": "header"
+          }
+        ],
+        [
+          {
+            "value": "华东",
+            "style": "center"
+          },
+          {
+            "value": "11月",
+            "style": "center"
+          },
+          {
+            "value": 68000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "华南",
+            "style": "center"
+          },
+          {
+            "value": "11月",
+            "style": "center"
+          },
+          {
+            "value": 52000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "华北",
+            "style": "center"
+          },
+          {
+            "value": "11月",
+            "style": "center"
+          },
+          {
+            "value": 41000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "西部",
+            "style": "center"
+          },
+          {
+            "value": "11月",
+            "style": "center"
+          },
+          {
+            "value": 34000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "华东",
+            "style": "center"
+          },
+          {
+            "value": "12月",
+            "style": "center"
+          },
+          {
+            "value": 45000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "华南",
+            "style": "center"
+          },
+          {
+            "value": "12月",
+            "style": "center"
+          },
+          {
+            "value": 38000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "华北",
+            "style": "center"
+          },
+          {
+            "value": "12月",
+            "style": "center"
+          },
+          {
+            "value": 30000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "西部",
+            "style": "center"
+          },
+          {
+            "value": "12月",
+            "style": "center"
+          },
+          {
+            "value": 26000,
+            "style": "money"
+          }
+        ],
+        [
+          {
+            "value": "合计",
+            "style": "total"
+          },
+          {
+            "value": null,
+            "style": "total"
+          },
+          {
+            "formula": "=SUM(C3:C10)",
+            "style": "totalMoney"
+          }
+        ],
+        [],
+        [
+          {
+            "value": "部门",
+            "style": "header"
+          },
+          {
+            "value": "单数",
+            "style": "header"
+          },
+          {
+            "value": "回款合计",
+            "style": "header"
+          },
+          {
+            "value": "占比",
+            "style": "header"
+          }
+        ],
+        [
+          {
+            "value": "华东",
+            "style": "center"
+          },
+          {
+            "formula": "=COUNTIF($A$3:$A$10,A14)",
+            "style": "center"
+          },
+          {
+            "formula": "=SUMIF($A$3:$A$10,A14,$C$3:$C$10)",
+            "style": "money"
+          },
+          {
+            "formula": "=C14/$C$11",
+            "style": "percent"
+          }
+        ],
+        [
+          {
+            "value": "华南",
+            "style": "center"
+          },
+          {
+            "formula": "=COUNTIF($A$3:$A$10,A15)",
+            "style": "center"
+          },
+          {
+            "formula": "=SUMIF($A$3:$A$10,A15,$C$3:$C$10)",
+            "style": "money"
+          },
+          {
+            "formula": "=C15/$C$11",
+            "style": "percent"
+          }
+        ],
+        [
+          {
+            "value": "华北",
+            "style": "center"
+          },
+          {
+            "formula": "=COUNTIF($A$3:$A$10,A16)",
+            "style": "center"
+          },
+          {
+            "formula": "=SUMIF($A$3:$A$10,A16,$C$3:$C$10)",
+            "style": "money"
+          },
+          {
+            "formula": "=C16/$C$11",
+            "style": "percent"
+          }
+        ],
+        [
+          {
+            "value": "西部",
+            "style": "center"
+          },
+          {
+            "formula": "=COUNTIF($A$3:$A$10,A17)",
+            "style": "center"
+          },
+          {
+            "formula": "=SUMIF($A$3:$A$10,A17,$C$3:$C$10)",
+            "style": "money"
+          },
+          {
+            "formula": "=C17/$C$11",
+            "style": "percent"
+          }
+        ],
+        [
+          {
+            "value": "合计",
+            "style": "total"
+          },
+          {
+            "formula": "=SUM(B14:B17)",
+            "style": "total"
+          },
+          {
+            "formula": "=SUM(C14:C17)",
+            "style": "totalMoney"
+          },
+          {
+            "formula": "=SUM(D14:D17)",
+            "style": "percent"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "参数",
+      "hidden": true,
+      "tabColor": "#F59E0B",
+      "columns": [
+        120,
+        180
+      ],
+      "styles": {
+        "k": {
+          "bold": true,
+          "fontSize": 10,
+          "background": "#FEF3C7",
+          "border": {
+            "style": "thin",
+            "color": "#D1D5DB"
+          },
+          "vAlign": "middle"
+        },
+        "v": {
+          "fontSize": 10,
+          "border": {
+            "style": "thin",
+            "color": "#D1D5DB"
+          },
+          "vAlign": "middle"
+        }
+      },
+      "data": [
+        [
+          {
+            "value": "参数",
+            "style": "k"
+          },
+          {
+            "value": "值",
+            "style": "k"
+          }
+        ],
+        [
+          {
+            "value": "月份",
+            "style": "k"
+          },
+          {
+            "value": "2026-11",
+            "style": "v"
+          }
+        ],
+        [
+          {
+            "value": "销售目标",
+            "style": "k"
+          },
+          {
+            "value": 260000,
+            "style": "v"
+          }
+        ],
+        [
+          {
+            "value": "币种",
+            "style": "k"
+          },
+          {
+            "value": "CNY",
+            "style": "v"
+          }
+        ]
+      ]
+    }
+  ]
+}
